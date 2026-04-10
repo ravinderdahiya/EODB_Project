@@ -1,0 +1,6 @@
+{
+  "state": "/data/haryana-state.geojson",
+  "districts": "/data/haryana-districts.geojson",
+  "tehsils": "/data/haryana-tehsils-demo.geojson",
+  "villages": "/data/haryana-villages-demo.geojson"
+}

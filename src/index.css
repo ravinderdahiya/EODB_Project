@@ -1,0 +1,98 @@
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Merriweather+Sans:wght@500;700&display=swap');
+
+:root {
+  font-family: 'Manrope', 'Segoe UI', sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  color: #22323d;
+  background: #eef2f5;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  color-scheme: light;
+  --panel-bg: rgba(251, 253, 254, 0.9);
+  --panel-border: rgba(214, 222, 227, 0.92);
+  --panel-shadow: 0 18px 40px rgba(31, 43, 51, 0.09);
+  --text-primary: #22323d;
+  --text-muted: #70818c;
+  --accent: #6d9980;
+  --accent-strong: #8fb09a;
+  --ink: #22323d;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  min-height: 100vh;
+}
+
+body {
+  background: #eef2f5;
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.panel-card {
+  border: 1px solid var(--panel-border);
+  border-radius: 1.2rem;
+  background: var(--panel-bg);
+  box-shadow: var(--panel-shadow);
+  backdrop-filter: blur(14px);
+}
+
+.panel-title {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 0.98rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.panel-subtitle {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+}
+
+.leaflet-container {
+  width: 100%;
+  height: 100%;
+  background: #d7e0e6;
+  font-family: 'Manrope', 'Segoe UI', sans-serif;
+}
+
+.leaflet-control-attribution {
+  background: rgba(255, 255, 255, 0.92) !important;
+  color: #44555f !important;
+  border-radius: 0.6rem 0 0 0;
+}
+
+.leaflet-popup-content-wrapper,
+.leaflet-popup-tip {
+  background: rgba(255, 255, 255, 0.98);
+  color: #22323d;
+}
+
+.leaflet-popup-content {
+  margin: 0.9rem 1rem;
+}
