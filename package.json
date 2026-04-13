@@ -1,0 +1,23 @@
+{
+  "name": "digital-land-record-haryana",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "npm run copy:arcgis && vite",
+    "build": "npm run copy:arcgis && vite build",
+    "preview": "vite preview",
+    "copy:arcgis": "cpx \"node_modules/@arcgis/core/assets/**/*.*\" ./public/assets"
+  },
+  "dependencies": {
+    "@arcgis/core": "^5.0.16",
+    "lucide-react": "^1.8.0",
+    "react": "^19.2.5",
+    "react-dom": "^19.2.5"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^6.0.1",
+    "cpx2": "^8.0.2",
+    "vite": "^8.0.8"
+  }
+}

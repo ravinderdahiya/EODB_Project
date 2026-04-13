@@ -1,0 +1,1 @@
+import{i as e,t,w as n}from"./layerUtils-DjbrMZDI.js";function r(e){return typeof e==`object`&&!!e&&`loaded`in e&&!0===e.loaded&&`type`in e}function i(i){return!(!r(i)||!t(i)?.operations?.supportsEditing||`editingEnabled`in i&&!e(i)||n(i))}export{i as t};

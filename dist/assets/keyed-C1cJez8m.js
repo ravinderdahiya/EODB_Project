@@ -1,0 +1,1 @@
+import{C as e,_ as t,g as n,v as r}from"./runtime-xSN1LigJ.js";var i=t(class extends r{constructor(){super(...arguments),this.key=e}render(e,t){return this.key=e,t}update(e,[t,r]){return t!==this.key&&(n(e),this.key=t),r}});export{i as t};
