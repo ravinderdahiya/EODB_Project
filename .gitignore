@@ -1,0 +1,59 @@
+# Node modules
+node_modules/
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build folders
+build/
+dist/
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+
+# Dependency directories
+jspm_packages/
+
+# Optional npm cache
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# Coverage directory
+coverage/
+
+# Temporary files
+tmp/
+temp/
+
+# Next.js / Vite (if used)
+.next/
+out/
+
+# Laravel (if backend in same project)
+vendor/
+storage/
+.env
+
+# PostgreSQL dump files
+*.sql
+
+# Upload files (optional)
+uploads/
