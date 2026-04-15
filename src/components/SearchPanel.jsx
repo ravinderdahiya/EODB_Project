@@ -83,7 +83,7 @@ function SearchSection({ section, parcels, onPrint, isOpen, onToggle }) {
     <div className={`search-section ${isOpen ? "search-section--open" : ""}`}>
       <button
         type="button"
-        className="search-section__trigger"
+        className="search-section__trigger sidebar__nav-item  sidebar__nav-item--active"
         onClick={onToggle}
         aria-expanded={isOpen}
       >
@@ -132,10 +132,8 @@ export default function SearchPanel({ parcels, onPrint }) {
 
   return (
     <div className="sidebar-search">
-      <div className="sidebar-search__header">
-        <span className="sidebar-search__title">Search</span>
-      </div>
-      <div className="sidebar-search__sections">
+      
+      <div className="">
         {SECTIONS.map((section) => (
           <SearchSection
             key={section.id}

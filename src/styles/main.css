@@ -517,7 +517,7 @@ button {
 }
 
 :root[data-theme="dark"] .dashboard-shell {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0));
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0));
 }
 
 :root[data-theme="dark"] .sidebar__surface {
@@ -533,7 +533,7 @@ button {
 }
 
 :root[data-theme="dark"] .sidebar__nav-item {
-  background: rgba(20, 36, 50, 0.72);
+  background: rgba(46, 64, 81, 0.72);
 }
 
 :root[data-theme="dark"] .sidebar__nav-item:hover {
@@ -1026,6 +1026,7 @@ button {
   background: rgba(255, 255, 255, 0.66);
   text-align: left;
   transition: transform 180ms ease, background-color 180ms ease, box-shadow 180ms ease;
+  box-shadow:0 8px 20px rgba(189, 189, 189, 0.967);
 }
 
 .sidebar__nav-item:hover {
@@ -1197,6 +1198,37 @@ button {
   z-index: 10;
 }
 
+/* ── Disclaimer ticker ─────────────────────────────────────────── */
+.map-disclaimer {
+  flex-shrink: 0;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.963);
+  height: 1.9rem;
+  display: flex;
+  align-items: center;
+}
+
+.map-disclaimer__track {
+  display: inline-block;
+  white-space: nowrap;
+  color: #f0e8c8;
+  font-size: 0.90rem;
+  font-family: inherit;
+  letter-spacing: 0.01em;
+  animation: disclaimer-scroll 38s linear infinite;
+  padding-left: 100%;
+}
+
+@keyframes disclaimer-scroll {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+
+:root[data-theme="dark"] .map-disclaimer {
+  background: rgba(0, 0, 0, 0.82);
+}
+/* ─────────────────────────────────────────────────────────────── */
+
 .map-toolbar {
   position: absolute;
   top: 4.8rem;
@@ -1340,8 +1372,8 @@ button {
   padding: 0.72rem 0.8rem;
   border: 0;
   border-radius: 12px;
-  background: linear-gradient(135deg, rgba(47, 141, 93, 0.88), rgba(46, 115, 180, 0.82));
-  color: white;
+  /* background: linear-gradient(135deg, rgba(47, 141, 93, 0.88), rgba(46, 115, 180, 0.82)); */
+  /* color: white; */
   font-weight: 700;
   font-size: 0.86rem;
   text-align: left;
@@ -1351,13 +1383,13 @@ button {
 }
 
 .search-section__trigger:hover {
-  background: linear-gradient(135deg, rgba(47, 141, 93, 0.98), rgba(46, 115, 180, 0.94));
+  /* background: linear-gradient(135deg, rgba(47, 141, 93, 0.98), rgba(46, 115, 180, 0.94)); */
   box-shadow: 0 6px 18px rgba(47, 141, 93, 0.32);
 }
 
 .search-section--open .search-section__trigger {
   border-radius: 12px 12px 0 0;
-  background: linear-gradient(135deg, rgba(47, 141, 93, 0.95), rgba(46, 115, 180, 0.9));
+  /* background: linear-gradient(135deg, rgba(47, 141, 93, 0.95), rgba(46, 115, 180, 0.9)); */
   box-shadow: none;
 }
 
