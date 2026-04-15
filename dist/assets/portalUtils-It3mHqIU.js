@@ -1,0 +1,1 @@
+import{t as e}from"./Portal-B8BC7ZqP.js";function t(t,n){return t===null?n:new e({url:t.field(`url`)})}export{t};

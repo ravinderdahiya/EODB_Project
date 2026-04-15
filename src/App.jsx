@@ -67,13 +67,14 @@ export default function App() {
   const isMobile = useMediaQuery("(max-width: 1024px)");
   const [isPending, startTransition] = useTransition();
 
-  const [activeNav, setActiveNav] = useState("dashboard");
+  const [activeNav, setActiveNav] = useState(navigationItems[0]?.id ?? "");
   const [theme, setTheme] = useState(getInitialTheme);
   const [glassMode, setGlassMode] = useState(getInitialGlassMode);
   const [language, setLanguage] = useState(languageOptions[0]);
   const [sidebarOpen, setSidebarOpen] = useState(!isTablet);
-  const [layerPanelOpen, setLayerPanelOpen] = useState(false);
-  const [basemapPanelOpen, setBasemapPanelOpen] = useState(false);
+  // single active-panel state — only one floating panel open at a time
+  const [activeMapPanel, setActiveMapPanel] = useState(null); // 'layers' | 'basemap' | null
+  const toggleMapPanel = (name) => setActiveMapPanel((p) => (p === name ? null : name));
   const [recordPanelOpen, setRecordPanelOpen] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [searchValue, setSearchValue] = useState("");
@@ -162,10 +163,7 @@ export default function App() {
   }, [glassMode]);
 
   useEffect(() => {
-    if (isMobile) {
-      setLayerPanelOpen(false);
-      setBasemapPanelOpen(false);
-    }
+    if (isMobile) setActiveMapPanel(null);
   }, [isMobile]);
 
   useEffect(() => {
@@ -218,15 +216,9 @@ export default function App() {
   const handleBasemapChange = (nextPreset) => {
     setActiveBasemap(nextPreset);
 
-    if (nextPreset === "satellite") {
-      setLayerVisibility((current) => ({ ...current, cadastral: false }));
-    }
-
     if (nextPreset === "cadastral") {
       setLayerVisibility((current) => ({ ...current, cadastral: true }));
-    }
-
-    if (nextPreset === "topo") {
+    } else {
       setLayerVisibility((current) => ({ ...current, cadastral: false }));
     }
 
@@ -252,10 +244,8 @@ export default function App() {
       return;
     }
 
-    if (actionId === "layers") {
-      setLayerPanelOpen((current) => !current);
-      return;
-    }
+    if (actionId === "layers") { toggleMapPanel("layers"); return; }
+    if (actionId === "basemap") { toggleMapPanel("basemap"); return; }
 
     if (actionId === "reset" || actionId === "target") {
       const result = await resetView();
@@ -270,6 +260,7 @@ export default function App() {
     }
 
     if (actionId === "measurement") {
+      setActiveMapPanel(null);
       setMeasurementMode((current) => {
         if (current === null) {
           setSystemMessage("Distance measurement workflow is staged for ArcGIS widget hookup.");
@@ -342,7 +333,6 @@ export default function App() {
   return (
     <div className="app-shell">
       <AppHeader
-        basemapOpen={basemapPanelOpen}
         language={language}
         languages={languageOptions}
         searchPlaceholder={selectedParcel.breadcrumb}
@@ -351,12 +341,11 @@ export default function App() {
         theme={theme}
         onToggleGlass={() => setGlassMode((current) => !current)}
         onLanguageChange={setLanguage}
-        onManualRecord={openManualRecord}
         onSidebarToggle={() => setSidebarOpen((current) => !current)}
         onToggleTheme={() =>
           setTheme((current) => (current === "light" ? "dark" : "light"))
         }
-        onToggleBasemap={() => setBasemapPanelOpen((current) => !current)}
+        onLogout={() => setSystemMessage("Logout triggered.")}
         searchValue={searchValue}
         onSearchValueChange={setSearchValue}
         onSearchSubmit={handleSearchSubmit}
@@ -382,16 +371,12 @@ export default function App() {
           activeId={activeNav}
           items={navigationItems}
           isOpen={sidebarOpen}
+          parcels={mockParcels}
+          onManualRecord={openManualRecord}
           onSelect={(id) => {
             setActiveNav(id);
 
-            if (id === "layers") {
-              setLayerPanelOpen(true);
-            }
-
-            if (id === "search") {
-              document.getElementById("portal-search")?.focus();
-            }
+            if (id === "layers") setActiveMapPanel("layers");
           }}
         />
 
@@ -401,20 +386,21 @@ export default function App() {
             mapRef={containerRef}
           >
             <MapToolbar
-              activeLayerPanel={layerPanelOpen}
+              activeLayerPanel={activeMapPanel === "layers"}
+              activeBasemapPanel={activeMapPanel === "basemap"}
               activeMeasurement={Boolean(measurementMode)}
               onAction={handleToolbarAction}
             />
 
             <LayerPanel
-              isOpen={layerPanelOpen}
+              isOpen={activeMapPanel === "layers"}
               layerVisibility={layerVisibility}
               onToggleLayer={handleToggleLayer}
               onRefresh={handleRefresh}
               serviceHealth={serviceHealth}
             />
 
-            {basemapPanelOpen ? (
+            {activeMapPanel === "basemap" ? (
               <BasemapSwitcher
                 activeBasemap={activeBasemap}
                 onChange={handleBasemapChange}

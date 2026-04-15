@@ -1,8 +1,7 @@
 import {
   ChevronDown,
-  FileText,
   Globe,
-  Layers3,
+  LogOut,
   Menu,
   MoonStar,
   Search,
@@ -11,7 +10,6 @@ import {
 } from "lucide-react";
 
 export default function AppHeader({
-  basemapOpen,
   glassMode,
   language,
   languages,
@@ -19,11 +17,10 @@ export default function AppHeader({
   sidebarOpen,
   theme,
   onToggleGlass,
-  onManualRecord,
   onLanguageChange,
   onSidebarToggle,
   onToggleTheme,
-  onToggleBasemap,
+  onLogout,
   searchValue,
   onSearchValueChange,
   onSearchSubmit,
@@ -116,7 +113,6 @@ export default function AppHeader({
           aria-label={`${glassMode ? "Disable" : "Enable"} glass mode`}
         >
           <Sparkles size={16} />
-          <span>Glass Mode</span>
         </button>
 
         <button
@@ -126,27 +122,6 @@ export default function AppHeader({
           aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
         >
           {theme === "dark" ? <SunMedium size={16} /> : <MoonStar size={16} />}
-          <span>{theme === "dark" ? "Light Mode" : "Dark Mode"}</span>
-        </button>
-
-        <button
-          type="button"
-          className={`header-action-button ${
-            basemapOpen ? "header-action-button--active" : ""
-          }`}
-          onClick={onToggleBasemap}
-        >
-          <Layers3 size={16} />
-          <span>View Mode</span>
-        </button>
-
-        <button
-          type="button"
-          className="header-action-button header-action-button--primary"
-          onClick={onManualRecord}
-        >
-          <FileText size={16} />
-          <span>Manual Land Record</span>
         </button>
 
         <div className="select-shell">
@@ -165,8 +140,14 @@ export default function AppHeader({
           <ChevronDown size={14} />
         </div>
 
-        <button type="button" className="profile-chip" aria-label="Portal profile">
-          <span className="profile-chip__avatar">P</span>
+        <button
+          type="button"
+          className="header-action-button header-action-button--logout"
+          onClick={onLogout}
+          aria-label="Logout"
+        >
+          <LogOut size={16} />
+          <span>Logout</span>
         </button>
       </div>
     </header>

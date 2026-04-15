@@ -1,1 +1,0 @@
-import"./apiConverter-B3wqnKuF.js";import{i as e,n as t,r as n}from"./labelPointOperator-C3_t3x4r.js";export{n as execute,e as executeMany,t as supportsCurves};

@@ -2,6 +2,7 @@ import {
   Crosshair,
   Layers3,
   LocateFixed,
+  Map,
   Minus,
   Plus,
   RefreshCcw,
@@ -14,6 +15,7 @@ const tools = [
   { id: "zoom-in", icon: Plus, label: "Zoom in" },
   { id: "zoom-out", icon: Minus, label: "Zoom out" },
   { id: "layers", icon: Layers3, label: "Toggle layers" },
+  { id: "basemap", icon: Map, label: "Basemap options" },
   { id: "reset", icon: RefreshCcw, label: "Reset extent" },
   { id: "locate", icon: LocateFixed, label: "Locate me" },
   { id: "measurement", icon: Ruler, label: "Measurement tools" },
@@ -23,6 +25,7 @@ const tools = [
 export default function MapToolbar({
   activeLayerPanel,
   activeMeasurement,
+  activeBasemapPanel,
   onAction,
 }) {
   return (
@@ -31,6 +34,7 @@ export default function MapToolbar({
         const Icon = tool.icon;
         const isActive =
           (tool.id === "layers" && activeLayerPanel) ||
+          (tool.id === "basemap" && activeBasemapPanel) ||
           (tool.id === "measurement" && activeMeasurement);
 
         return (

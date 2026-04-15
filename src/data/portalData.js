@@ -1,26 +1,14 @@
 import {
   Bell,
   BookOpenText,
-  ChartBarStacked,
   CircleHelp,
-  Compass,
-  Download,
-  Files,
   Layers3,
-  LayoutDashboard,
-  MapPinned,
   Ruler,
   SearchCheck,
   ShieldCheck,
 } from "lucide-react";
 
 export const navigationItems = [
-  {
-    id: "dashboard",
-    label: "Dashboard",
-    description: "GIS overview and live map",
-    icon: LayoutDashboard,
-  },
   {
     id: "search",
     label: "Search Land Record",
@@ -34,34 +22,10 @@ export const navigationItems = [
     icon: Layers3,
   },
   {
-    id: "cadastral",
-    label: "Cadastral Map",
-    description: "Parcel-first map workspace",
-    icon: Compass,
-  },
-  {
-    id: "boundaries",
-    label: "District / Tehsil / Village",
-    description: "Administrative boundaries",
-    icon: MapPinned,
-  },
-  {
     id: "measurement",
     label: "Measurement Tools",
     description: "Distance and area workflow",
     icon: Ruler,
-  },
-  {
-    id: "downloads",
-    label: "Downloads",
-    description: "Certified map and extracts",
-    icon: Download,
-  },
-  {
-    id: "reports",
-    label: "Reports",
-    description: "Usage and land summaries",
-    icon: ChartBarStacked,
   },
   {
     id: "help",
@@ -75,7 +39,6 @@ export const utilityActions = [
   { id: "alerts", label: "Alerts", icon: Bell },
   { id: "security", label: "Security", icon: ShieldCheck },
   { id: "manuals", label: "Manuals", icon: BookOpenText },
-  { id: "records", label: "Reports", icon: Files },
 ];
 
 export const languageOptions = ["English", "हिंदी"];

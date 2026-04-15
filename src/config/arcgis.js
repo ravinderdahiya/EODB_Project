@@ -24,13 +24,13 @@ export const arcgisPortalConfig = {
 export const basemapPresets = {
   satellite: {
     id: "satellite",
-    label: "Satellite",
-    description: "Imagery-first parcel viewing",
+    label: "Imagery",
+    description: "High-resolution satellite imagery",
     basemapId: "satellite",
   },
   cadastral: {
     id: "cadastral",
-    label: "Cadastral",
+    label: "Hybrid",
     description: "Imagery with ESRI labels and boundary context",
     basemapId: "hybrid",
   },
@@ -39,5 +39,11 @@ export const basemapPresets = {
     label: "Topo",
     description: "Terrain and road context",
     basemapId: "topo-vector",
+  },
+  streets: {
+    id: "streets",
+    label: "Streets",
+    description: "Road network and local address context",
+    basemapId: "streets-vector",
   },
 };
