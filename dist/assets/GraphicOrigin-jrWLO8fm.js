@@ -1,1 +1,0 @@
-import{r as e}from"./tslib.es6-DgcZaHPs.js";import{i as t}from"./uid-CHKGnCFt.js";var n=Symbol(`getSliceableSymbol`),r=class{};r=e([t(`esri.graphic.GraphicOrigin`)],r);export{n,r as t};

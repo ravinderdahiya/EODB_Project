@@ -1,4 +1,5 @@
 import { useEffect, useState, useTransition, useDeferredValue } from "react";
+import { useNavigate } from "react-router-dom";
 import AppHeader from "@/components/AppHeader";
 import BasemapSwitcher from "@/components/BasemapSwitcher";
 import LandRecordPanel from "@/components/LandRecordPanel";
@@ -63,6 +64,7 @@ function downloadParcel(parcel) {
 }
 
 export default function App() {
+  const navigate = useNavigate();
   const isTablet = useMediaQuery("(max-width: 1180px)");
   const isMobile = useMediaQuery("(max-width: 1024px)");
   const [isPending, startTransition] = useTransition();
@@ -345,7 +347,7 @@ export default function App() {
         onToggleTheme={() =>
           setTheme((current) => (current === "light" ? "dark" : "light"))
         }
-        onLogout={() => setSystemMessage("Logout triggered.")}
+        onLogout={() => navigate("/login")}
         searchValue={searchValue}
         onSearchValueChange={setSearchValue}
         onSearchSubmit={handleSearchSubmit}

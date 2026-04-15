@@ -1,1 +1,0 @@
-import{C as e}from"./typedArrayUtil-BImOrzpw.js";import{t}from"./lengthUtils-B1W9g5Rn.js";function n(e){return!!e&&t[e]!=null}function r(e){return 1/(t[e]||1)}function i(){let n=Object.keys(t);return e(n,`decimal-degrees`),n.sort(),n}var a=i();export{r as n,a as r,n as t};
