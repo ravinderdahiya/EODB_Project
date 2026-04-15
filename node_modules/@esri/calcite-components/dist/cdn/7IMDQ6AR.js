@@ -1,0 +1,2 @@
+/* COPYRIGHT Esri - https://js.arcgis.com/5.0/LICENSE.txt */
+import{b as i}from"./QUTTHRH3.js";var d=e=>i((t,n)=>{let a=!1;n.onConnected(()=>{a&&o(!0)});async function o(s){await t.componentOnReady();let r=typeof e.target=="function"?e.target():e.target.value;if(!r||!r.hasAttribute("popover"))return;if(e.disabledOverride?.()||"topLayerDisabled"in t&&t.topLayerDisabled===!0||!s){a=!1,r.hidePopover();return}a=!0,r.showPopover()}return{show:async()=>{await o(!0)},hide:async()=>{await o(!1)}}});export{d as a};

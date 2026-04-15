@@ -1,48 +1,88 @@
-import { ChevronDown, ChevronUp, Eye, EyeOff } from 'lucide-react'
-import { LAYER_CONFIG } from '../config/layers'
+import { RefreshCcw } from "lucide-react";
+import { arcgisPortalConfig } from "@/config/arcgis";
 
-function LayerPanel({ counts, isOpen, layerVisibility, mapZoom, onHeaderToggle, onToggle }) {
+function HealthDot({ status }) {
   return (
-    <section className="layer-panel panel-card">
-      <button className="panel-toggle" onClick={onHeaderToggle} type="button">
-        <div>
-          <p className="panel-title">Operational Layers</p>
-          <p className="panel-subtitle">Toggle visibility and monitor zoom thresholds</p>
-        </div>
-        {isOpen ? <ChevronDown size={18} /> : <ChevronUp size={18} />}
-      </button>
-
-      {isOpen ? (
-        <div className="layer-list">
-          {LAYER_CONFIG.map((layer) => {
-            const zoomLocked = mapZoom < layer.minZoom
-
-            return (
-              <button
-                key={layer.id}
-                className={`layer-row ${zoomLocked ? 'is-locked' : ''}`}
-                onClick={() => onToggle(layer.id)}
-                type="button"
-              >
-                <span className="layer-swatch" style={{ background: layer.style.color }} />
-                <span className="layer-copy">
-                  <strong>{layer.shortLabel}</strong>
-                  <small>
-                    {counts[layer.id]} features
-                    {layer.demo ? ' • demo data' : ' • live-ready'}
-                  </small>
-                </span>
-                <span className="layer-meta">
-                  <small>{zoomLocked ? `Visible from z${layer.minZoom}` : `z${layer.minZoom}+`}</small>
-                  {layerVisibility[layer.id] ? <Eye size={16} /> : <EyeOff size={16} />}
-                </span>
-              </button>
-            )
-          })}
-        </div>
-      ) : null}
-    </section>
-  )
+    <span
+      className={`health-dot health-dot--${status}`}
+      aria-label={`Service status ${status}`}
+    />
+  );
 }
 
-export default LayerPanel
+export default function LayerPanel({
+  isOpen,
+  layerVisibility,
+  onToggleLayer,
+  onRefresh,
+  serviceHealth,
+}) {
+  return (
+    <aside className={`layer-panel ${isOpen ? "layer-panel--open" : ""}`}>
+      <div className="layer-panel__header">
+        <div>
+          <span className="eyebrow">Operational layers</span>
+          <h3>Map Layers</h3>
+        </div>
+
+        <button type="button" className="icon-button icon-button--soft" onClick={onRefresh}>
+          <RefreshCcw size={16} />
+        </button>
+      </div>
+
+      <div className="layer-panel__section">
+        <label className="toggle-row">
+          <span className="toggle-row__copy">
+            <strong>Cadastral parcels</strong>
+            <small>Focused parcel highlight on top of the ESRI basemap</small>
+          </span>
+          <input
+            type="checkbox"
+            checked={layerVisibility.cadastral}
+            onChange={() => onToggleLayer("cadastral")}
+          />
+        </label>
+
+        {arcgisPortalConfig.boundarySublayers.map((layer) => (
+          <label key={layer.key} className="toggle-row">
+            <span className="toggle-row__copy">
+              <strong>{layer.title}</strong>
+              <small>Highlighted Haryana boundary context in the map view</small>
+            </span>
+            <input
+              type="checkbox"
+              checked={layerVisibility[layer.key]}
+              onChange={() => onToggleLayer(layer.key)}
+            />
+          </label>
+        ))}
+
+        <label className="toggle-row">
+          <span className="toggle-row__copy">
+            <strong>Government assets</strong>
+            <small>Disabled in ESRI-only map mode</small>
+          </span>
+          <input
+            type="checkbox"
+            checked={layerVisibility.assets}
+            onChange={() => onToggleLayer("assets")}
+          />
+        </label>
+      </div>
+
+      <div className="layer-panel__footer">
+        <div className="layer-panel__health">
+          <span>
+            <HealthDot status={serviceHealth.cadastral} /> Cadastral
+          </span>
+          <span>
+            <HealthDot status={serviceHealth.boundaries} /> Boundaries
+          </span>
+          <span>
+            <HealthDot status={serviceHealth.assets} /> Assets
+          </span>
+        </div>
+      </div>
+    </aside>
+  );
+}

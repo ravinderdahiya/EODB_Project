@@ -1,164 +1,450 @@
-import { useMemo, useState } from 'react'
-import './App.css'
-import FooterBar from './components/FooterBar'
-import Header from './components/Header'
-import LayerPanel from './components/LayerPanel'
-import LegendPanel from './components/LegendPanel'
-import LoadingOverlay from './components/LoadingOverlay'
-import MapToolbar from './components/MapToolbar'
-import SearchBar from './components/SearchBar'
-import SidebarPanel from './components/SidebarPanel'
-import StatusBar from './components/StatusBar'
-import { LAYER_CONFIG } from './config/layers'
-import { useGeoLayers } from './hooks/useGeoLayers'
-import GISMap from './map/GISMap'
+import { useEffect, useState, useTransition, useDeferredValue } from "react";
+import AppHeader from "@/components/AppHeader";
+import BasemapSwitcher from "@/components/BasemapSwitcher";
+import LandRecordPanel from "@/components/LandRecordPanel";
+import LayerPanel from "@/components/LayerPanel";
+import MapStage from "@/components/MapStage";
+import MapToolbar from "@/components/MapToolbar";
+import ParcelDetailsModal from "@/components/ParcelDetailsModal";
+import SidebarNav from "@/components/SidebarNav";
+import { languageOptions, mockParcels, navigationItems } from "@/data/portalData";
+import { useArcGISMap } from "@/hooks/useArcGISMap";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
 
-function App() {
-  const { data, loading, error } = useGeoLayers()
-  const [activeBaseMap, setActiveBaseMap] = useState('satellite')
-  const [isLayerPanelOpen, setIsLayerPanelOpen] = useState(true)
-  const [isLegendOpen, setIsLegendOpen] = useState(true)
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false)
-  const [selectedFeature, setSelectedFeature] = useState(null)
-  const [mapZoom, setMapZoom] = useState(8)
-  const [coordinates, setCoordinates] = useState({ lat: 29.05, lng: 76.08 })
-  const [toolbarAction, setToolbarAction] = useState(null)
-  const [layerVisibility, setLayerVisibility] = useState(() =>
-    Object.fromEntries(LAYER_CONFIG.map((layer) => [layer.id, layer.defaultVisible])),
-  )
+const THEME_STORAGE_KEY = "dlr-dashboard-theme";
+const GLASS_STORAGE_KEY = "dlr-dashboard-glass";
 
-  const searchableFeatures = useMemo(
-    () =>
-      LAYER_CONFIG.flatMap((layer) =>
-        (data[layer.id]?.features ?? []).map((feature) => {
-          const name =
-            feature.properties?.name ||
-            feature.properties?.district ||
-            feature.properties?.tehsil ||
-            feature.properties?.village ||
-            'Unnamed feature'
+const initialLayers = {
+  cadastral: true,
+  district: true,
+  tehsil: true,
+  village: true,
+  assets: false,
+};
 
-          return {
-            id: `${layer.id}-${feature.properties?.id ?? feature.properties?.dt_code ?? name}`,
-            name,
-            subtitle: layer.label,
-            layerId: layer.id,
-            feature,
-          }
-        }),
-      ),
-    [data],
-  )
-
-  const counts = useMemo(
-    () =>
-      Object.fromEntries(
-        LAYER_CONFIG.map((layer) => [layer.id, data[layer.id]?.features?.length ?? 0]),
-      ),
-    [data],
-  )
-
-  const triggerAction = (type, payload = {}) => {
-    setToolbarAction({
-      id: `${type}-${Date.now()}`,
-      type,
-      payload,
-    })
+function getInitialTheme() {
+  if (typeof window === "undefined") {
+    return "light";
   }
 
-  const handleLayerToggle = (layerId) => {
+  const savedTheme = window.localStorage.getItem(THEME_STORAGE_KEY);
+
+  if (savedTheme === "dark" || savedTheme === "light") {
+    return savedTheme;
+  }
+
+  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+}
+
+function getInitialGlassMode() {
+  if (typeof window === "undefined") {
+    return false;
+  }
+
+  return window.localStorage.getItem(GLASS_STORAGE_KEY) === "on";
+}
+
+function downloadParcel(parcel) {
+  const safePayload = {
+    ...parcel,
+    geometry: parcel.geometry?.toJSON ? parcel.geometry.toJSON() : parcel.geometry,
+  };
+
+  const blob = new Blob([JSON.stringify(safePayload, null, 2)], {
+    type: "application/json",
+  });
+
+  const href = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = href;
+  link.download = `${parcel.registryRef}.json`;
+  link.click();
+  URL.revokeObjectURL(href);
+}
+
+export default function App() {
+  const isTablet = useMediaQuery("(max-width: 1180px)");
+  const isMobile = useMediaQuery("(max-width: 1024px)");
+  const [isPending, startTransition] = useTransition();
+
+  const [activeNav, setActiveNav] = useState("dashboard");
+  const [theme, setTheme] = useState(getInitialTheme);
+  const [glassMode, setGlassMode] = useState(getInitialGlassMode);
+  const [language, setLanguage] = useState(languageOptions[0]);
+  const [sidebarOpen, setSidebarOpen] = useState(!isTablet);
+  const [layerPanelOpen, setLayerPanelOpen] = useState(false);
+  const [basemapPanelOpen, setBasemapPanelOpen] = useState(false);
+  const [recordPanelOpen, setRecordPanelOpen] = useState(false);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [searchValue, setSearchValue] = useState("");
+  const deferredSearch = useDeferredValue(searchValue);
+  const [activeBasemap, setActiveBasemap] = useState("cadastral");
+  const [layerVisibility, setLayerVisibility] = useState(initialLayers);
+  const [selectedParcel, setSelectedParcel] = useState(mockParcels[0]);
+  const [systemMessage, setSystemMessage] = useState(
+    "ArcGIS map is active with highlighted Haryana state and district boundaries.",
+  );
+  const [measurementMode, setMeasurementMode] = useState(null);
+
+  const searchSuggestions =
+    deferredSearch.trim().length < 2
+      ? []
+      : mockParcels
+          .filter((parcel) =>
+            [
+              parcel.khasraNo,
+              parcel.ownerName,
+              parcel.village,
+              parcel.tehsil,
+              parcel.district,
+            ]
+              .join(" ")
+              .toLowerCase()
+              .includes(deferredSearch.toLowerCase()),
+          )
+          .slice(0, 5);
+
+  const districtOptions = [
+    ...new Set([selectedParcel.district, ...mockParcels.map((parcel) => parcel.district)]),
+  ];
+  const tehsilOptions = [
+    ...new Set(
+      [
+        selectedParcel.tehsil,
+        ...mockParcels
+          .filter((parcel) => parcel.district === selectedParcel.district)
+          .map((parcel) => parcel.tehsil),
+      ],
+    ),
+  ];
+  const {
+    containerRef,
+    mapStatus,
+    serviceHealth,
+    zoomIn,
+    zoomOut,
+    resetView,
+    refreshOperationalLayers,
+    goToCurrentLocation,
+    searchPlace,
+    openSelectedParcel,
+  } = useArcGISMap({
+    activeBasemap,
+    layerVisibility,
+    selectedParcel,
+    onParcelSelect: (parcel) => {
+      startTransition(() => {
+        setSelectedParcel(parcel);
+        setActiveNav("search");
+      });
+      setRecordPanelOpen(true);
+      setSystemMessage(
+        `Khasra ${parcel.khasraNo} highlighted on the ESRI map.`,
+      );
+    },
+  });
+
+  useEffect(() => {
+    if (isTablet) {
+      setSidebarOpen(false);
+    }
+  }, [isTablet]);
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    document.documentElement.style.colorScheme = theme;
+    window.localStorage.setItem(THEME_STORAGE_KEY, theme);
+  }, [theme]);
+
+  useEffect(() => {
+    document.documentElement.dataset.glass = glassMode ? "on" : "off";
+    window.localStorage.setItem(GLASS_STORAGE_KEY, glassMode ? "on" : "off");
+  }, [glassMode]);
+
+  useEffect(() => {
+    if (isMobile) {
+      setLayerPanelOpen(false);
+      setBasemapPanelOpen(false);
+    }
+  }, [isMobile]);
+
+  useEffect(() => {
+    setSystemMessage(mapStatus);
+  }, [mapStatus]);
+
+  const selectParcel = (parcel) => {
+    startTransition(() => {
+      setSelectedParcel(parcel);
+      setActiveNav("search");
+    });
+
+    setRecordPanelOpen(true);
+    setSearchValue("");
+    setSystemMessage(`Loaded parcel Khasra ${parcel.khasraNo} for ${parcel.ownerName}.`);
+  };
+
+  const handleSearchSubmit = async (event) => {
+    event.preventDefault();
+
+    const normalized = searchValue.trim().toLowerCase();
+
+    if (!normalized) {
+      setSystemMessage("Enter a Khasra number, owner, village or place to search.");
+      return;
+    }
+
+    const parcelMatch = mockParcels.find((parcel) =>
+      [
+        parcel.khasraNo,
+        parcel.ownerName,
+        parcel.village,
+        parcel.tehsil,
+        parcel.district,
+      ]
+        .join(" ")
+        .toLowerCase()
+        .includes(normalized),
+    );
+
+    if (parcelMatch) {
+      selectParcel(parcelMatch);
+      return;
+    }
+
+    const result = await searchPlace(searchValue.trim());
+    setSystemMessage(result.message);
+  };
+
+  const handleBasemapChange = (nextPreset) => {
+    setActiveBasemap(nextPreset);
+
+    if (nextPreset === "satellite") {
+      setLayerVisibility((current) => ({ ...current, cadastral: false }));
+    }
+
+    if (nextPreset === "cadastral") {
+      setLayerVisibility((current) => ({ ...current, cadastral: true }));
+    }
+
+    if (nextPreset === "topo") {
+      setLayerVisibility((current) => ({ ...current, cadastral: false }));
+    }
+
+    setSystemMessage(`${nextPreset[0].toUpperCase()}${nextPreset.slice(1)} map preset applied.`);
+  };
+
+  const handleToolbarAction = async (actionId) => {
+    if (actionId === "search") {
+      document.getElementById("portal-search")?.focus();
+      setSystemMessage("Search bar focused for parcel or place lookup.");
+      return;
+    }
+
+    if (actionId === "zoom-in") {
+      const result = await zoomIn();
+      setSystemMessage(result.message);
+      return;
+    }
+
+    if (actionId === "zoom-out") {
+      const result = await zoomOut();
+      setSystemMessage(result.message);
+      return;
+    }
+
+    if (actionId === "layers") {
+      setLayerPanelOpen((current) => !current);
+      return;
+    }
+
+    if (actionId === "reset" || actionId === "target") {
+      const result = await resetView();
+      setSystemMessage(result.message);
+      return;
+    }
+
+    if (actionId === "locate") {
+      const result = await goToCurrentLocation();
+      setSystemMessage(result.message);
+      return;
+    }
+
+    if (actionId === "measurement") {
+      setMeasurementMode((current) => {
+        if (current === null) {
+          setSystemMessage("Distance measurement workflow is staged for ArcGIS widget hookup.");
+          return "Distance";
+        }
+
+        if (current === "Distance") {
+          setSystemMessage("Area measurement workflow is staged for ArcGIS widget hookup.");
+          return "Area";
+        }
+
+        setSystemMessage("Measurement workflow cleared.");
+        return null;
+      });
+    }
+  };
+
+  const openManualRecord = async () => {
+    setRecordPanelOpen(true);
+    const result = await openSelectedParcel();
+
+    if (result?.message) {
+      setSystemMessage(result.message);
+    }
+  };
+
+  const handleToggleLayer = (layerKey) => {
     setLayerVisibility((current) => ({
       ...current,
-      [layerId]: !current[layerId],
-    }))
-  }
+      [layerKey]: !current[layerKey],
+    }));
+  };
 
-  const handleSearchSelect = (item) => {
-    setSelectedFeature(item)
-    setIsSidebarOpen(true)
-    triggerAction('focusFeature', { feature: item.feature, layerId: item.layerId })
-  }
+  const handleRefresh = () => {
+    const result = refreshOperationalLayers();
+    setSystemMessage(result.message);
+  };
 
-  const selectedFeatureDetails = selectedFeature?.feature?.properties ?? null
+  const handleDistrictChange = (district) => {
+    const nextParcel = mockParcels.find((parcel) => parcel.district === district);
+
+    if (nextParcel) {
+      selectParcel(nextParcel);
+    }
+  };
+
+  const handleTehsilChange = (tehsil) => {
+    const nextParcel = mockParcels.find(
+      (parcel) =>
+        parcel.district === selectedParcel.district && parcel.tehsil === tehsil,
+    );
+
+    if (nextParcel) {
+      selectParcel(nextParcel);
+    }
+  };
+
+  const handleShare = async () => {
+    const shareText = `${selectedParcel.registryRef} • Khasra ${selectedParcel.khasraNo} • ${selectedParcel.ownerName}`;
+
+    if (navigator.clipboard) {
+      await navigator.clipboard.writeText(shareText);
+      setSystemMessage("Parcel summary copied to the clipboard.");
+      return;
+    }
+
+    setSystemMessage("Clipboard access is unavailable in this browser.");
+  };
 
   return (
     <div className="app-shell">
-      <div className="app-backdrop" />
-      <Header
-        activeBaseMap={activeBaseMap}
-        onBaseMapChange={setActiveBaseMap}
-        onMenuToggle={() => setIsSidebarOpen((current) => !current)}
+      <AppHeader
+        basemapOpen={basemapPanelOpen}
+        language={language}
+        languages={languageOptions}
+        searchPlaceholder={selectedParcel.breadcrumb}
+        sidebarOpen={sidebarOpen}
+        glassMode={glassMode}
+        theme={theme}
+        onToggleGlass={() => setGlassMode((current) => !current)}
+        onLanguageChange={setLanguage}
+        onManualRecord={openManualRecord}
+        onSidebarToggle={() => setSidebarOpen((current) => !current)}
+        onToggleTheme={() =>
+          setTheme((current) => (current === "light" ? "dark" : "light"))
+        }
+        onToggleBasemap={() => setBasemapPanelOpen((current) => !current)}
+        searchValue={searchValue}
+        onSearchValueChange={setSearchValue}
+        onSearchSubmit={handleSearchSubmit}
+        searchSuggestions={searchSuggestions}
+        onSuggestionSelect={selectParcel}
       />
-      {isSidebarOpen ? (
+
+      {isTablet && sidebarOpen ? (
         <button
-          aria-label="Close sidebar"
-          className="sidebar-backdrop"
-          onClick={() => setIsSidebarOpen(false)}
           type="button"
+          className="app-overlay"
+          aria-label="Close navigation"
+          onClick={() => setSidebarOpen(false)}
         />
       ) : null}
-      <main className="app-main">
-        <GISMap
-          activeBaseMap={activeBaseMap}
-          data={data}
-          layerVisibility={layerVisibility}
-          onFeatureSelect={(feature) => {
-            setSelectedFeature(feature)
-            setIsSidebarOpen(true)
+
+      <div
+        className={`dashboard-shell ${
+          !sidebarOpen && !isTablet ? "dashboard-shell--sidebar-closed" : ""
+        }`}
+      >
+        <SidebarNav
+          activeId={activeNav}
+          items={navigationItems}
+          isOpen={sidebarOpen}
+          onSelect={(id) => {
+            setActiveNav(id);
+
+            if (id === "layers") {
+              setLayerPanelOpen(true);
+            }
+
+            if (id === "search") {
+              document.getElementById("portal-search")?.focus();
+            }
           }}
-          onMapMove={setCoordinates}
-          onZoomChange={setMapZoom}
-          toolbarAction={toolbarAction}
         />
 
-        <div className="top-right-stack">
-          <SearchBar
-            disabled={loading}
-            items={searchableFeatures}
-            onSelect={handleSearchSelect}
-          />
-        </div>
+        <main className="workspace">
+          <MapStage
+            mapStatus={isPending ? "Updating selection..." : systemMessage}
+            mapRef={containerRef}
+          >
+            <MapToolbar
+              activeLayerPanel={layerPanelOpen}
+              activeMeasurement={Boolean(measurementMode)}
+              onAction={handleToolbarAction}
+            />
 
-        <div className="left-stack">
-          <MapToolbar
-            onAction={triggerAction}
-            onToggleLayers={() => setIsLayerPanelOpen((current) => !current)}
-            onToggleLegend={() => setIsLegendOpen((current) => !current)}
-          />
-        </div>
+            <LayerPanel
+              isOpen={layerPanelOpen}
+              layerVisibility={layerVisibility}
+              onToggleLayer={handleToggleLayer}
+              onRefresh={handleRefresh}
+              serviceHealth={serviceHealth}
+            />
 
-        <div className="left-bottom-stack">
-          <LayerPanel
-            counts={counts}
-            isOpen={isLayerPanelOpen}
-            layerVisibility={layerVisibility}
-            mapZoom={mapZoom}
-            onHeaderToggle={() => setIsLayerPanelOpen((current) => !current)}
-            onToggle={handleLayerToggle}
-          />
-          <LegendPanel isOpen={isLegendOpen} />
-        </div>
+            {basemapPanelOpen ? (
+              <BasemapSwitcher
+                activeBasemap={activeBasemap}
+                onChange={handleBasemapChange}
+              />
+            ) : null}
 
-        <div className="right-stack">
-          <SidebarPanel
-            counts={counts}
-            error={error}
-            isOpen={isSidebarOpen}
-            onClose={() => setIsSidebarOpen(false)}
-            selectedFeature={selectedFeatureDetails}
-          />
-        </div>
+            <LandRecordPanel
+              isOpen={recordPanelOpen}
+              parcel={selectedParcel}
+              districtOptions={districtOptions}
+              tehsilOptions={tehsilOptions}
+              onClose={() => setRecordPanelOpen(false)}
+              onToggle={() => setRecordPanelOpen((current) => !current)}
+              onDistrictChange={handleDistrictChange}
+              onTehsilChange={handleTehsilChange}
+              onViewFullDetails={() => setDetailsOpen(true)}
+              onPrint={() => window.print()}
+              onShare={handleShare}
+              onDownload={() => downloadParcel(selectedParcel)}
+            />
 
-        <div className="bottom-stack">
-          <StatusBar coordinates={coordinates} mapZoom={mapZoom} selectedFeature={selectedFeature} />
-          <FooterBar />
-        </div>
+          </MapStage>
+        </main>
+      </div>
 
-        {loading ? <LoadingOverlay /> : null}
-        {error ? <div className="error-banner">{error}</div> : null}
-      </main>
+      <ParcelDetailsModal
+        open={detailsOpen}
+        parcel={selectedParcel}
+        onClose={() => setDetailsOpen(false)}
+      />
     </div>
-  )
+  );
 }
-
-export default App

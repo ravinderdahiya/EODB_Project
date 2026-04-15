@@ -1,0 +1,2 @@
+/* COPYRIGHT Esri - https://js.arcgis.com/5.0/LICENSE.txt */
+import{b as p,d as f}from"./M6OXKYRM.js";function e(r){if(r==null)return"";if(typeof r=="string")return r;if(Array.isArray(r))return r.map(e).join(",");let o=String(r);return o==="0"&&Object.is(Number(r),-0)?"-0":o}function m(r){return f(e(r))}function x(r,o=p){if(r==null)return r;for(let t in r)if(o(r[t],t,r)===!1)break;return r}export{x as a,m as b};

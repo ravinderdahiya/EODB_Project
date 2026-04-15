@@ -1,0 +1,1 @@
+import{i as e}from"./runtime-xSN1LigJ.js";import{r as t}from"./controllers-BMIIFhhn.js";var n=t(e);export{n as t};

@@ -1,0 +1,2 @@
+/* COPYRIGHT Esri - https://js.arcgis.com/5.0/LICENSE.txt */
+import{E as s,Q as i,h as l,p as a}from"./G7AHLVJ5.js";var e=class extends s{constructor(){super(...arguments),this.disabled=!1,this.calciteInternalOptionGroupChange=a({cancelable:!1})}static{this.properties={disabled:[7,{},{reflect:!0,type:Boolean}],label:1}}willUpdate(t){(t.has("disabled")&&(this.hasUpdated||this.disabled!==!1)||t.has("label"))&&this.calciteInternalOptionGroupChange.emit()}render(){return l`<div>${this.label}</div><slot></slot>`}};i("calcite-option-group",e);export{e as OptionGroup};

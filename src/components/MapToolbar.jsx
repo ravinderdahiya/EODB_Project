@@ -1,28 +1,51 @@
-import { Crosshair, Home, Layers3, Minus, Plus, ScrollText } from 'lucide-react'
+import {
+  Crosshair,
+  Layers3,
+  LocateFixed,
+  Minus,
+  Plus,
+  RefreshCcw,
+  Ruler,
+  Search,
+} from "lucide-react";
 
-function MapToolbar({ onAction, onToggleLayers, onToggleLegend }) {
+const tools = [
+  { id: "search", icon: Search, label: "Focus search" },
+  { id: "zoom-in", icon: Plus, label: "Zoom in" },
+  { id: "zoom-out", icon: Minus, label: "Zoom out" },
+  { id: "layers", icon: Layers3, label: "Toggle layers" },
+  { id: "reset", icon: RefreshCcw, label: "Reset extent" },
+  { id: "locate", icon: LocateFixed, label: "Locate me" },
+  { id: "measurement", icon: Ruler, label: "Measurement tools" },
+  { id: "target", icon: Crosshair, label: "Selection mode" },
+];
+
+export default function MapToolbar({
+  activeLayerPanel,
+  activeMeasurement,
+  onAction,
+}) {
   return (
-    <div className="toolbar panel-card">
-      <button onClick={() => onAction('zoomIn')} title="Zoom in" type="button">
-        <Plus size={18} />
-      </button>
-      <button onClick={() => onAction('zoomOut')} title="Zoom out" type="button">
-        <Minus size={18} />
-      </button>
-      <button onClick={() => onAction('home')} title="Fit Haryana extent" type="button">
-        <Home size={18} />
-      </button>
-      <button onClick={onToggleLayers} title="Toggle layers panel" type="button">
-        <Layers3 size={18} />
-      </button>
-      <button onClick={() => onAction('locate')} title="Locate my device" type="button">
-        <Crosshair size={18} />
-      </button>
-      <button onClick={onToggleLegend} title="Toggle legend" type="button">
-        <ScrollText size={18} />
-      </button>
-    </div>
-  )
-}
+    <div className="map-toolbar" role="toolbar" aria-label="Map controls">
+      {tools.map((tool) => {
+        const Icon = tool.icon;
+        const isActive =
+          (tool.id === "layers" && activeLayerPanel) ||
+          (tool.id === "measurement" && activeMeasurement);
 
-export default MapToolbar
+        return (
+          <button
+            type="button"
+            key={tool.id}
+            className={`map-toolbar__button ${isActive ? "map-toolbar__button--active" : ""}`}
+            onClick={() => onAction(tool.id)}
+            aria-label={tool.label}
+            title={tool.label}
+          >
+            <Icon size={18} />
+          </button>
+        );
+      })}
+    </div>
+  );
+}
