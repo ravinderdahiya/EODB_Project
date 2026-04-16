@@ -1,0 +1,305 @@
+<html>
+
+<head>
+  <!-- Google tag (gtag.js) -->
+  <script type="text/plain" data-cookiecategory="analytics" async src="https://www.googletagmanager.com/gtag/js?id=G-9FFKJ7J9CL"></script>
+  <script type="text/plain" data-cookiecategory="analytics">
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-9FFKJ7J9CL');
+</script>
+
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/png" href="img/continuity.png">
+  <title>EODB Login</title>
+  <style>
+    html,
+    body {
+      background-color: #ecebeb;
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+    }
+
+    .container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      background: url("img/eodb_background.jpg") center;
+      background-size: cover;
+    }
+
+    .login-form {
+      width: 400px;
+      background-color: #ffffff;
+      border-radius: 5px;
+      padding: 40px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+
+    .login-form label {
+      display: block;
+      margin-bottom: 10px;
+      font-weight: bold;
+      color: #09036c;
+    }
+
+    .login-form select,
+    .login-form input[type="text"],
+    .login-form input[type="tel"] {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #cccccc;
+      border-radius: 3px;
+      margin-bottom: 20px;
+    }
+
+    .login-form button {
+      width: 100%;
+      padding: 12px;
+      background-color: green;
+      color: #ffffff;
+      border: none;
+      border-radius: 3px;
+      cursor: pointer;
+    }
+
+    .login-form button:hover {
+      background-color: #002955;
+    }
+
+    .login-form .footer-text {
+      text-align: center;
+      margin-top: 20px;
+      color: #666666;
+    }
+
+    .p-text {
+      text-align: center;
+      margin: 20px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="container">
+    <form class="login-form" id="verifyForm">
+      <div style="display: flex; justify-content: center; margin-bottom: 10px;">
+        <img src="img/continuity.png" style="height: 50px; width: 50px; margin-left: 30px;">
+        <div style="margin-left: 20px;">
+          <h1>EODB LOGIN</h1>
+
+          <h5 style="text-align: end; color: gray;">Ease Of Doing Business</h5>
+        </div>
+      </div>
+
+      <!-- <h5 class="p-text"> An OTP has been sent to your mobile number. Please check your messages and enter the code below to verify.</h5> -->
+
+      <input type="hidden" name="latitude" id="latitude" value="">
+      <input type="hidden" name="longitude" id="longitude" value="">
+
+      <label for="otp">OTP (One Time Password):</label>
+      <input class="form-control" type="text" id="otp" placeholder="Enter OTP" name="otp" maxlength="5" required />
+      <button type="submit">VERIFY OTP</button>
+      <div id="error" style="color: red; margin: 10px"></div>
+      <p class="footer-text">
+        © <span id="year"></span> <b>HARSAC</b>. All rights reserved.
+      </p>
+    </form>
+  </div>
+
+
+  <script>
+    document.getElementById("year").innerText = new Date().getFullYear();
+  </script>
+
+  <script>
+    document.addEventListener("contextmenu", (event) => {
+      event.preventDefault();
+    });
+
+    document.querySelectorAll('input[type="text"]').forEach(function (input) {
+      // Disable cut, copy, paste
+      input.addEventListener('cut', function (e) {
+        e.preventDefault();
+      });
+      input.addEventListener('copy', function (e) {
+        e.preventDefault();
+      });
+      input.addEventListener('paste', function (e) {
+        e.preventDefault();
+      });
+
+      // Set attributes
+      input.setAttribute('autocomplete', 'off');
+      input.setAttribute('autocorrect', 'off');
+      input.setAttribute('autocapitalize', 'off');
+      input.setAttribute('spellcheck', 'false');
+    });
+
+
+    const inputFields = document.getElementsByClassName("form-control");
+    const warning = document.getElementById("error");
+
+    Array.from(inputFields).forEach(input => {
+      input.addEventListener("input", function () {
+        const original = input.value;
+
+        // Remove any HTML tags like <script>, <div>, etc.
+        const sanitized = original.replace(/<[^>]*>?/g, '');
+
+        if (original !== sanitized) {
+          warning.textContent = "HTML or script tags are not allowed.";
+          input.value = sanitized;
+        } else {
+          warning.textContent = "";
+        }
+      });
+    });
+  </script>
+
+  <!-- <script>
+  // Capture geolocation before submitting the OTP form
+  (function () {
+    var x = document.getElementById("latitude");
+    var y = document.getElementById("longitude");
+    var z = document.getElementById("error");
+    var form = document.getElementById('loginForm');
+
+    if (!form) return;
+
+    form.addEventListener('submit', function (event) {
+      event.preventDefault();
+
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(function (position) {
+          x.value = position.coords.latitude;
+          y.value = position.coords.longitude;
+          // form.submit();
+        }, function (error) {
+          // If geolocation fails or denied, still submit without coords
+          // if (error.code === error.PERMISSION_DENIED) {
+          //   z.textContent = "Access Denied For Location";
+          // } else if (error.code === error.POSITION_UNAVAILABLE) {
+          //   z.textContent = "Location information is unavailable.";
+          // } else if (error.code === error.TIMEOUT) {
+          //   z.textContent = "Request to get location timed out.";
+          // } else {
+          //   z.textContent = "An unknown error occurred.";
+          // }
+          // submit anyway
+          // form.submit();
+
+          //////for emergency 
+
+          x.value = 0.0;
+          y.value = 0.0;
+          // form.submit();
+        }, { maximumAge: 60000, timeout: 5000 });
+      } else {
+        z.textContent = "Geolocation is not supported in this browser.";
+        // form.submit();
+      }
+    });
+  })();
+</script> -->
+
+  <script>
+
+
+    var otp = document.getElementById("otp");
+    var lat = document.getElementById("latitude");
+    var long = document.getElementById("longitude");
+    var errorDiv = document.getElementById("error");
+
+    lat.value = 0.0;
+    long.value = 0.0;
+
+
+    // OTP verify event
+    document.getElementById("verifyForm").addEventListener("submit", async function (e) {
+      e.preventDefault(); // prevent default form POST
+
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(function (position) {
+          lat.value = position.coords.latitude;
+          long.value = position.coords.longitude;
+
+          verifyOTPAPICall();
+        }, function (error) {
+          // If geolocation fails or denied, still submit without coords
+          // if (error.code === error.PERMISSION_DENIED) {
+          //   z.textContent = "Access Denied For Location";
+          // } else if (error.code === error.POSITION_UNAVAILABLE) {
+          //   z.textContent = "Location information is unavailable.";
+          // } else if (error.code === error.TIMEOUT) {
+          //   z.textContent = "Request to get location timed out.";
+          // } else {
+          //   z.textContent = "An unknown error occurred.";
+          // }
+          // submit anyway
+          // form.submit();
+
+          //////for emergency 
+
+          lat.value = 0.0;
+          long.value = 0.0;
+          verifyOTPAPICall();
+        }, { maximumAge: 60000, timeout: 5000 });
+      } else {
+        errorDiv.textContent = "Geolocation is not supported in this browser.";
+        verifyOTPAPICall();
+      }
+
+      console.log(lat.value, long.value)
+
+
+    });
+
+
+    async function verifyOTPAPICall() {
+      // API call
+      try {
+        const res = await fetch("/eodb/verifyOTP", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            otp: otp.value,
+            latitude: lat.value,
+            longitude: long.value,
+          })
+        });
+
+        const result = await res.json();
+
+        // console.log(res)
+        if (res.status === 200 && result.status) {
+          // Success → redirect to dashboard
+          window.location.href = "/eodb/dashboard";
+        } else {
+          // Show error from API
+          errorDiv.innerHTML = result.message || "Invalid OTP";
+        }
+
+      } catch (err) {
+        console.error(err);
+        errorDiv.innerHTML = "Network error. Try again.";
+      }
+    }
+  </script>
+
+
+</body>
+
+</html>

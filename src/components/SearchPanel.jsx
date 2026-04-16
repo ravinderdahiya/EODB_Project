@@ -1,5 +1,44 @@
-import { useState } from "react";
-import { ChevronDown, Printer } from "lucide-react";
+/**
+ * SearchPanel.jsx
+ *
+ * Hierarchical land-record search: Khasra / Khewat / Jamabandi.
+ *
+ * Migration from old project (esri.js + AMD modules):
+ *
+ *  Khasra section  — fully via ArcGIS REST (mapQueryService.js)
+ *    District (26) → Tehsil (27) → Village (28) → Murabba (cadastral) → Khasra
+ *
+ *  Khewat section  — District/Tehsil/Village via ArcGIS; Khewat via ASMX
+ *    demo/districtNew → demo/tehsilNew → demo/villageNew → demo/khewat
+ *    now: mapQueryService (District/Tehsil/Village) + landRecordService (Khewat)
+ *
+ *  Jamabandi section — District/Tehsil/Village via ArcGIS; Khewat + Khatoni via ASMX
+ *    demo/districtNew → demo/tehsilNew → demo/villageNew
+ *    → demo/khewat + demo/timePeriod (period stored internally)
+ *    → demo/khatoni
+ *    now: mapQueryService (District/Tehsil/Village) + landRecordService (Khewat/Period/Khatoni)
+ *
+ *  Boundary draw: every dropdown change calls onBoundaryDraw(type, codes) which
+ *  zooms the map to the selected administrative boundary (replaces jQuery onChange
+ *  that called drawBoundary.boundaryOf()).
+ */
+
+import { useEffect, useRef, useState } from "react";
+import { ChevronDown, Loader2, Printer } from "lucide-react";
+import {
+  getDistricts,
+  getTehsils,
+  getVillages,
+  getMurrabas,
+  getKhasras,
+} from "@/services/mapQueryService";
+import {
+  getKhewats,
+  getJamabandiPeriod,
+  getKhatonis,
+} from "@/services/landRecordService";
+
+// ─── Section definitions ──────────────────────────────────────────────────────
 
 const SECTIONS = [
   {
@@ -20,6 +59,7 @@ const SECTIONS = [
       { key: "district", label: "Select District" },
       { key: "tehsil",   label: "Select Tehsil" },
       { key: "village",  label: "Select Village" },
+      // Populated from ASMX GetKhewats (migrated from demo/khewat.js)
       { key: "khewat",   label: "Select Khewat" },
     ],
   },
@@ -30,60 +70,201 @@ const SECTIONS = [
       { key: "district", label: "Select District" },
       { key: "tehsil",   label: "Select Tehsil" },
       { key: "village",  label: "Select Village" },
+      // Populated from ASMX GetKhewats (migrated from demo/khewat.js)
       { key: "khewat",   label: "Select Khewat" },
+      // Populated from ASMX GetKhatonis once Khewat is selected
+      // (migrated from demo/khatoni.js + demo/timePeriod.js)
+      { key: "khatoni",  label: "Select Khatoni" },
     ],
   },
 ];
 
-function getOptions(parcels, field, values) {
-  switch (field) {
-    case "district":
-      return [...new Set(parcels.map((p) => p.district))];
-    case "tehsil":
-      return values.district
-        ? [...new Set(parcels.filter((p) => p.district === values.district).map((p) => p.tehsil))]
-        : [];
-    case "village":
-      return values.district && values.tehsil
-        ? [...new Set(
-            parcels
-              .filter((p) => p.district === values.district && p.tehsil === values.tehsil)
-              .map((p) => p.village),
-          )]
-        : [];
-    case "murabba":
-      return values.village
-        ? [...new Set(parcels.filter((p) => p.village === values.village).map((p) => p.murabbaNo))]
-        : [];
-    case "khasra":
-      return values.murabba
-        ? [...new Set(parcels.filter((p) => p.murabbaNo === values.murabba).map((p) => p.khasraNo))]
-        : [];
-    case "khewat":
-      return values.village
-        ? [...new Set(parcels.filter((p) => p.village === values.village).map((p) => p.khasraNo))]
-        : [];
-    default:
-      return [];
-  }
-}
+// ─── SearchSection ─────────────────────────────────────────────────────────────
 
-function SearchSection({ section, parcels, onPrint, isOpen, onToggle }) {
-  const [values, setValues] = useState({});
+/**
+ * One accordion-style search section.
+ *
+ * @param {object}   props.section        Section definition from SECTIONS
+ * @param {Array}    props.districts      Pre-loaded [{code, name}] (shared by parent)
+ * @param {Function} props.onBoundaryDraw drawBoundary(type, codes) from useArcGISMap
+ * @param {Function} props.onPrint        Called when PRINT is clicked
+ * @param {boolean}  props.isOpen
+ * @param {Function} props.onToggle
+ */
+function SearchSection({ section, districts, onBoundaryDraw, onPrint, isOpen, onToggle }) {
+  // Selected codes — sent to query services and boundary draw
+  const [codes,   setCodes]   = useState({});
+  // Display names — shown in the dropdown "selected" label
+  const [names,   setNames]   = useState({});
+  // Available options per field  { tehsil: [{code,name}], village: [...], ... }
+  const [options, setOptions] = useState({ district: districts });
+  // Per-field loading flag
+  const [loading, setLoading] = useState({});
 
-  const handleChange = (field, value) => {
-    const fieldOrder = section.fields.map((f) => f.key);
-    const idx = fieldOrder.indexOf(field);
-    const reset = {};
-    fieldOrder.slice(idx + 1).forEach((k) => { reset[k] = ""; });
-    setValues((prev) => ({ ...prev, ...reset, [field]: value }));
+  // Jamabandi period: fetched alongside Khewat, stored internally
+  // (replaces old global GetJamabandiPeriod — used when building khatoni query)
+  const periodRef = useRef("");
+
+  // Keep district list in sync if parent resolves it after mount
+  useEffect(() => {
+    setOptions((prev) => ({ ...prev, district: districts }));
+  }, [districts]);
+
+  // Reset when accordion closes
+  useEffect(() => {
+    if (!isOpen) {
+      setCodes({});
+      setNames({});
+      setOptions({ district: districts });
+      setLoading({});
+      periodRef.current = "";
+    }
+  }, [isOpen, districts]);
+
+  const setFieldLoading = (field, val) =>
+    setLoading((prev) => ({ ...prev, [field]: val }));
+
+  const setFieldOptions = (field, val) =>
+    setOptions((prev) => ({ ...prev, [field]: val }));
+
+  /**
+   * Handle a dropdown change.
+   * 1. Clears all fields downstream of the changed one.
+   * 2. Fires onBoundaryDraw so the map zooms to the new boundary.
+   * 3. Loads the next-level options based on section type.
+   */
+  const handleChange = async (fieldKey, code, name) => {
+    // ── Clear downstream fields ────────────────────────────────────────────────
+    const fieldOrder  = section.fields.map((f) => f.key);
+    const idx         = fieldOrder.indexOf(fieldKey);
+    const downstream  = fieldOrder.slice(idx + 1);
+
+    const resetCodes   = Object.fromEntries(downstream.map((k) => [k, undefined]));
+    const resetNames   = Object.fromEntries(downstream.map((k) => [k, undefined]));
+    const resetOptions = Object.fromEntries(downstream.map((k) => [k, []]));
+
+    const newCodes = { ...codes, ...resetCodes, [fieldKey]: code };
+    const newNames = { ...names, ...resetNames, [fieldKey]: name };
+
+    setCodes(newCodes);
+    setNames(newNames);
+    setOptions((prev) => ({ ...prev, ...resetOptions }));
+
+    // Reset internal period when village (or higher) changes
+    if (["district", "tehsil", "village"].includes(fieldKey)) {
+      periodRef.current = "";
+    }
+
+    // ── Boundary draw ──────────────────────────────────────────────────────────
+    if (onBoundaryDraw && code) {
+      onBoundaryDraw(fieldKey, {
+        dCode:     newCodes.district,
+        tCode:     newCodes.tehsil,
+        vCode:     newCodes.village,
+        murabbaNo: newCodes.murabba,
+        khasraNo:  newCodes.khasra,
+      });
+    }
+
+    if (!code) return;
+
+    // ── Next-level option loading ──────────────────────────────────────────────
+
+    // District → Tehsil (all sections, ArcGIS Layer 27)
+    if (fieldKey === "district") {
+      setFieldLoading("tehsil", true);
+      try {
+        const tehsils = await getTehsils(code);
+        setFieldOptions("tehsil", tehsils);
+      } finally {
+        setFieldLoading("tehsil", false);
+      }
+      return;
+    }
+
+    // Tehsil → Village (all sections, ArcGIS Layer 28)
+    if (fieldKey === "tehsil") {
+      setFieldLoading("village", true);
+      try {
+        const villages = await getVillages(newCodes.district, code);
+        setFieldOptions("village", villages);
+      } finally {
+        setFieldLoading("village", false);
+      }
+      return;
+    }
+
+    // Village → next step differs by section
+    if (fieldKey === "village") {
+      if (section.id === "khasra") {
+        // Khasra section: Village → Murabba (ArcGIS cadastral sublayer)
+        setFieldLoading("murabba", true);
+        try {
+          const murrabas = await getMurrabas(newCodes.district, newCodes.tehsil, code);
+          setFieldOptions("murabba", murrabas.map((m) => ({ code: m, name: m })));
+        } finally {
+          setFieldLoading("murabba", false);
+        }
+      } else {
+        // Khewat & Jamabandi sections: Village → Khewat (ASMX GetKhewats)
+        // Migrated from: demo/khewat.js → Khewatoption()
+        setFieldLoading("khewat", true);
+        try {
+          const khewats = await getKhewats(newCodes.district, newCodes.tehsil, code);
+          setFieldOptions("khewat", khewats.map((k) => ({ code: k, name: k })));
+        } finally {
+          setFieldLoading("khewat", false);
+        }
+
+        // Jamabandi only: also fetch period (stored in ref, not displayed as dropdown)
+        // Migrated from: demo/timePeriod.js → TimePeriodOption()
+        if (section.id === "jamabandi") {
+          getJamabandiPeriod(newCodes.district, newCodes.tehsil, code)
+            .then((period) => { periodRef.current = period; })
+            .catch(() => { periodRef.current = ""; });
+        }
+      }
+      return;
+    }
+
+    // Murabba → Khasra (Khasra section only, ArcGIS cadastral sublayer)
+    if (fieldKey === "murabba") {
+      setFieldLoading("khasra", true);
+      try {
+        const khasras = await getKhasras(
+          newCodes.district, newCodes.tehsil, newCodes.village, code,
+        );
+        setFieldOptions("khasra", khasras.map((k) => ({ code: k, name: k })));
+      } finally {
+        setFieldLoading("khasra", false);
+      }
+      return;
+    }
+
+    // Khewat → Khatoni (Jamabandi section only, ASMX GetKhatonis)
+    // Migrated from: demo/khatoni.js → getkhatoni()
+    if (fieldKey === "khewat" && section.id === "jamabandi") {
+      setFieldLoading("khatoni", true);
+      try {
+        const khatonis = await getKhatonis(
+          newCodes.district,
+          newCodes.tehsil,
+          newCodes.village,
+          periodRef.current,
+          code,
+        );
+        setFieldOptions("khatoni", khatonis.map((k) => ({ code: k, name: k })));
+      } finally {
+        setFieldLoading("khatoni", false);
+      }
+    }
   };
 
   return (
     <div className={`search-section ${isOpen ? "search-section--open" : ""}`}>
       <button
         type="button"
-        className="search-section__trigger sidebar__nav-item  sidebar__nav-item--active"
+        className="search-section__trigger sidebar__nav-item sidebar__nav-item--active"
         onClick={onToggle}
         aria-expanded={isOpen}
       >
@@ -94,20 +275,44 @@ function SearchSection({ section, parcels, onPrint, isOpen, onToggle }) {
       <div className="search-section__body">
         <div className="search-section__fields">
           {section.fields.map((field) => {
-            const options = getOptions(parcels, field.key, values);
+            const fieldOptions = options[field.key] ?? [];
+            const isLoading    = loading[field.key] ?? false;
+            const selected     = codes[field.key] ?? "";
+
+            // Disable a field if its upstream hasn't been selected yet
+            const isDisabled =
+              isLoading ||
+              (!selected && fieldOptions.length === 0 && field.key !== "district");
+
             return (
               <div key={field.key} className="search-section__field">
                 <select
-                  value={values[field.key] || ""}
-                  onChange={(e) => handleChange(field.key, e.target.value)}
+                  value={selected}
+                  disabled={isDisabled}
+                  onChange={(e) => {
+                    const opt = fieldOptions.find((o) => o.code === e.target.value);
+                    handleChange(field.key, e.target.value, opt?.name ?? e.target.value);
+                  }}
                   className="search-section__select"
                 >
-                  <option value="">{field.label}</option>
-                  {options.map((opt) => (
-                    <option key={opt} value={opt}>{opt}</option>
+                  <option value="">
+                    {isLoading ? "Loading…" : field.label}
+                  </option>
+                  {fieldOptions.map((opt) => (
+                    <option key={opt.code} value={opt.code}>
+                      {opt.name}
+                    </option>
                   ))}
                 </select>
-                <ChevronDown size={13} className="search-section__select-arrow" />
+
+                {isLoading ? (
+                  <Loader2
+                    size={13}
+                    className="search-section__select-arrow search-section__select-arrow--spin"
+                  />
+                ) : (
+                  <ChevronDown size={13} className="search-section__select-arrow" />
+                )}
               </div>
             );
           })}
@@ -116,7 +321,7 @@ function SearchSection({ section, parcels, onPrint, isOpen, onToggle }) {
         <button
           type="button"
           className="search-section__print-btn"
-          onClick={() => onPrint?.({ section: section.id, values })}
+          onClick={() => onPrint?.({ section: section.id, codes, names })}
         >
           <Printer size={13} />
           <span>PRINT</span>
@@ -126,22 +331,48 @@ function SearchSection({ section, parcels, onPrint, isOpen, onToggle }) {
   );
 }
 
-/* Pure content — no absolute positioning; parent decides visibility */
-export default function SearchPanel({ parcels, onPrint }) {
+// ─── SearchPanel ──────────────────────────────────────────────────────────────
+
+/**
+ * @param {object[]}  parcels         Kept for prop compatibility (unused for dropdowns)
+ * @param {Function}  onPrint         Called when PRINT is clicked
+ * @param {Function}  onBoundaryDraw  drawBoundary(type, codes) from useArcGISMap
+ */
+export default function SearchPanel({ parcels, onPrint, onBoundaryDraw }) {
   const [activeSection, setActiveSection] = useState(null);
+  const [districts,     setDistricts]     = useState([]);
+  const [loadingDist,   setLoadingDist]   = useState(false);
+
+  // Load all districts once on mount (shared across all three sections)
+  useEffect(() => {
+    setLoadingDist(true);
+    getDistricts()
+      .then(setDistricts)
+      .catch(() => setDistricts([]))
+      .finally(() => setLoadingDist(false));
+  }, []);
 
   return (
     <div className="sidebar-search">
-      
-      <div className="">
+      {loadingDist && (
+        <div className="search-section__loading-hint">
+          <Loader2 size={13} className="search-section__select-arrow--spin" />
+          <span>Loading districts…</span>
+        </div>
+      )}
+
+      <div>
         {SECTIONS.map((section) => (
           <SearchSection
             key={section.id}
             section={section}
-            parcels={parcels}
+            districts={districts}
+            onBoundaryDraw={onBoundaryDraw}
             onPrint={onPrint}
             isOpen={activeSection === section.id}
-            onToggle={() => setActiveSection((prev) => prev === section.id ? null : section.id)}
+            onToggle={() =>
+              setActiveSection((prev) => (prev === section.id ? null : section.id))
+            }
           />
         ))}
       </div>

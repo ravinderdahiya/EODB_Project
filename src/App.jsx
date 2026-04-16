@@ -17,10 +17,12 @@ const GLASS_STORAGE_KEY = "dlr-dashboard-glass";
 
 const initialLayers = {
   cadastral: true,
-  district: true,
-  tehsil: true,
-  village: true,
-  assets: false,
+  district:  true,
+  tehsil:    true,
+  village:   true,
+  assets:    false, // Government Assets (visible: false — user can toggle on)
+  nhai:      false, // NHAI Upcoming (hidden by default, matches old project)
+  roads:     false, // HR Road Infra  (hidden by default, matches old project)
 };
 
 function getInitialTheme() {
@@ -131,6 +133,7 @@ export default function App() {
     goToCurrentLocation,
     searchPlace,
     openSelectedParcel,
+    drawBoundary,
   } = useArcGISMap({
     activeBasemap,
     layerVisibility,
@@ -375,9 +378,9 @@ export default function App() {
           isOpen={sidebarOpen}
           parcels={mockParcels}
           onManualRecord={openManualRecord}
+          onBoundaryDraw={drawBoundary}
           onSelect={(id) => {
             setActiveNav(id);
-
             if (id === "layers") setActiveMapPanel("layers");
           }}
         />

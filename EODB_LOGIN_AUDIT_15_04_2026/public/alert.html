@@ -1,0 +1,34 @@
+<div class="container">
+
+    <h3>Alert Message :- </h3>
+    <label id="alertMessage">
+    </label>
+
+</div>
+
+
+<script>
+
+    // Make an AJAX request to fetch the 'mobile' variable
+    fetch('/eodb/getError')
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('alertMessage').textContent = data.error;
+
+        })
+        .catch(error => console.error('Error:', error));
+</script>
+
+<style>
+    .container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    .container h3 {
+        text-align: center;
+        color: green;
+    }
+</style>

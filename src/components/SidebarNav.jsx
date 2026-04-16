@@ -9,6 +9,7 @@ export default function SidebarNav({
   onSelect,
   onManualRecord,
   parcels,
+  onBoundaryDraw,
 }) {
   const [searchExpanded, setSearchExpanded] = useState(false);
 
@@ -44,7 +45,11 @@ export default function SidebarNav({
                   {/* Search drawer renders directly below its own button */}
                   {item.id === "search" && (
                     <div className={`sidebar__search-drawer ${searchExpanded ? "sidebar__search-drawer--open" : ""}`}>
-                      <SearchPanel parcels={parcels ?? []} onPrint={() => window.print()} />
+                      <SearchPanel
+                        parcels={parcels ?? []}
+                        onPrint={() => window.print()}
+                        onBoundaryDraw={onBoundaryDraw}
+                      />
                     </div>
                   )}
                 </Fragment>
