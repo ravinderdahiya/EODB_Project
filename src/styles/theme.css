@@ -1,0 +1,122 @@
+/* =========================
+   Theme — CSS Variables
+   Design tokens: colors, spacing, shadows, radii.
+   Imported by global.css which is loaded in main.jsx.
+========================= */
+
+@import url("https://fonts.googleapis.com/css2?family=Merriweather+Sans:wght@500;700&family=Public+Sans:wght@400;500;600;700&family=Noto+Sans+Devanagari:wght@400;500;600;700&family=Mukta:wght@400;500;600;700&display=swap");
+
+/* ── Light theme (default) ──────────────────────────────────────── */
+:root {
+  color-scheme: light;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+
+  /* Backgrounds */
+  --bg: #edf3ee;
+  --bg-secondary: #f6faf7;
+  --surface: rgba(255, 255, 255, 0.92);
+  --surface-strong: #ffffff;
+  --surface-muted: rgba(248, 250, 248, 0.88);
+
+  /* Text */
+  --ink: #173248;
+  --ink-soft: #466075;
+  --ink-muted: #64788b;
+
+  /* Borders & Lines */
+  --border: rgba(23, 50, 72, 0.11);
+  --line: rgba(41, 86, 107, 0.08);
+
+  /* Shadows */
+  --shadow-soft: 0 14px 30px rgba(25, 54, 74, 0.09);
+  --shadow-strong: 0 24px 60px rgba(32, 64, 86, 0.16);
+
+  /* Brand colours */
+  --green: #2f8d5d;
+  --green-soft: #e7f4ed;
+  --blue: #2e73b4;
+  --blue-soft: #eaf2fb;
+  --orange: #d98e2b;
+  --orange-soft: #fff2df;
+  --mint: #1b9b8b;
+
+  /* Radii */
+  --radius-sm: 14px;
+  --radius-md: 22px;
+  --radius-lg: 30px;
+
+  /* Layout */
+  --header-height: 74px;
+
+  /* Popup card tokens */
+  --popup-card-bg:
+    linear-gradient(180deg, rgba(255, 252, 244, 0.98), rgba(238, 231, 203, 0.96)),
+    rgba(247, 242, 220, 0.94);
+  --popup-card-border: rgba(255, 255, 255, 0.72);
+  --popup-card-shadow: 0 24px 52px rgba(29, 53, 72, 0.2);
+  --popup-hero-bg:
+    linear-gradient(135deg, rgba(254, 247, 219, 0.98), rgba(236, 229, 190, 0.94) 58%, rgba(220, 239, 226, 0.86));
+  --popup-hero-ink: #173248;
+  --popup-hero-soft: rgba(53, 77, 92, 0.84);
+  --popup-selector-bg: rgba(255, 255, 255, 0.68);
+  --popup-selector-border: rgba(23, 50, 72, 0.08);
+  --popup-metric-bg: rgba(255, 255, 255, 0.5);
+  --popup-metric-border: rgba(23, 50, 72, 0.06);
+  --popup-action-bg: rgba(255, 255, 255, 0.58);
+  --popup-action-border: rgba(23, 50, 72, 0.08);
+  --popup-row-border: rgba(41, 86, 107, 0.09);
+  --popup-note-bg: rgba(255, 255, 255, 0.38);
+  --popup-note-ink: rgba(58, 77, 89, 0.78);
+  --popup-focus-ring: rgba(46, 115, 180, 0.28);
+}
+
+/* ── Dark theme overrides ───────────────────────────────────────── */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --bg: #0b1620;
+  --bg-secondary: #122230;
+  --surface: rgba(14, 28, 40, 0.9);
+  --surface-strong: #132433;
+  --surface-muted: rgba(19, 35, 50, 0.88);
+
+  --ink: #e4eef7;
+  --ink-soft: #bfd0dc;
+  --ink-muted: #8fa4b4;
+
+  --border: rgba(159, 181, 198, 0.14);
+  --line: rgba(163, 186, 204, 0.11);
+
+  --shadow-soft: 0 18px 34px rgba(0, 0, 0, 0.28);
+  --shadow-strong: 0 28px 72px rgba(0, 0, 0, 0.42);
+
+  --green: #63c189;
+  --green-soft: rgba(99, 193, 137, 0.16);
+  --blue: #7db5ff;
+  --blue-soft: rgba(125, 181, 255, 0.16);
+  --orange: #ffb45f;
+  --orange-soft: rgba(255, 180, 95, 0.16);
+  --mint: #4fc7b4;
+
+  --popup-card-bg:
+    linear-gradient(180deg, rgba(17, 31, 45, 0.97), rgba(10, 22, 33, 0.96)),
+    rgba(10, 22, 31, 0.94);
+  --popup-card-border: rgba(176, 201, 218, 0.12);
+  --popup-card-shadow: 0 28px 60px rgba(0, 0, 0, 0.38);
+  --popup-hero-bg:
+    linear-gradient(135deg, rgba(31, 57, 70, 0.98), rgba(17, 33, 45, 0.95) 58%, rgba(18, 52, 47, 0.92));
+  --popup-hero-ink: #eef7ff;
+  --popup-hero-soft: rgba(205, 223, 236, 0.82);
+  --popup-selector-bg: rgba(255, 255, 255, 0.06);
+  --popup-selector-border: rgba(173, 196, 211, 0.12);
+  --popup-metric-bg: rgba(255, 255, 255, 0.04);
+  --popup-metric-border: rgba(173, 196, 211, 0.1);
+  --popup-action-bg: rgba(255, 255, 255, 0.06);
+  --popup-action-border: rgba(173, 196, 211, 0.1);
+  --popup-row-border: rgba(173, 196, 211, 0.1);
+  --popup-note-bg: rgba(255, 255, 255, 0.04);
+  --popup-note-ink: rgba(205, 223, 236, 0.74);
+  --popup-focus-ring: rgba(125, 181, 255, 0.3);
+}

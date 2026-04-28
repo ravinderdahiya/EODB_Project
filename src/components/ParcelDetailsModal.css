@@ -1,0 +1,113 @@
+/* =========================
+   ParcelDetailsModal Component
+   Full-screen modal overlay showing detailed parcel information.
+========================= */
+
+/* ── Modal Backdrop ───────────────────────────────────────── */
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: grid;
+  place-items: center;
+  padding: 1.25rem;
+  background: rgba(16, 34, 48, 0.48);
+  backdrop-filter: blur(10px);
+}
+
+/* ── Parcel Modal ─────────────────────────────────────────── */
+
+.parcel-modal {
+  width: min(880px, 100%);
+  padding: 1.3rem;
+  border-radius: 30px;
+  background: rgba(255, 255, 255, 0.97);
+  box-shadow: var(--shadow-strong);
+}
+
+.parcel-modal__header {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.parcel-modal__header h2 {
+  margin: 0.25rem 0 0;
+  font-family: "Merriweather Sans", sans-serif;
+  font-size: 1.55rem;
+}
+
+/* ── Modal Info Grid ──────────────────────────────────────── */
+
+.parcel-modal__grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.85rem;
+  margin-top: 1.25rem;
+}
+
+.modal-info-card {
+  display: grid;
+  gap: 0.35rem;
+  padding: 1rem;
+  border-radius: 20px;
+  background: #f7fbf8;
+}
+
+.modal-info-card span {
+  color: var(--ink-muted);
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.modal-info-card strong {
+  color: var(--ink);
+}
+
+/* ── Modal Summary ────────────────────────────────────────── */
+
+.parcel-modal__summary {
+  margin-top: 1.25rem;
+  padding: 1.1rem 1.15rem;
+  border-radius: 24px;
+  background: linear-gradient(135deg, rgba(47, 141, 93, 0.08), rgba(46, 115, 180, 0.07));
+}
+
+.parcel-modal__summary h3 {
+  margin: 0 0 0.55rem;
+}
+
+.parcel-modal__summary p {
+  margin: 0.4rem 0 0;
+  color: var(--ink-soft);
+  line-height: 1.65;
+}
+
+/* ── Dark mode overrides ──────────────────────────────────── */
+
+:root[data-theme="dark"] .modal-info-card {
+  background: rgba(23, 40, 56, 0.92);
+  color: var(--ink);
+  box-shadow: inset 0 0 0 1px rgba(171, 194, 208, 0.05);
+}
+
+:root[data-theme="dark"] .parcel-modal__summary {
+  background: linear-gradient(135deg, rgba(99, 193, 137, 0.12), rgba(125, 181, 255, 0.1));
+}
+
+/* ── Responsive ───────────────────────────────────────────── */
+
+@media (max-width: 768px) {
+  .parcel-modal__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .parcel-modal__grid {
+    grid-template-columns: 1fr;
+  }
+}

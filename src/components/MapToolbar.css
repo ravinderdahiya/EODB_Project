@@ -1,0 +1,63 @@
+/* =========================
+   MapToolbar Component
+   Floating action buttons anchored to the map viewport.
+========================= */
+
+/* ── Map Toolbar ──────────────────────────────────────────── */
+
+.map-toolbar {
+  position: absolute;
+  bottom: 1.8rem;
+  left: 1rem;
+  z-index: 12;
+  display: grid;
+  gap: 0.55rem;
+}
+
+.map-toolbar--left {
+  top: 1rem;
+  bottom: auto;
+  left: 1rem;
+}
+
+.map-stage__viewport--table-open .map-toolbar:not(.map-toolbar--left) {
+  bottom: calc(30% + 1rem);
+}
+
+/* ── Toolbar Button ───────────────────────────────────────── */
+
+.map-toolbar__button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border: 0;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--ink);
+  box-shadow: var(--shadow-soft);
+}
+
+.map-toolbar__button--active {
+  background: linear-gradient(135deg, rgba(47, 141, 93, 0.94), rgba(46, 115, 180, 0.88));
+  color: white;
+}
+
+/* ── Responsive ───────────────────────────────────────────── */
+
+@media (max-width: 768px) {
+  .map-toolbar {
+    bottom: 2.5rem;
+    left: 0.9rem;
+    top: auto;
+    right: auto;
+    gap: 0.55rem;
+  }
+
+  .map-toolbar__button {
+    width: 46px;
+    height: 46px;
+    border-radius: 16px;
+  }
+}
