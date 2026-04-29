@@ -48,8 +48,8 @@ function formatAdminSuggestionDescription(match) {
 
 export default function App() {
   const navigate = useNavigate();
-  const isTablet = useMediaQuery("(max-width: 1180px)");
-  const isMobile = useMediaQuery("(max-width: 1024px)");
+  const isTablet = useMediaQuery("(max-width: 1024px)");
+  const isMobile = useMediaQuery("(max-width: 768px)");
   const [isPending, startTransition] = useTransition();
   const { theme, setTheme, glassMode, setGlassMode } = useDashboardPreferences();
 

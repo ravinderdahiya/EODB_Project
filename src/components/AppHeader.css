@@ -496,42 +496,115 @@
    AppHeader — Responsive
 ========================= */
 
-@media (max-width: 1180px) {
+/* ── Tablet (≤1024px): compact 3-column, sidebar is now a drawer ─ */
+@media (max-width: 1024px) {
   .app-header {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(200px, 0.9fr) minmax(220px, 1fr) auto;
+    gap: 0.65rem;
+    padding: 0.45rem 0.8rem;
   }
 }
+
+/* ── Mobile (≤768px): two-row layout ────────────────────────────── */
+/* Row 1: [hamburger + brand]  [actions]                             */
+/* Row 2: [full-width search bar]                                    */
 
 @media (max-width: 768px) {
   .app-header {
-    padding: 0.7rem 0.85rem;
+    grid-template-columns: 1fr auto;
+    grid-template-rows: auto auto;
+    gap: 0.45rem 0.6rem;
+    padding: 0.6rem 0.75rem;
+    min-height: var(--header-height);
+    align-items: center;
   }
 
-  .app-header__brand {
-    align-items: flex-start;
+  /* no-search variant only needs one row */
+  .app-header--no-search {
+    grid-template-rows: auto;
+  }
+
+  .app-header__brand-cluster {
+    grid-column: 1;
+    grid-row: 1;
+    min-width: 0;
+  }
+
+  /* search drops to full-width second row */
+  .search-shell {
+    grid-column: 1 / -1;
+    grid-row: 2;
   }
 
   .app-header__actions {
-    justify-content: flex-start;
-    flex-wrap: wrap;
+    grid-column: 2;
+    grid-row: 1;
+    gap: 0.35rem;
+    flex-wrap: nowrap;
+    justify-content: flex-end;
+    align-items: center;
+  }
+
+  .app-header__brand {
+    align-items: center;
+    gap: 0.55rem;
+  }
+
+  /* hide subtitle to save vertical space */
+  .app-header__subtitle {
+    display: none;
+  }
+
+  /* logout: icon-only on mobile */
+  .header-action-button--logout span {
+    display: none;
+  }
+
+  .header-action-button--logout {
+    padding: 0 0.7rem;
   }
 }
 
-@media (max-width: 560px) {
+/* ── Small mobile (≤480px): logo hidden, tightest layout ─────────── */
+@media (max-width: 480px) {
+  .app-header {
+    padding: 0.5rem 0.65rem;
+    gap: 0.4rem 0.45rem;
+  }
+
   .app-header__logos {
     display: none;
   }
 
-  .search-shell {
-    padding-right: 0.45rem;
+  .app-header__brand {
+    gap: 0;
+  }
+
+  .app-header__titles h1 {
+    font-size: 0.93rem;
+  }
+
+  .app-header__actions {
+    gap: 0.25rem;
   }
 
   .header-action-button {
-    flex: 1 1 calc(50% - 0.4rem);
-    justify-content: center;
+    min-height: 44px;
+    padding: 0 0.6rem;
+  }
+
+  .icon-button {
+    width: 42px;
+    height: 42px;
+  }
+
+  .search-shell {
+    min-height: 44px;
+    padding: 0.38rem 0.42rem 0.38rem 0.8rem;
   }
 
   .search-shell__submit {
-    padding: 0 0.85rem;
+    min-height: 38px;
+    padding: 0 0.65rem;
   }
 }

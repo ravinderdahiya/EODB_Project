@@ -22,6 +22,10 @@ body,
   height: 100%;
 }
 
+html {
+  overflow-x: hidden;
+}
+
 body {
   margin: 0;
   background:
@@ -776,24 +780,28 @@ select:focus-visible {
    Responsive — Layout breakpoints
 ========================= */
 
-@media (max-width: 1180px) {
+/* Tablet and below: sidebar becomes a fixed overlay, workspace takes full width */
+@media (max-width: 1024px) {
   .dashboard-shell {
     grid-template-columns: 1fr;
   }
 }
 
+/* Mobile: two-row header needs more vertical space */
 @media (max-width: 768px) {
   :root {
-    --header-height: 108px;
+    --header-height: 120px;
   }
 }
 
-@media (max-width: 560px) {
+/* Small mobile: constrain floating panels to viewport */
+@media (max-width: 480px) {
   .layer-panel,
   .record-panel,
   .basemap-switcher {
     left: 0.8rem;
     right: 0.8rem;
     width: auto;
+    max-width: 100%;
   }
 }

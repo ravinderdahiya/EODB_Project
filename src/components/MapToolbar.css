@@ -47,12 +47,20 @@
 /* ── Responsive ───────────────────────────────────────────── */
 
 @media (max-width: 768px) {
-  .map-toolbar {
+  /* Zoom toolbar: keep at bottom-left */
+  .map-toolbar:not(.map-toolbar--left) {
     bottom: 2.5rem;
     left: 0.9rem;
     top: auto;
     right: auto;
     gap: 0.55rem;
+  }
+
+  /* Action toolbar: keep at top-left, unchanged */
+  .map-toolbar--left {
+    top: 1rem;
+    bottom: auto;
+    left: 0.9rem;
   }
 
   .map-toolbar__button {

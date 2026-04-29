@@ -148,37 +148,6 @@ export default function Login() {
             <div className="lp-stat-card"><h3>3.2Cr+</h3><p>{t("login.statsParcels")}</p></div>
           </div>
 
-          {/* Announcements */}
-          <div className="lp-announcement">
-            <div className="lp-announcement-header">
-              <h4>{t("login.announcementsTitle")}</h4>
-            </div>
-
-            <div className="lp-announcement-item">
-              <div className="lp-date-box">
-                <span className="lp-month">{new Date().toLocaleString("default", { month: "short" }).toUpperCase()}</span>
-                <span className="lp-day"> {new Date().getDate()}</span>
-              </div>
-              <div className="lp-announcement-content">
-                <h5>Cadastral Map Update: Kaithal and 5 more districts</h5>
-                <p>Newly digitized maps are now available for public access.</p>
-              </div>
-            </div>
-
-            <div className="lp-announcement-item">
-              <div className="lp-date-box">
-                <span className="lp-month">{new Date().toLocaleString("default", { month: "short" }).toUpperCase()}</span>
-                <span className="lp-day"> {new Date().getDate()}</span>
-              </div>
-              <div className="lp-announcement-content">
-                <h5>Running Project</h5>
-                <p>EODB (Ease of Doing Business) platform is currently under active development,
-      including GIS mapping, and admin dashboard modules.</p>
-              </div>
-            </div>
-
-            <div className="lp-view-all">{t("login.viewAll")}</div>
-          </div>
         </section>
 
         {/* RIGHT — Login Card */}
@@ -310,6 +279,38 @@ export default function Login() {
             <span role="button" tabIndex={0}>{t("login.termsPrivacy")}</span>.
           </p>
         </aside>
+
+        {/* Announcements — separate grid child so order can differ per breakpoint */}
+        <div className="lp-announcement">
+          <div className="lp-announcement-header">
+            <h4>{t("login.announcementsTitle")}</h4>
+          </div>
+
+          <div className="lp-announcement-item">
+            <div className="lp-date-box">
+              <span className="lp-month">{new Date().toLocaleString("default", { month: "short" }).toUpperCase()}</span>
+              <span className="lp-day"> {new Date().getDate()}</span>
+            </div>
+            <div className="lp-announcement-content">
+              <h5>Cadastral Map Update: Kaithal and 5 more districts</h5>
+              <p>Newly digitized maps are now available for public access.</p>
+            </div>
+          </div>
+
+          <div className="lp-announcement-item">
+            <div className="lp-date-box">
+              <span className="lp-month">{new Date().toLocaleString("default", { month: "short" }).toUpperCase()}</span>
+              <span className="lp-day"> {new Date().getDate()}</span>
+            </div>
+            <div className="lp-announcement-content">
+              <h5>Running Project</h5>
+              <p>EODB (Ease of Doing Business) platform is currently under active development,
+                including GIS mapping, and admin dashboard modules.</p>
+            </div>
+          </div>
+
+          <div className="lp-view-all">{t("login.viewAll")}</div>
+        </div>
       </main>
 
       {/* ── FOOTER ─────────────────────────────────── */}
