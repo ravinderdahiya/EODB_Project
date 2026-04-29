@@ -9,8 +9,13 @@
 .lp-root {
   font-family: "Poppins", sans-serif;
   color: #ffffff;
-  height: 100vh;
-  overflow: hidden;
+  /* height: 100vh; */
+  /* overflow: hidden; */
+  min-height: 100vh;     /* change by himanshu*/
+  min-height: 100dvh;   /* change by himanshu*/
+  /* height: auto; */
+  overflow-x: hidden;    /* change by himanshu*/
+  overflow-y: auto;      /* change by himanshu*/
   display: flex;
   flex-direction: column;
   position: relative;
@@ -196,8 +201,9 @@
   align-items: center;
   gap: 32px;
   padding: 16px 48px;
-  overflow: hidden;
-  min-height: 0;          /* critical — lets flex child shrink below content size */
+  /* overflow: hidden; */    
+  overflow: visible;       /* change by himanshu*/
+  /* min-height: 0;          critical — lets flex child shrink below content size */
 }
 
 /* ── LEFT SECTION ───────────────────────────────────────────────── */
@@ -208,7 +214,8 @@
   flex-direction: column;
   justify-content: center;
   gap: 0;
-  overflow: hidden;
+  /* overflow: hidden; */
+  overflow: visible;        /* change by himanshu*/
 }
 
 .lp-badge {
@@ -726,7 +733,7 @@
 
 /* Small desktop / large tablet: stack layout, allow internal scroll */
 @media (max-width: 820px) {
-  .lp-root { height: auto; overflow-y: auto; }
+  .lp-root { height: 100dvh; overflow-y: auto; }       /* chnage by himanshu */
   .lp-main {
     flex-direction: column;
     align-items: stretch;
@@ -737,11 +744,11 @@
     width: 100%;
     box-sizing: border-box;
     align-self: stretch;
-    scale: 1.5;
+    /* scale: 1.5; */          /* change by himanshu */
   }
   .lp-left { max-width: 100%; }
   .lp-nav-center,
-  .lp-nav-right { display: none; }
+  /* .lp-nav-right { display: none; } */      /* change by himanshu*/
   .lp-navbar { padding: 10px 20px; }
   .lp-footer { padding: 10px 20px; }
   .lp-footer-top { flex-wrap: wrap; }

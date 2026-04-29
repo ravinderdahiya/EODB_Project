@@ -10,7 +10,7 @@ export default defineConfig(({ mode }) => {
   const hsacTarget = env.VITE_HSAC_ORIGIN    || "https://hsac.org.in";
   const hsacProxy  = env.VITE_HSAC_DEV_PROXY || "/hsac";
   const devPort    = parseInt(env.VITE_DEV_PORT || "5173", 10);
-
+  const baseURL    = env.VITE_SERVER_BASE_URL || "http://localhost:8080";
   return {
     plugins: [react()],
     resolve: {

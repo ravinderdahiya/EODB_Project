@@ -142,8 +142,8 @@ export default function Login() {
 
             <div className="lp-announcement-item">
               <div className="lp-date-box">
-                <span className="lp-month">APR</span>
-                <span className="lp-day">22</span>
+                <span className="lp-month">{new Date().toLocaleString("default", { month: "short" }).toUpperCase()}</span>
+                <span className="lp-day"> {new Date().getDate()}</span>
               </div>
               <div className="lp-announcement-content">
                 <h5>Cadastral Map Update: Kaithal and 5 more districts</h5>
@@ -153,12 +153,13 @@ export default function Login() {
 
             <div className="lp-announcement-item">
               <div className="lp-date-box">
-                <span className="lp-month">APR</span>
-                <span className="lp-day">18</span>
+                <span className="lp-month">{new Date().toLocaleString("default", { month: "short" }).toUpperCase()}</span>
+                <span className="lp-day"> {new Date().getDate()}</span>
               </div>
               <div className="lp-announcement-content">
-                <h5>System Maintenance</h5>
-                <p>Portal under maintenance on April 24, 2:00 AM – 4:00 AM.</p>
+                <h5>Running Project</h5>
+                <p>EODB (Ease of Doing Business) platform is currently under active development,
+      including GIS mapping, and admin dashboard modules.</p>
               </div>
             </div>
 
