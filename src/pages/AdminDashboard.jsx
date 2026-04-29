@@ -6,6 +6,7 @@ import SidebarNav from "@/components/SidebarNav";
 import { adminNavigationItems } from "@/data/adminData";
 import { useDashboardPreferences } from "@/hooks/useDashboardPreferences";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
+import axiosInstance from "../utils/axiosInstance";
 import "@/styles/admin.css";
 
 export default function AdminDashboard() {
@@ -34,6 +35,20 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleLogout = async () => {
+    try {
+      await axiosInstance.post("/user/logout");
+    } catch (err) {
+      console.error("Logout API error:", err);
+    } finally {
+      // Clear localStorage
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      localStorage.removeItem("isAdmin");
+      navigate("/login");
+    }
+  };
+
   return (
     <div className="app-shell admin-shell">
       <AppHeader
@@ -45,7 +60,7 @@ export default function AdminDashboard() {
         onToggleTheme={() =>
           setTheme((current) => (current === "light" ? "dark" : "light"))
         }
-        onLogout={() => navigate("/login")}
+        onLogout={handleLogout}
         isAdmin
         showSearch={false}
       />

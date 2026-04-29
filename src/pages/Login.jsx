@@ -72,10 +72,24 @@ export default function Login() {
       return;
     }
 
-    if (adminId === "admin" && password === "admin123") {
-      navigate("/admin");
-    } else {
+    // Admin login via API
+    if (!adminId.trim() || !password.trim()) {
       setError(t("login.errBadAdmin"));
+      return;
+    }
+
+    try {
+      const res = await axiosInstance.post("/user/admin-login", {
+        adminId,
+        password
+      });
+
+      localStorage.setItem("token", res.data.token);
+      localStorage.setItem("user", JSON.stringify(res.data.user));
+      localStorage.setItem("isAdmin", "true");
+      navigate("/admin");
+    } catch (err) {
+      setError(err.response?.data?.message || t("login.errBadAdmin"));
     }
   };
 
