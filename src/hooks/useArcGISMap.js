@@ -542,7 +542,7 @@ export function useArcGISMap({
   useEffect(() => {
     if (!containerRef.current) return undefined;
 
-    esriConfig.assetsPath = "/assets";
+    esriConfig.assetsPath = import.meta.env.BASE_URL + "arcgis/assets";
     if (import.meta.env.VITE_ARCGIS_API_KEY) {
       esriConfig.apiKey = import.meta.env.VITE_ARCGIS_API_KEY;
     }

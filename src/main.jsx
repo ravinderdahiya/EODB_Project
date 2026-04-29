@@ -9,7 +9,7 @@ import Login from "./pages/Login";
 import { LanguageProvider } from "./context/LanguageContext";
 import "./styles/global.css";
 
-esriConfig.assetsPath = "/assets";
+esriConfig.assetsPath = import.meta.env.BASE_URL + "arcgis/assets";
 
 if (import.meta.env.VITE_ARCGIS_API_KEY) {
   esriConfig.apiKey = import.meta.env.VITE_ARCGIS_API_KEY;
@@ -19,14 +19,14 @@ if (import.meta.env.VITE_ARCGIS_API_KEY) {
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <LanguageProvider>
-      <BrowserRouter>
+      <BrowserRouter basename={(import.meta.env.VITE_BASENAME || "").replace(/\/$/, "") || "/"}>
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/" element={<Login />} />
           <Route path="/map" element={<App />} />
           <Route path="/admin" element={<AdminDashboard />} />
           {/* Catch-all: redirect unknown paths to login */}
-          <Route path="*" element={<Navigate to="/login" replace />} />
+          {/* <Route path="*" element={<Navigate to="/login" replace />} /> */}
         </Routes>
       </BrowserRouter>
     </LanguageProvider>

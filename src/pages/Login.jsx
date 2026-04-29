@@ -105,8 +105,8 @@ export default function Login() {
       <header className="lp-navbar">
         <div className="lp-nav-left">
           <div className="lp-logo-flip" aria-hidden="true">
-            <img src="/branding/logo-hry.png" alt="Haryana Logo" />
-            <img src="/branding/harsac.png"   alt="HARSAC Logo" />
+            <img src={import.meta.env.BASE_URL + "branding/logo-hry.png"} alt="Haryana Logo" />
+            <img src={import.meta.env.BASE_URL + "branding/harsac.png"}   alt="HARSAC Logo" />
           </div>
           <div className="lp-logo-text-group">
             <div className="lp-main-title">EODB</div>
@@ -153,8 +153,8 @@ export default function Login() {
         {/* RIGHT — Login Card */}
         <aside className="lp-card">
           <div className="lp-logo-flip lp-lock-circle" aria-hidden="true">
-            <img src="/branding/logo-hry.png" alt="Haryana Logo" />
-            <img src="/branding/harsac.png"   alt="HARSAC Logo" />
+            <img src={import.meta.env.BASE_URL + "branding/logo-hry.png"} alt="Haryana Logo" />
+            <img src={import.meta.env.BASE_URL + "branding/harsac.png"}   alt="HARSAC Logo" />
           </div>
 
           <h2 className="lp-card-title">{t("login.cardTitle")}</h2>

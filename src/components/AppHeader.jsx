@@ -62,8 +62,8 @@ export default function AppHeader({
 
         <div className="app-header__brand">
           <div className="lp-logo-flip" aria-hidden="true">
-            <img src="/branding/logo-hry.png" alt="Haryana Logo" />
-            <img src="/branding/harsac.png"   alt="HARSAC Logo" />
+            <img src={import.meta.env.BASE_URL + "branding/logo-hry.png"} alt="Haryana Logo" />
+            <img src={import.meta.env.BASE_URL + "branding/harsac.png"}   alt="HARSAC Logo" />
           </div>
 
           <div className="app-header__titles">

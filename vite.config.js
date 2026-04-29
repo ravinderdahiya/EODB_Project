@@ -11,7 +11,10 @@ export default defineConfig(({ mode }) => {
   const hsacProxy  = env.VITE_HSAC_DEV_PROXY || "/hsac";
   const devPort    = parseInt(env.VITE_DEV_PORT || "5173", 10);
   const baseURL    = env.VITE_SERVER_BASE_URL || "http://localhost:8080";
+  const rawBase    = env.VITE_BASENAME || "/";
+  const base       = rawBase.endsWith("/") ? rawBase : rawBase + "/";
   return {
+    base,
     plugins: [react()],
     resolve: {
       alias: {
@@ -38,6 +41,29 @@ export default defineConfig(({ mode }) => {
           secure:       false,
         },
         // Jamabandi data endpoint (getjamabandi.asmx)
+        "/testapi": {
+          target:       hsacTarget,
+          changeOrigin: true,
+          secure:       false,
+        },
+      },
+    },
+    // Same proxy rules for `npm run preview` (serves the built output on localhost).
+    // Without this, browser requests to hsac.org.in cross the origin boundary and CORS blocks them.
+    // In production the app is served from hsac.org.in itself so CORS never applies.
+    preview: {
+      proxy: {
+        [hsacProxy]: {
+          target: hsacTarget,
+          changeOrigin: true,
+          secure: false,
+          rewrite: (p) => p.replace(new RegExp(`^${hsacProxy}`), ""),
+        },
+        "/LandOwnerAPI": {
+          target:       hsacTarget,
+          changeOrigin: true,
+          secure:       false,
+        },
         "/testapi": {
           target:       hsacTarget,
           changeOrigin: true,

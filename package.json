@@ -7,7 +7,7 @@
     "dev": "npm run copy:arcgis && vite",
     "build": "npm run copy:arcgis && vite build",
     "preview": "vite preview",
-    "copy:arcgis": "cpx \"node_modules/@arcgis/core/assets/**/*.*\" ./public/assets"
+    "copy:arcgis": "cpx \"node_modules/@arcgis/core/assets/**/*.*\" ./public/arcgis/assets"
   },
   "dependencies": {
     "@arcgis/core": "^5.0.16",
