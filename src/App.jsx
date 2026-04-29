@@ -117,10 +117,22 @@ export default function App() {
     });
   };
 
+  const sfClearRef = useRef(null);
+
+  const resetParcelSelection = () => {
+    sfClearRef.current?.();
+    setSelectedParcel(createEmptyParcelRecord());
+    layersRef.current?.boundaryLayer?.removeAll?.();
+    layersRef.current?.selectionLayer?.removeAll?.();
+    closePopup();
+  };
+
   const applyParcelSelection = (parcel, options = {}) => {
     if (!parcel) {
       return;
     }
+
+    sfClearRef.current?.();
 
     const { openDetails = false, openTable = true, statusMessage } = options;
 
@@ -157,6 +169,7 @@ export default function App() {
     goToCurrentLocation,
     searchPlace,
     drawBoundary,
+    closePopup,
     zoomForPrint,
     restoreExtentAfterPrint,
   } = useArcGISMap({
@@ -180,6 +193,7 @@ export default function App() {
 
   // ── Select Features ──────────────────────────────────────────────────────────
   const sf = useSelectFeatures({ viewRef, layersRef });
+  useEffect(() => { sfClearRef.current = sf.clearSelection; }, [sf.clearSelection]);
 
   // Auto-open the bottom table when selection rows arrive
   useEffect(() => {
@@ -493,6 +507,7 @@ export default function App() {
           items={navigationItems}
           isOpen={sidebarOpen}
           onBoundaryDraw={drawBoundary}
+          onSelectionStart={resetParcelSelection}
           onRecordSelect={(parcel) =>
             applyParcelSelection(parcel, {
               statusMessage: `Loaded ${parcel.recordType || "land record"} from sidebar search.`,
@@ -513,7 +528,10 @@ export default function App() {
           sfProgress={sf.progress}
           sfRows={sf.rows}
           sfStatusMessage={sf.statusMessage}
-          onSfStart={sf.startSelect}
+          onSfStart={(tool) => {
+            resetParcelSelection();
+            sf.startSelect(tool);
+          }}
           onSfClear={sf.clearSelection}
         />
 

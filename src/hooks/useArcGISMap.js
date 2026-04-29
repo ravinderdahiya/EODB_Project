@@ -77,6 +77,13 @@ const HSAC_PROXY_URL_PREFIX =
 const HSAC_PROXY_URL =
   import.meta.env.VITE_HSAC_DOTNET_PROXY_URL ?? "http://hsac.org.in/DotNet/proxy.ashx";
 
+// Zoom thresholds that drive click-to-select behaviour.
+// ≤ DISTRICT_MAX  → state view   → click selects district and zooms to fit
+// ≤ TEHSIL_MAX    → district view → click selects tehsil  and zooms to fit
+// ≤ VILLAGE_MAX   → tehsil view  → click selects village  and zooms to fit
+// > VILLAGE_MAX   → cadastral zone → cadastral parcel popup (when layer visible)
+const CLICK_ZOOM = { DISTRICT_MAX: 9, TEHSIL_MAX: 12, VILLAGE_MAX: 14 };
+
 function clampNumber(value, min, max) {
   return Math.min(Math.max(value, min), max);
 }
@@ -757,10 +764,68 @@ export function useArcGISMap({
         () => updateHealth("assets", "degraded"),
       );
 
+      let boundaryQueryCounter = 0;
+
       clickHandle = view.on("click", async (event) => {
-        const response = await view
-          .hitTest(event)
-          .catch(() => null);
+        const currentLayers = layersRef.current;
+        const zoom = Math.round(view.zoom);
+
+        // Clear the previous boundary highlight and any open popup on every click
+        currentLayers.selectionLayer?.removeAll();
+        closeLandRecordMiniPopup(popupStateRef);
+        view.closePopup();
+
+        // Resolve which boundary level the current zoom targets
+        const layerPlan = currentLayers.layerPlan;
+        let boundaryLayerId = null;
+        if (zoom <= CLICK_ZOOM.DISTRICT_MAX) {
+          boundaryLayerId = layerPlan?.districtLayerId;
+        } else if (zoom <= CLICK_ZOOM.TEHSIL_MAX) {
+          boundaryLayerId = layerPlan?.tehsilLayerId;
+        } else if (zoom <= CLICK_ZOOM.VILLAGE_MAX) {
+          boundaryLayerId = layerPlan?.villageLayerId;
+        }
+
+        if (boundaryLayerId != null) {
+          // Boundary selection mode: highlight clicked polygon + zoom to fit, no popup
+          const queryId = ++boundaryQueryCounter;
+          const result = await restQuery
+            .executeQueryJSON(
+              `${arcgisPortalConfig.serviceUrls.hsacMain}/${boundaryLayerId}`,
+              new Query({
+                geometry: event.mapPoint,
+                spatialRelationship: "intersects",
+                returnGeometry: true,
+                outFields: [],
+                outSpatialReference: view.spatialReference,
+                num: 1,
+              }),
+            )
+            .catch(() => null);
+
+          if (boundaryQueryCounter !== queryId) return;
+
+          const feature = result?.features?.[0];
+          if (feature?.geometry) {
+            currentLayers.selectionLayer?.removeAll();
+            currentLayers.selectionLayer?.add(
+              new Graphic({ geometry: feature.geometry, symbol: BOUNDARY_FILL_SYMBOL }),
+            );
+
+            const extent = feature.geometry.extent;
+            if (extent) {
+              await view
+                .goTo({ target: extent.expand(1.25) }, { duration: 820, easing: "ease-in-out" })
+                .catch(() => undefined);
+            }
+          }
+          return;
+        }
+
+        // Cadastral zone (zoom > VILLAGE_MAX): show popup only when Cadastral layer is visible
+        if (!currentLayers.hsacCadastralLayer?.visible) return;
+
+        const response = await view.hitTest(event).catch(() => null);
 
         const hit = response?.results?.find((r) => r.graphic?.layer === highlightLayer);
         let cadastralHit = response?.results?.find(
@@ -769,11 +834,7 @@ export function useArcGISMap({
 
         const queriedCadastralFeature = cadastralHit
           ? null
-          : await queryCadastralParcelAtClick({
-              view,
-              layers: layersRef.current,
-              event,
-            });
+          : await queryCadastralParcelAtClick({ view, layers: currentLayers, event });
 
         if (queriedCadastralFeature) {
           cadastralHit = { graphic: queriedCadastralFeature };
@@ -783,7 +844,7 @@ export function useArcGISMap({
           ? null
           : await identifyCadastralParcelAtPoint({
               view,
-              layers: layersRef.current,
+              layers: currentLayers,
               mapPoint: event.mapPoint,
             });
 
@@ -795,11 +856,7 @@ export function useArcGISMap({
           onParcelSelectRef.current?.(selectedParcelRef.current, { openTable: false });
         }
 
-        if (!cadastralHit && !hit) {
-          closeLandRecordMiniPopup(popupStateRef);
-          view.closePopup();
-          return;
-        }
+        if (!cadastralHit && !hit) return;
 
         const previewRecord = await createParcelRecordFromMapFeature({
           attributes: cadastralHit?.graphic?.attributes,
@@ -811,7 +868,6 @@ export function useArcGISMap({
         }).catch(() => selectedParcelRef.current);
 
         if (!previewRecord) {
-          closeLandRecordMiniPopup(popupStateRef);
           setMapStatus("No land record preview is available for this map click.");
           return;
         }
@@ -831,12 +887,12 @@ export function useArcGISMap({
             if (!targetGeometry) return;
 
             if (targetGeometry.extent?.expand) {
-              await view.goTo(targetGeometry.extent.expand(0.5)).catch(() => undefined);
+              await view.goTo(targetGeometry.extent.expand(1.5)).catch(() => undefined);
               return;
             }
 
             await view
-              .goTo({ target: targetGeometry, zoom: Math.max(view.zoom ?? 15, 17) })
+              .goTo({ target: targetGeometry, zoom: Math.max(view.zoom ?? 13, 15) })
               .catch(() => undefined);
           },
           onViewFullDetails: (preview) => onPreviewFullDetailsRef.current?.(preview),
@@ -926,6 +982,8 @@ export function useArcGISMap({
   }, [selectedParcel]);
 
   // ── Exported functions ───────────────────────────────────────────────────────
+
+  const closePopup = () => closeLandRecordMiniPopup(popupStateRef);
 
   const zoomForPrint = async () => {
     const view = viewRef.current;
@@ -1132,6 +1190,7 @@ export function useArcGISMap({
     searchPlace,
     openSelectedParcel,
     drawBoundary,
+    closePopup,
     zoomForPrint,
     restoreExtentAfterPrint,
   };

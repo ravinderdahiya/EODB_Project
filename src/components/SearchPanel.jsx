@@ -30,6 +30,7 @@ function SearchSection({
   sectionId,
   districts,
   onBoundaryDraw,
+  onSelectionStart,
   onPrint,
   onRecordSelect,
   onStatusChange,
@@ -90,6 +91,11 @@ function SearchSection({
   };
 
   const handleChange = async (fieldKey, code, name) => {
+    const previousCode = codes[fieldKey];
+    if (code && previousCode !== code) {
+      onSelectionStart?.();
+    }
+
     const idx        = fields.indexOf(fieldKey);
     const downstream = fields.slice(idx + 1);
 
@@ -289,6 +295,7 @@ function SearchSection({
 export default function SearchPanel({
   onPrint,
   onBoundaryDraw,
+  onSelectionStart,
   onRecordSelect,
   onStatusChange,
 }) {
@@ -321,6 +328,7 @@ export default function SearchPanel({
             sectionId={sectionId}
             districts={districts}
             onBoundaryDraw={onBoundaryDraw}
+            onSelectionStart={onSelectionStart}
             onPrint={onPrint}
             onRecordSelect={onRecordSelect}
             onStatusChange={onStatusChange}

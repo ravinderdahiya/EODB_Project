@@ -13,6 +13,7 @@ export default function SidebarNav({
   isOpen,
   onSelect,
   onBoundaryDraw,
+  onSelectionStart,
   onRecordSelect,
   onStatusChange,
   theme,
@@ -41,7 +42,13 @@ export default function SidebarNav({
     }
 
     if (id === "search") {
-      setSearchExpanded((prev) => !prev);
+      setSearchExpanded((prev) => {
+        const next = !prev;
+        if (next) {
+          onSelectionStart?.();
+        }
+        return next;
+      });
       setSelectorExpanded(false);
     } else if (id === "personalizations") {
       setSelectorExpanded((prev) => !prev);
@@ -92,6 +99,7 @@ export default function SidebarNav({
                       <SearchPanel
                         onPrint={() => window.print()}
                         onBoundaryDraw={onBoundaryDraw}
+                        onSelectionStart={onSelectionStart}
                         onRecordSelect={onRecordSelect}
                         onStatusChange={onStatusChange}
                       />
