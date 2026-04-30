@@ -6,6 +6,7 @@ import "@arcgis/core/assets/esri/themes/light/main.css";
 import App from "./App";
 import AdminDashboard from "./pages/AdminDashboard";
 import Login from "./pages/Login";
+import ProtectedRoute from "./routes/ProtectedRoute";
 import { LanguageProvider } from "./context/LanguageContext";
 import "./styles/global.css";
 
@@ -22,11 +23,11 @@ ReactDOM.createRoot(document.getElementById("root")).render(
       <BrowserRouter basename={(import.meta.env.VITE_BASENAME || "").replace(/\/$/, "") || "/"}>
         <Routes>
           <Route path="/login" element={<Login />} />
-          <Route path="/" element={<Login />} />
-          <Route path="/map" element={<App />} />
-          <Route path="/admin" element={<AdminDashboard />} />
+          <Route path="/" element={<Navigate to="/login" replace />} />
+          <Route path="/map" element={<ProtectedRoute><App /></ProtectedRoute>} />
+          <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
           {/* Catch-all: redirect unknown paths to login */}
-          {/* <Route path="*" element={<Navigate to="/login" replace />} /> */}
+          <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
       </BrowserRouter>
     </LanguageProvider>
