@@ -7,8 +7,7 @@ const hi = {
     searchPlaceholderDefault: "हरियाणा में स्थान खोजें या साइडबार से रिकॉर्ड खोजें",
     searchSubmit: "खोजें",
     toggleNav: "नेविगेशन टॉगल करें",
-    glassEnable: "ग्लास मोड सक्षम करें",
-    glassDisable: "ग्लास मोड अक्षम करें",
+
     switchToDark: "डार्क मोड में जाएं",
     switchToLight: "लाइट मोड में जाएं",
     selectLanguage: "भाषा चुनें",
@@ -96,6 +95,28 @@ const hi = {
     measurement: "मापन उपकरण",
     "zoom-in":   "ज़ूम इन",
     "zoom-out":  "ज़ूम आउट",
+  },
+
+  measurement: {
+    eyebrow:       "उपकरण",
+    title:         "मापन",
+    close:         "मापन पैनल बंद करें",
+    distance:      "दूरी मापें",
+    distanceTitle: "भूगणितीय दूरी मापने के लिए नक्शे पर रेखा खींचें",
+    area:          "क्षेत्र मापें",
+    areaTitle:     "भूगणितीय क्षेत्र मापने के लिए नक्शे पर बहुभुज खींचें",
+    clear:         "मापन साफ करें",
+    hintDistance:  "बिंदु रखने के लिए क्लिक करें। रेखा समाप्त करने के लिए डबल-क्लिक करें।",
+    hintArea:      "शीर्ष रखने के लिए क्लिक करें। बहुभुज बंद करने के लिए डबल-क्लिक करें।",
+    resultDistance: "दूरी",
+    resultArea:    "क्षेत्र",
+    meters:    "मीटर",
+    feet:      "फीट",
+    karam:     "करम",
+    km:        "किलोमीटर",
+    sqMeters:  "वर्ग मीटर",
+    hectares:  "हेक्टेयर",
+    acres:     "एकड़",
   },
 
   basemap: {

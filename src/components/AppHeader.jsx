@@ -4,7 +4,6 @@ import {
   Menu,
   MoonStar,
   Search,
-  Sparkles,
   SunMedium,
 } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
@@ -13,9 +12,7 @@ import LanguageToggle from "./LanguageToggle";
 export default function AppHeader({
   searchPlaceholder,
   sidebarOpen,
-  glassMode,
   theme,
-  onToggleGlass,
   onSidebarToggle,
   onToggleTheme,
   onLogout,
@@ -118,17 +115,6 @@ export default function AppHeader({
       ) : null}
 
       <div className="app-header__actions">
-        <button
-          type="button"
-          className={`header-action-button header-action-button--glass ${
-            glassMode ? "header-action-button--active" : ""
-          }`}
-          onClick={onToggleGlass}
-          aria-label={glassMode ? t("header.glassDisable") : t("header.glassEnable")}
-        >
-          <Sparkles size={16} />
-        </button>
-
         <button
           type="button"
           className="header-action-button header-action-button--theme"

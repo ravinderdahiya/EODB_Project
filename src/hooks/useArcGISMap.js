@@ -5,6 +5,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useLatestRef } from "./useLatestRef";
+import { triggerPrint } from "@/utils/printUtils";
 import esriConfig from "@arcgis/core/config.js";
 import Extent from "@arcgis/core/geometry/Extent.js";
 import Point from "@arcgis/core/geometry/Point.js";
@@ -315,7 +316,7 @@ function createLandRecordPopupContent({
   });
 
   container.querySelector('[data-role="print"]')?.addEventListener("click", () => {
-    window.print();
+    triggerPrint();
   });
 
   container.querySelector('[data-role="share"]')?.addEventListener("click", async () => {
