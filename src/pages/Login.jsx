@@ -17,6 +17,7 @@ export default function Login() {
   const [error, setError] = useState("");
   const [showOtpInput, setShowOtpInput] = useState(false);
   const [otp, setOtp] = useState(["", "", "", ""]);
+  const [developerMode, setDeveloperMode] = useState(localStorage.getItem("developerMode") === 'true');
 
   const handleVerifyOtp = async () => {
     const enteredOtp = otp.join("");
@@ -96,6 +97,12 @@ export default function Login() {
   const switchTab = (next) => {
     setTab(next);
     setError("");
+  };
+
+  const toggleDeveloperMode = () => {
+    const newMode = !developerMode;
+    setDeveloperMode(newMode);
+    localStorage.setItem("developerMode", newMode ? 'true' : 'false');
   };
 
   return (
@@ -264,6 +271,19 @@ export default function Login() {
             )}
 
             {error && <p className="lp-error">{error}</p>}
+
+            {/* Developer Mode Toggle - For development only */}
+            <div style={{ marginTop: '10px', fontSize: '12px', color: '#666' }}>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={developerMode}
+                  onChange={toggleDeveloperMode}
+                  style={{ marginRight: '5px' }}
+                />
+                Developer Mode (bypasses auth)
+              </label>
+            </div>
           </form>
 
           <div className="lp-divider" aria-hidden="true">

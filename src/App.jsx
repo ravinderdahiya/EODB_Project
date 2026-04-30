@@ -12,6 +12,7 @@ import { useArcGISMap } from "@/hooks/useArcGISMap";
 import { useDashboardPreferences } from "@/hooks/useDashboardPreferences";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { useSelectFeatures } from "@/hooks/useSelectFeatures";
+import useDisableDevTools from "@/hooks/useDisableDevTools";
 import { useLanguage } from "@/context/LanguageContext";
 import { searchAdministrativeAreas } from "@/services/mapQueryService";
 import { createEmptyParcelRecord } from "@/services/parcelRecordService";
@@ -48,6 +49,9 @@ function formatAdminSuggestionDescription(match) {
 
 export default function App() {
   const navigate = useNavigate();
+
+  // Disable developer tools in production
+  useDisableDevTools();
   const isTablet = useMediaQuery("(max-width: 1024px)");
   const isMobile = useMediaQuery("(max-width: 768px)");
   const [isPending, startTransition] = useTransition();
