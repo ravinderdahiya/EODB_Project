@@ -25,6 +25,18 @@ export default defineConfig(({ mode }) => {
       host: "0.0.0.0",
       port: devPort,
       proxy: {
+        // Backend API proxy for user/auth routes
+        "/user": {
+          target: baseURL,
+          changeOrigin: true,
+          secure: false,
+        },
+        // Backend API proxy for OTP routes
+        "/otp": {
+          target: baseURL,
+          changeOrigin: true,
+          secure: false,
+        },
         // ArcGIS REST proxy (dev only): VITE_HSAC_DEV_PROXY/... -> VITE_HSAC_ORIGIN/...
         [hsacProxy]: {
           target: hsacTarget,
@@ -53,6 +65,18 @@ export default defineConfig(({ mode }) => {
     // In production the app is served from hsac.org.in itself so CORS never applies.
     preview: {
       proxy: {
+        // Backend API proxy for user/auth routes
+        "/user": {
+          target: baseURL,
+          changeOrigin: true,
+          secure: false,
+        },
+        // Backend API proxy for OTP routes
+        "/otp": {
+          target: baseURL,
+          changeOrigin: true,
+          secure: false,
+        },
         [hsacProxy]: {
           target: hsacTarget,
           changeOrigin: true,
