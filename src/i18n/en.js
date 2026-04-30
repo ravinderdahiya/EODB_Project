@@ -7,8 +7,7 @@ const en = {
     searchPlaceholderDefault: "Search places across Haryana or use the sidebar record search",
     searchSubmit: "Search",
     toggleNav: "Toggle navigation",
-    glassEnable: "Enable glass mode",
-    glassDisable: "Disable glass mode",
+
     switchToDark: "Switch to dark mode",
     switchToLight: "Switch to light mode",
     selectLanguage: "Select language",
@@ -96,6 +95,28 @@ const en = {
     measurement: "Measurement tools",
     "zoom-in":   "Zoom in",
     "zoom-out":  "Zoom out",
+  },
+
+  measurement: {
+    eyebrow:       "Tools",
+    title:         "Measurement",
+    close:         "Close measurement panel",
+    distance:      "Measure Distance",
+    distanceTitle: "Draw a polyline on the map to measure geodesic distance",
+    area:          "Measure Area",
+    areaTitle:     "Draw a polygon on the map to measure geodesic area",
+    clear:         "Clear Measurement",
+    hintDistance:  "Click to place points. Double-click to finish the line.",
+    hintArea:      "Click to place vertices. Double-click to close the polygon.",
+    resultDistance: "Distance",
+    resultArea:    "Area",
+    meters:    "Metres",
+    feet:      "Feet",
+    karam:     "Karam",
+    km:        "Kilometres",
+    sqMeters:  "Square Metres",
+    hectares:  "Hectares",
+    acres:     "Acres",
   },
 
   basemap: {

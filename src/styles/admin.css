@@ -548,54 +548,6 @@
   background: rgba(255, 255, 255, 0.06);
 }
 
-/* ── Glass mode overrides ─────────────────────────────────── */
-
-:root[data-glass="on"] .admin-card,
-:root[data-glass="on"] .admin-system-message {
-  backdrop-filter: blur(32px) saturate(168%);
-  -webkit-backdrop-filter: blur(32px) saturate(168%);
-  border-color: rgba(255, 255, 255, 0.28);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.44), rgba(245, 250, 248, 0.18)),
-    rgba(231, 241, 236, 0.16);
-}
-
-:root[data-glass="on"][data-theme="dark"] .admin-card,
-:root[data-glass="on"][data-theme="dark"] .admin-system-message {
-  border-color: rgba(202, 223, 237, 0.14);
-  background:
-    linear-gradient(180deg, rgba(32, 57, 73, 0.28), rgba(11, 24, 35, 0.14)),
-    rgba(9, 18, 27, 0.1);
-}
-
-/* ── Glass mode layout override for admin shell ───────────── */
-
-@media (min-width: 1025px) {
-  :root[data-glass="on"] .admin-shell .dashboard-shell {
-    position: static;
-    inset: auto;
-    display: grid;
-    height: calc(100vh - var(--header-height));
-    padding: 0.85rem;
-    overflow: hidden;
-  }
-
-  :root[data-glass="on"] .admin-shell .workspace,
-  :root[data-glass="on"] .admin-shell .admin-workspace {
-    position: relative;
-    inset: auto;
-    height: 100%;
-  }
-
-  :root[data-glass="on"] .admin-shell .sidebar {
-    position: relative;
-    top: auto;
-    left: auto;
-    bottom: auto;
-    width: auto;
-    z-index: auto;
-  }
-}
 
 /* ── Responsive ───────────────────────────────────────────── */
 

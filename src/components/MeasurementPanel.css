@@ -1,0 +1,256 @@
+/* =========================
+   MeasurementPanel Component
+   Floating panel for geodesic distance and area measurement.
+   Position and surface style match LayerPanel exactly.
+========================= */
+
+/* ── Container ────────────────────────────────────────────── */
+
+.measurement-panel {
+  position: absolute;
+  top: 1rem;
+  left: calc(1rem + 48px + 0.6rem);
+  z-index: 11;
+  width: min(258px, calc(100% - 6rem));
+  padding: 0.9rem;
+  border-radius: 22px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(244, 248, 245, 0.88)),
+    rgba(255, 255, 255, 0.6);
+  box-shadow: var(--shadow-strong);
+  transform: translateY(0.25rem) scale(0.98);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 180ms ease, transform 180ms ease;
+}
+
+.measurement-panel--open {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0) scale(1);
+}
+
+/* ── Header ───────────────────────────────────────────────── */
+
+.measurement-panel__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.8rem;
+  margin-bottom: 0.85rem;
+}
+
+.measurement-panel__header h3 {
+  margin: 0.14rem 0 0;
+  font-size: 1.1rem;
+  color: var(--ink);
+}
+
+.measurement-panel__close-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: 10px;
+  background: rgba(23, 50, 72, 0.06);
+  color: var(--ink);
+  cursor: pointer;
+  transition: background 140ms ease;
+}
+
+.measurement-panel__close-btn:hover {
+  background: rgba(23, 50, 72, 0.13);
+}
+
+/* ── Action buttons ───────────────────────────────────────── */
+
+.measurement-panel__actions {
+  display: grid;
+  gap: 0.42rem;
+  margin-bottom: 0.72rem;
+}
+
+.measurement-panel__action-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+  padding: 0.58rem 0.78rem;
+  border: 1px solid rgba(47, 141, 93, 0.18);
+  border-radius: 14px;
+  background: #ffffff;
+  color: var(--ink);
+  font-size: 0.87rem;
+  font-weight: 700;
+  cursor: pointer;
+  text-align: left;
+  transition: background 140ms ease, box-shadow 140ms ease, border-color 140ms ease;
+}
+
+.measurement-panel__action-btn:hover:not(:disabled) {
+  background: #f4faf7;
+  box-shadow: 0 2px 8px rgba(47, 141, 93, 0.1);
+  border-color: rgba(47, 141, 93, 0.3);
+}
+
+.measurement-panel__action-btn--active {
+  background: linear-gradient(135deg, rgba(46, 115, 180, 0.92), rgba(47, 141, 93, 0.86));
+  border-color: transparent;
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(46, 115, 180, 0.28);
+}
+
+.measurement-panel__action-btn--active:hover:not(:disabled) {
+  background: linear-gradient(135deg, rgba(46, 115, 180, 0.97), rgba(47, 141, 93, 0.92));
+  box-shadow: 0 4px 12px rgba(46, 115, 180, 0.32);
+}
+
+/* Clear button – ghost style, turns red on hover */
+.measurement-panel__action-btn--ghost {
+  background: transparent;
+  border-color: rgba(23, 50, 72, 0.12);
+  opacity: 0.72;
+}
+
+.measurement-panel__action-btn--ghost:hover:not(:disabled) {
+  background: rgba(220, 50, 50, 0.06);
+  border-color: rgba(220, 50, 50, 0.22);
+  color: #c0392b;
+  opacity: 1;
+}
+
+.measurement-panel__action-btn:disabled {
+  opacity: 0.38;
+  cursor: not-allowed;
+}
+
+/* ── Drawing hint ─────────────────────────────────────────── */
+
+.measurement-panel__hint {
+  margin: 0 0 0.72rem;
+  padding: 0.52rem 0.7rem;
+  border-radius: 12px;
+  background: rgba(46, 115, 180, 0.07);
+  border: 1px solid rgba(46, 115, 180, 0.16);
+  color: var(--ink);
+  font-size: 0.79rem;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+/* ── Result card ──────────────────────────────────────────── */
+
+.measurement-panel__result {
+  padding: 0.7rem 0.78rem;
+  border-radius: 14px;
+  border: 1px solid rgba(47, 141, 93, 0.2);
+  background: rgba(47, 141, 93, 0.05);
+}
+
+.measurement-panel__result-label {
+  display: block;
+  margin-bottom: 0.48rem;
+  font-size: 0.69rem;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+
+.measurement-panel__result-rows {
+  display: grid;
+  gap: 0;
+}
+
+.measurement-panel__result-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid rgba(47, 141, 93, 0.1);
+}
+
+.measurement-panel__result-row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.measurement-panel__result-row span {
+  color: var(--ink-muted);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.measurement-panel__result-row strong {
+  color: var(--ink);
+  font-size: 0.88rem;
+  font-weight: 800;
+  text-align: right;
+}
+
+/* ── Dark theme overrides ─────────────────────────────────── */
+
+:root[data-theme="dark"] .measurement-panel {
+  background:
+    linear-gradient(180deg, rgba(19, 35, 49, 0.94), rgba(12, 25, 36, 0.92)),
+    rgba(11, 22, 31, 0.9);
+  box-shadow: 0 22px 46px rgba(0, 0, 0, 0.28);
+}
+
+:root[data-theme="dark"] .measurement-panel__close-btn {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+:root[data-theme="dark"] .measurement-panel__close-btn:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+:root[data-theme="dark"] .measurement-panel__action-btn {
+  background: rgba(46, 64, 81, 0.72);
+  border-color: rgba(125, 181, 255, 0.14);
+  color: var(--ink);
+}
+
+:root[data-theme="dark"] .measurement-panel__action-btn:hover:not(:disabled) {
+  background: rgba(30, 54, 76, 0.95);
+  border-color: rgba(125, 181, 255, 0.28);
+}
+
+:root[data-theme="dark"] .measurement-panel__action-btn--ghost {
+  background: transparent;
+  border-color: rgba(125, 181, 255, 0.1);
+}
+
+:root[data-theme="dark"] .measurement-panel__hint {
+  background: rgba(46, 115, 180, 0.12);
+  border-color: rgba(125, 181, 255, 0.18);
+}
+
+:root[data-theme="dark"] .measurement-panel__result {
+  border-color: rgba(99, 193, 137, 0.2);
+  background: rgba(47, 141, 93, 0.07);
+}
+
+:root[data-theme="dark"] .measurement-panel__result-row {
+  border-bottom-color: rgba(99, 193, 137, 0.1);
+}
+
+/* ── Hide during print ────────────────────────────────────── */
+
+@media print {
+  .measurement-panel {
+    display: none !important;
+  }
+}
+
+/* ── Responsive ───────────────────────────────────────────── */
+
+@media (max-width: 768px) {
+  .measurement-panel {
+    width: min(238px, calc(100% - 5rem));
+  }
+}

@@ -31,7 +31,7 @@ export const navigationItems = [
     label: "Cadastral Terminology",
     description: "View reference glossary PDF",
     icon: FileDown,
-    pdfUrl: "/Cadastral-terminology.pdf",
+    pdfUrl: `${import.meta.env.BASE_URL}Cadastral-terminology.pdf`,
   },
   {
     id: "personalizations",

@@ -2,6 +2,7 @@ import "./MapStage.css";
 import { Printer, TableProperties, X } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
 import { normalizeParcel } from "@/utils/parcelUtils";
+import { triggerPrint } from "@/utils/printUtils";
 
 function formatScale(scale) {
   if (!scale || scale <= 0) return null;
@@ -29,7 +30,7 @@ export default function MapStage({
       onPrint();
     } else {
       document.body.classList.add("print-parcel-view");
-      window.print();
+      triggerPrint();
       window.addEventListener(
         "afterprint",
         () => document.body.classList.remove("print-parcel-view"),

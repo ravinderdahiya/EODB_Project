@@ -5,17 +5,20 @@ import BasemapSwitcher from "@/components/BasemapSwitcher";
 import LayerPanel from "@/components/LayerPanel";
 import MapStage from "@/components/MapStage";
 import MapToolbar from "@/components/MapToolbar";
+import MeasurementPanel from "@/components/MeasurementPanel";
 import ParcelDetailsModal from "@/components/ParcelDetailsModal";
 import SidebarNav from "@/components/SidebarNav";
 import { navigationItems } from "@/data/portalData";
 import { useArcGISMap } from "@/hooks/useArcGISMap";
 import { useDashboardPreferences } from "@/hooks/useDashboardPreferences";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
+import { useMeasurement } from "@/hooks/useMeasurement";
 import { useSelectFeatures } from "@/hooks/useSelectFeatures";
 import useDisableDevTools from "@/hooks/useDisableDevTools";
 import { useLanguage } from "@/context/LanguageContext";
 import { searchAdministrativeAreas } from "@/services/mapQueryService";
 import { createEmptyParcelRecord } from "@/services/parcelRecordService";
+import { triggerPrint } from "@/utils/printUtils";
 
 const initialLayers = {
   cadastral: true,
@@ -55,7 +58,7 @@ export default function App() {
   const isTablet = useMediaQuery("(max-width: 1024px)");
   const isMobile = useMediaQuery("(max-width: 768px)");
   const [isPending, startTransition] = useTransition();
-  const { theme, setTheme, glassMode, setGlassMode } = useDashboardPreferences();
+  const { theme, setTheme } = useDashboardPreferences();
 
   const { t } = useLanguage();
   const [activeNav, setActiveNav] = useState(navigationItems[0]?.id ?? "");
@@ -198,6 +201,9 @@ export default function App() {
   // ── Select Features ──────────────────────────────────────────────────────────
   const sf = useSelectFeatures({ viewRef, layersRef });
   useEffect(() => { sfClearRef.current = sf.clearSelection; }, [sf.clearSelection]);
+
+  // ── Measurement ──────────────────────────────────────────────────────────────
+  const measurement = useMeasurement({ viewRef, layersRef });
 
   // Auto-open the bottom table when selection rows arrive
   useEffect(() => {
@@ -406,8 +412,23 @@ export default function App() {
       return;
     }
 
-    if (actionId === "layers") { toggleMapPanel("layers"); return; }
-    if (actionId === "basemap") { toggleMapPanel("basemap"); return; }
+    if (actionId === "layers") {
+      // Close measurement so the panels don't overlap
+      if (measurementMode !== null) {
+        measurement.clearMeasure();
+        setMeasurementMode(null);
+      }
+      toggleMapPanel("layers");
+      return;
+    }
+    if (actionId === "basemap") {
+      if (measurementMode !== null) {
+        measurement.clearMeasure();
+        setMeasurementMode(null);
+      }
+      toggleMapPanel("basemap");
+      return;
+    }
 
     if (actionId === "reset" || actionId === "target") {
       const result = await resetView();
@@ -422,21 +443,15 @@ export default function App() {
     }
 
     if (actionId === "measurement") {
-      setActiveMapPanel(null);
-      setMeasurementMode((current) => {
-        if (current === null) {
-          setSystemMessage("Distance measurement workflow is staged for ArcGIS widget hookup.");
-          return "Distance";
-        }
-
-        if (current === "Distance") {
-          setSystemMessage("Area measurement workflow is staged for ArcGIS widget hookup.");
-          return "Area";
-        }
-
-        setSystemMessage("Measurement workflow cleared.");
-        return null;
-      });
+      setActiveMapPanel(null); // close layers / basemap panels
+      if (measurementMode !== null) {
+        measurement.clearMeasure();
+        setMeasurementMode(null);
+        setSystemMessage("Measurement tool closed.");
+      } else {
+        setMeasurementMode("panel");
+        setSystemMessage("Select Measure Distance or Measure Area, then draw on the map.");
+      }
     }
   };
 
@@ -457,7 +472,7 @@ export default function App() {
     const savedExtent = await zoomForPrint();
     // Allow zoom animation + tile rendering to settle before print dialog
     await new Promise((resolve) => setTimeout(resolve, 1400));
-    window.print();
+    triggerPrint();
     window.addEventListener(
       "afterprint",
       async () => {
@@ -477,9 +492,7 @@ export default function App() {
             : t("header.searchPlaceholderDefault")
         }
         sidebarOpen={sidebarOpen}
-        glassMode={glassMode}
         theme={theme}
-        onToggleGlass={() => setGlassMode((current) => !current)}
         onSidebarToggle={() => setSidebarOpen((current) => !current)}
         onToggleTheme={() =>
           setTheme((current) => (current === "light" ? "dark" : "light"))
@@ -521,11 +534,10 @@ export default function App() {
           onSelect={(id) => {
             setActiveNav(id);
             if (id === "layers") toggleMapPanel("layers");
+            if (id === "measurement") handleToolbarAction("measurement");
           }}
           theme={theme}
-          glassMode={glassMode}
           onToggleTheme={() => setTheme((current) => (current === "light" ? "dark" : "light"))}
-          onToggleGlass={() => setGlassMode((current) => !current)}
           mapReady={mapReady}
           sfActiveTool={sf.activeTool}
           sfIsActive={sf.isActive}
@@ -573,6 +585,33 @@ export default function App() {
                 onChange={handleBasemapChange}
               />
             ) : null}
+
+            <MeasurementPanel
+              isOpen={measurementMode !== null}
+              activeMode={measurementMode === "panel" ? null : measurementMode}
+              isDrawing={measurement.isDrawing}
+              result={measurement.result}
+              onMeasureDistance={() => {
+                setMeasurementMode("distance");
+                measurement.startMeasure("distance");
+                setSystemMessage("Click on the map to place points. Double-click to finish the line.");
+              }}
+              onMeasureArea={() => {
+                setMeasurementMode("area");
+                measurement.startMeasure("area");
+                setSystemMessage("Click on the map to place vertices. Double-click to close the polygon.");
+              }}
+              onClear={() => {
+                measurement.clearMeasure();
+                setMeasurementMode("panel");
+                setSystemMessage("Measurement cleared. Select a tool to draw again.");
+              }}
+              onClose={() => {
+                measurement.clearMeasure();
+                setMeasurementMode(null);
+                setSystemMessage("Measurement tool closed.");
+              }}
+            />
           </MapStage>
         </main>
       </div>

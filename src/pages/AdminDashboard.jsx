@@ -12,7 +12,7 @@ import "@/styles/admin.css";
 export default function AdminDashboard() {
   const navigate = useNavigate();
   const isTablet = useMediaQuery("(max-width: 1180px)");
-  const { theme, setTheme, glassMode, setGlassMode } = useDashboardPreferences();
+  const { theme, setTheme } = useDashboardPreferences();
 
   const [activeNav, setActiveNav] = useState(adminNavigationItems[0]?.id ?? "dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(!isTablet);
@@ -53,9 +53,7 @@ export default function AdminDashboard() {
     <div className="app-shell admin-shell">
       <AppHeader
         sidebarOpen={sidebarOpen}
-        glassMode={glassMode}
         theme={theme}
-        onToggleGlass={() => setGlassMode((current) => !current)}
         onSidebarToggle={() => setSidebarOpen((current) => !current)}
         onToggleTheme={() =>
           setTheme((current) => (current === "light" ? "dark" : "light"))

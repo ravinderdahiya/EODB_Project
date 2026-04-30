@@ -509,12 +509,6 @@
   bottom: clamp(180px, 30%, 320px);
 }
 
-/* In glass mode the workspace covers the full viewport (including behind the
-   header). Push the popup host down so popups can't appear under the header. */
-:root[data-glass="on"] .map-click-popup-host {
-  top: var(--header-height);
-}
-
 /* ── Map Click Popup Card ─────────────────────────────────── */
 
 .map-click-popup {
@@ -802,90 +796,6 @@
     opacity: 1;
     transform: translateY(0) scale(1);
   }
-}
-
-/* ── Popup CSS variable overrides per glass/dark mode ─────── */
-
-:root[data-glass="on"]:not([data-theme="dark"]) {
-  --popup-card-bg:
-    linear-gradient(180deg, rgba(250, 246, 227, 0.34), rgba(225, 210, 150, 0.08)),
-    rgba(255, 252, 240, 0.1);
-  --popup-card-border: rgba(255, 255, 255, 0.34);
-  --popup-card-shadow: 0 20px 38px rgba(106, 91, 44, 0.12);
-  --popup-hero-bg:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.46), rgba(243, 235, 201, 0.16)),
-    rgba(252, 248, 233, 0.1);
-  --popup-selector-bg: rgba(255, 255, 255, 0.18);
-  --popup-selector-border: rgba(255, 255, 255, 0.24);
-  --popup-metric-bg: rgba(255, 255, 255, 0.16);
-  --popup-metric-border: rgba(255, 255, 255, 0.2);
-  --popup-action-bg: rgba(255, 255, 255, 0.18);
-  --popup-action-border: rgba(255, 255, 255, 0.24);
-  --popup-note-bg: rgba(255, 255, 255, 0.16);
-}
-
-:root[data-glass="on"][data-theme="dark"] {
-  --popup-card-bg:
-    linear-gradient(180deg, rgba(32, 57, 73, 0.28), rgba(11, 24, 35, 0.14)),
-    rgba(9, 18, 27, 0.1);
-  --popup-card-border: rgba(202, 223, 237, 0.14);
-  --popup-card-shadow: 0 24px 48px rgba(0, 0, 0, 0.3);
-  --popup-hero-bg:
-    linear-gradient(180deg, rgba(38, 69, 88, 0.28), rgba(11, 24, 35, 0.14)),
-    rgba(9, 18, 27, 0.08);
-  --popup-selector-bg: rgba(255, 255, 255, 0.06);
-  --popup-selector-border: rgba(202, 223, 237, 0.12);
-  --popup-metric-bg: rgba(255, 255, 255, 0.04);
-  --popup-metric-border: rgba(202, 223, 237, 0.08);
-  --popup-action-bg: rgba(255, 255, 255, 0.06);
-  --popup-action-border: rgba(202, 223, 237, 0.12);
-  --popup-note-bg: rgba(255, 255, 255, 0.04);
-}
-
-:root[data-glass="on"] .map-click-popup__card,
-:root[data-glass="on"] .map-click-popup__hero,
-:root[data-glass="on"] .map-click-popup__select,
-:root[data-glass="on"] .map-click-popup__metric,
-:root[data-glass="on"] .map-click-popup__icon-button,
-:root[data-glass="on"] .map-click-popup__headline,
-:root[data-glass="on"] .map-click-popup__overview,
-:root[data-glass="on"] .map-click-popup .primary-button,
-:root[data-glass="on"] .map-click-popup .action-link {
-  backdrop-filter: blur(30px) saturate(168%);
-  -webkit-backdrop-filter: blur(30px) saturate(168%);
-}
-
-/* ── Glass table panel overrides ───────────────────────────── */
-
-:root[data-glass="on"] .parcel-table-panel__header {
-  border-bottom-color: rgba(255, 255, 255, 0.18);
-}
-
-:root[data-glass="on"] .parcel-details-table th {
-  background: rgba(255, 255, 255, 0.22);
-  -webkit-backdrop-filter: blur(12px);
-  backdrop-filter: blur(12px);
-  border-bottom-color: rgba(255, 255, 255, 0.2);
-}
-
-:root[data-glass="on"] .parcel-details-table td {
-  border-bottom-color: rgba(255, 255, 255, 0.1);
-}
-
-:root[data-glass="on"]:not([data-theme="dark"]) .parcel-table-panel__header h2,
-:root[data-glass="on"]:not([data-theme="dark"]) .parcel-table-panel .eyebrow,
-:root[data-glass="on"]:not([data-theme="dark"]) .parcel-details-table th,
-:root[data-glass="on"]:not([data-theme="dark"]) .parcel-details-table td {
-  color: rgba(14, 38, 54, 0.92);
-}
-
-:root[data-glass="on"][data-theme="dark"] .parcel-details-table th {
-  background: rgba(8, 18, 28, 0.46);
-  color: rgba(200, 220, 235, 0.86);
-}
-
-:root[data-glass="on"][data-theme="dark"] .parcel-details-table td {
-  color: rgba(228, 238, 247, 0.88);
 }
 
 /* ── Dark mode overrides ──────────────────────────────────── */

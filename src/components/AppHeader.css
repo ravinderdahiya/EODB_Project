@@ -219,11 +219,6 @@
     rgba(255, 255, 255, 0.92);
 }
 
-.header-action-button--glass {
-  background:
-    linear-gradient(135deg, rgba(241, 249, 245, 0.96), rgba(223, 242, 236, 0.9)),
-    rgba(255, 255, 255, 0.92);
-}
 
 .header-action-button--active {
   background: linear-gradient(135deg, rgba(47, 141, 93, 0.94), rgba(46, 115, 180, 0.88));
@@ -428,11 +423,6 @@
     rgba(14, 27, 39, 0.9);
 }
 
-:root[data-theme="dark"] .header-action-button--glass {
-  background:
-    linear-gradient(135deg, rgba(24, 55, 63, 0.96), rgba(16, 35, 47, 0.92)),
-    rgba(14, 27, 39, 0.9);
-}
 
 :root[data-theme="dark"] .header-action-button--logout {
   background: rgba(196, 58, 58, 0.14);
@@ -442,54 +432,6 @@
 
 :root[data-theme="dark"] .profile-chip__avatar {
   color: #9ed1ff;
-}
-
-/* =========================
-   AppHeader — Glass Mode Overrides
-========================= */
-
-:root[data-glass="on"] .app-header {
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.46), rgba(247, 252, 249, 0.26)),
-    rgba(232, 241, 236, 0.18);
-}
-
-:root[data-glass="on"] .search-shell__suggestions {
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.5), rgba(245, 250, 248, 0.24)),
-    rgba(232, 241, 236, 0.18);
-}
-
-:root[data-glass="on"] .search-shell__suggestion:hover {
-  background: rgba(255, 255, 255, 0.2);
-}
-
-:root[data-glass="on"] .header-action-button--glass:not(.header-action-button--active) {
-  background:
-    linear-gradient(135deg, rgba(237, 251, 245, 0.56), rgba(198, 232, 222, 0.34)),
-    rgba(232, 241, 236, 0.2);
-}
-
-/* Glass light — search submit */
-:root[data-glass="on"]:not([data-theme="dark"]) .search-shell__submit {
-  background: linear-gradient(135deg, rgba(47, 141, 93, 0.96), rgba(56, 163, 103, 0.92));
-  color: white;
-  box-shadow:
-    0 16px 24px rgba(47, 141, 93, 0.22),
-    inset 0 1px 0 rgba(255, 255, 255, 0.18);
-}
-
-/* Glass light — primary action button */
-:root[data-glass="on"]:not([data-theme="dark"]) .header-action-button--primary {
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.48), rgba(229, 240, 232, 0.2)),
-    rgba(247, 251, 248, 0.12);
-  color: rgba(23, 50, 72, 0.98);
-}
-
-/* Glass dark — sidebar::after overlay */
-:root[data-glass="on"]:not([data-theme="dark"]) .sidebar__surface::after {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.26), rgba(250, 245, 221, 0.1));
 }
 
 /* =========================

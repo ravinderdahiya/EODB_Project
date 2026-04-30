@@ -277,14 +277,14 @@ function SearchSection({
           })}
         </div>
 
-        <button
+        {/* <button
           type="button"
           className="search-section__print-btn"
           onClick={() => onPrint?.({ section: sectionId, codes, names })}
         >
           <Printer size={13} />
           <span>{t("searchPanel.print")}</span>
-        </button>
+        </button> */}
       </div>
     </div>
   );
