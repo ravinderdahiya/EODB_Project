@@ -30,6 +30,7 @@ import {
   DISTRICT_SUBLAYERS,
   HSAC_LAYER,
 } from "@/config/arcgis";
+import { HSAC_PROXY_URL, HSAC_PROXY_URL_PREFIXES } from "@/config/proxyConfig";
 import { getHsacLayerPlan } from "@/services/hsacLayerResolver";
 import { getBoundaryGeometry } from "@/services/mapQueryService";
 import { createParcelRecordFromMapFeature } from "@/services/parcelRecordService";
@@ -73,12 +74,8 @@ async function shareLandRecordPreview(preview) {
 const MAP_CLICK_POPUP_MARGIN = 12;
 const MAP_CLICK_POPUP_OFFSET_X = 14;
 const MAP_CLICK_POPUP_OFFSET_Y = 18;
-// Production origin + REST path prefix — always the real HSAC origin (never the dev proxy)
-// because the ArcGIS SDK intercepts requests to this URL and routes them via HSAC_PROXY_URL.
-const HSAC_PROXY_URL_PREFIX =
-  (import.meta.env.VITE_HSAC_ORIGIN ?? "https://hsac.org.in") + "/server/rest/services/";
-const HSAC_PROXY_URL =
-  import.meta.env.VITE_HSAC_DOTNET_PROXY_URL ?? "http://hsac.org.in/DotNet/proxy.ashx";
+const CADASTRAL_EFFECTIVE_MIN_SCALE = 5000;
+const CADASTRAL_AUTO_ZOOM_SCALE = 4000;
 
 // Zoom thresholds that drive click-to-select behaviour.
 // ≤ DISTRICT_MAX  → state view   → click selects district and zooms to fit
@@ -89,6 +86,11 @@ const CLICK_ZOOM = { DISTRICT_MAX: 9, TEHSIL_MAX: 12, VILLAGE_MAX: 14 };
 
 function clampNumber(value, min, max) {
   return Math.min(Math.max(value, min), max);
+}
+
+function formatScaleDenominator(scale) {
+  if (!Number.isFinite(scale) || scale <= 0) return null;
+  return `1:${Math.round(scale).toLocaleString("en-IN")}`;
 }
 
 function closeLandRecordMiniPopup(popupStateRef) {
@@ -586,6 +588,34 @@ export function useArcGISMap({
     boundaries: "loading",
     assets:     "loading",
   });
+  const lastCadastralVisibilityRef = useRef(layerVisibility.cadastral ?? true);
+
+  const ensureCadastralVisibleScale = async (reason = "toggle") => {
+    const view = viewRef.current;
+    if (!view) {
+      return { ok: false, message: "Map is still loading." };
+    }
+
+    const currentScale = view.scale ?? Number.POSITIVE_INFINITY;
+    if (currentScale <= CADASTRAL_EFFECTIVE_MIN_SCALE) {
+      return { ok: true, message: null };
+    }
+
+    await view.goTo(
+      { target: view.center, scale: CADASTRAL_AUTO_ZOOM_SCALE },
+      { duration: 900, easing: "ease-in-out" },
+    ).catch(() => undefined);
+
+    const scaleLabel = formatScaleDenominator(CADASTRAL_EFFECTIVE_MIN_SCALE) ?? "1:5,000";
+    const sourceText = reason === "startup" ? "startup" : "layer";
+
+    return {
+      ok: true,
+      message:
+        `Cadastral visibility is scale-dependent. Auto-zoomed via ${sourceText} control to show parcels ` +
+        `(${scaleLabel} or closer).`,
+    };
+  };
 
   // ── Map initialisation (runs once) ──────────────────────────────────────────
   useEffect(() => {
@@ -594,16 +624,15 @@ export function useArcGISMap({
     if (import.meta.env.VITE_ARCGIS_API_KEY) {
       esriConfig.apiKey = import.meta.env.VITE_ARCGIS_API_KEY;
     }
-    const existingHsacProxyRule = urlUtils.getProxyRule(
-      (import.meta.env.VITE_HSAC_ORIGIN ?? "https://hsac.org.in") +
-      (import.meta.env.VITE_HSAC_MAP_SERVICE_PATH ?? "/server/rest/services/EODB/EODB_Staging/MapServer"),
-    );
-    if (!existingHsacProxyRule) {
+    HSAC_PROXY_URL_PREFIXES.forEach((urlPrefix) => {
+      const existingRule = urlUtils.getProxyRule(urlPrefix);
+      if (existingRule?.urlPrefix === urlPrefix) return;
+
       urlUtils.addProxyRule({
-        urlPrefix: HSAC_PROXY_URL_PREFIX,
+        urlPrefix,
         proxyUrl: HSAC_PROXY_URL,
       });
-    }
+    });
 
     const defaultExtent = new Extent(arcgisPortalConfig.defaultExtent);
     defaultExtentRef.current = defaultExtent;
@@ -784,6 +813,12 @@ export function useArcGISMap({
             }).catch(() => undefined);
           }
         }
+
+        // Always start from Haryana-wide extent on initial load.
+        await view.goTo(defaultExtent.clone(), {
+          duration: 900,
+          easing: "ease-in-out",
+        }).catch(() => undefined);
 
         setMapStatus(
           layerPlan.usesFallback
@@ -1001,6 +1036,18 @@ export function useArcGISMap({
     // Cadastral + parcel highlight
     if (layers.hsacCadastralLayer) layers.hsacCadastralLayer.visible = layerVisibility.cadastral;
     if (layers.highlightLayer)     layers.highlightLayer.visible     = layerVisibility.cadastral;
+
+    const wasCadastralVisible = lastCadastralVisibilityRef.current;
+    const isCadastralVisible = layerVisibility.cadastral ?? true;
+    lastCadastralVisibilityRef.current = isCadastralVisible;
+
+    if (isCadastralVisible && !wasCadastralVisible) {
+      void ensureCadastralVisibleScale("layer").then((result) => {
+        if (result?.message) {
+          setMapStatus(result.message);
+        }
+      });
+    }
 
     // Operational overlays
     if (layers.governmentAssetsLayer) layers.governmentAssetsLayer.visible = layerVisibility.assets ?? false;
