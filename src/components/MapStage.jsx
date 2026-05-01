@@ -2,7 +2,7 @@ import "./MapStage.css";
 import { Printer, TableProperties, X } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
 import { normalizeParcel } from "@/utils/parcelUtils";
-import { triggerPrint } from "@/utils/printUtils";
+import { triggerPrint, PRINT_DISCLAIMER } from "@/utils/printUtils";
 
 function formatScale(scale) {
   if (!scale || scale <= 0) return null;
@@ -189,6 +189,9 @@ export default function MapStage({
         <span className="map-disclaimer__track">
           {t("mapStage.disclaimer")}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{t("mapStage.disclaimer")}
         </span>
+      </div>
+      <div className="map-print-disclaimer" aria-label="Print Disclaimer">
+        {PRINT_DISCLAIMER}
       </div>
     </section>
   );

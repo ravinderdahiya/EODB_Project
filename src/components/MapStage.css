@@ -876,6 +876,10 @@
   background: rgba(0, 0, 0, 0.82);
 }
 
+.map-print-disclaimer {
+  display: none;
+}
+
 /* ── Map Scale Ratio Badge ────────────────────────────────── */
 
 .map-scale-badge {
@@ -1005,25 +1009,21 @@
   }
 
   body.print-parcel-view .map-disclaimer {
+    display: none !important;
+  }
+
+  body.print-parcel-view .map-print-disclaimer {
+    display: block !important;
     position: fixed !important;
     bottom: 0 !important;
     left: 0 !important;
     right: 0 !important;
-    display: block !important;
-    height: auto !important;
-    overflow: visible !important;
     background: #fff !important;
     border-top: 1px solid #ccc !important;
     padding: 4px 10px !important;
-  }
-
-  body.print-parcel-view .map-disclaimer__track {
-    display: block !important;
-    animation: none !important;
-    padding-left: 0 !important;
-    white-space: normal !important;
     color: #000 !important;
     font-size: 0.78rem !important;
+    white-space: normal !important;
   }
 }
 
