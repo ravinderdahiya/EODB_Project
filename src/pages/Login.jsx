@@ -272,18 +272,7 @@ export default function Login() {
 
             {error && <p className="lp-error">{error}</p>}
 
-            {/* Developer Mode Toggle - For development only */}
-            <div style={{ marginTop: '10px', fontSize: '12px', color: '#666' }}>
-              <label>
-                <input
-                  type="checkbox"
-                  checked={developerMode}
-                  onChange={toggleDeveloperMode}
-                  style={{ marginRight: '5px' }}
-                />
-                Developer Mode (bypasses auth)
-              </label>
-            </div>
+           
           </form>
 
           <div className="lp-divider" aria-hidden="true">
