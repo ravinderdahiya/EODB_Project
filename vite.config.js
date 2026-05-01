@@ -24,6 +24,16 @@ function isSameLocalProxyPath(pathname, localProxyPath) {
   return prefix === "" || prefix.startsWith("/");
 }
 
+function installWasmMimeMiddleware(server) {
+  server.middlewares.use((req, res, next) => {
+    const requestPath = (req.url ?? "").split("?")[0];
+    if (requestPath.endsWith(".wasm")) {
+      res.setHeader("Content-Type", "application/wasm");
+    }
+    next();
+  });
+}
+
 function installLocalHsacProxyMiddleware(server, proxyPath, upstreamProxyUrl) {
   const localProxyPath = normalizeLocalProxyPath(proxyPath);
 
@@ -66,7 +76,8 @@ function installLocalHsacProxyMiddleware(server, proxyPath, upstreamProxyUrl) {
       return;
     }
 
-    if (parsed.protocol !== "https:" || !HSAC_PROXY_ALLOWED_HOSTS.has(parsed.hostname)) {
+    const targetHost = parsed.hostname.toLowerCase();
+    if (parsed.protocol !== "https:" || !HSAC_PROXY_ALLOWED_HOSTS.has(targetHost)) {
       res.statusCode = 403;
       res.setHeader("content-type", "text/plain; charset=utf-8");
       res.end("Target host is not allowed.");
@@ -197,6 +208,15 @@ export default defineConfig(({ mode }) => {
     base,
     plugins: [
       react(),
+      {
+        name: "arcgis-wasm-mime",
+        configureServer(server) {
+          installWasmMimeMiddleware(server);
+        },
+        configurePreviewServer(server) {
+          installWasmMimeMiddleware(server);
+        },
+      },
       {
         name: "local-hsac-dotnet-proxy",
         configureServer(server) {

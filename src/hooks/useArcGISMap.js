@@ -76,6 +76,9 @@ const MAP_CLICK_POPUP_OFFSET_X = 14;
 const MAP_CLICK_POPUP_OFFSET_Y = 18;
 const CADASTRAL_EFFECTIVE_MIN_SCALE = 5000;
 const CADASTRAL_AUTO_ZOOM_SCALE = 4000;
+const LAYER_LOAD_TIMEOUT_MS = 12000;
+const LAYER_LOAD_RETRY_ATTEMPTS = 2;
+const LAYER_LOAD_RETRY_DELAY_MS = 900;
 
 // Zoom thresholds that drive click-to-select behaviour.
 // ≤ DISTRICT_MAX  → state view   → click selects district and zooms to fit
@@ -83,6 +86,57 @@ const CADASTRAL_AUTO_ZOOM_SCALE = 4000;
 // ≤ VILLAGE_MAX   → tehsil view  → click selects village  and zooms to fit
 // > VILLAGE_MAX   → cadastral zone → cadastral parcel popup (when layer visible)
 const CLICK_ZOOM = { DISTRICT_MAX: 9, TEHSIL_MAX: 12, VILLAGE_MAX: 14 };
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function withTimeout(promise, timeoutMs, timeoutMessage) {
+  return new Promise((resolve, reject) => {
+    const timeoutId = setTimeout(() => {
+      reject(new Error(timeoutMessage));
+    }, timeoutMs);
+
+    promise.then(
+      (value) => {
+        clearTimeout(timeoutId);
+        resolve(value);
+      },
+      (error) => {
+        clearTimeout(timeoutId);
+        reject(error);
+      },
+    );
+  });
+}
+
+async function loadLayerWithRetry(layer, {
+  label,
+  attempts = LAYER_LOAD_RETRY_ATTEMPTS,
+  timeoutMs = LAYER_LOAD_TIMEOUT_MS,
+  retryDelayMs = LAYER_LOAD_RETRY_DELAY_MS,
+} = {}) {
+  let lastError = null;
+
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      await withTimeout(
+        layer.load(),
+        timeoutMs,
+        `${label || layer?.title || "Layer"} metadata load timed out.`,
+      );
+
+      return { ok: true, attempts: attempt, error: null };
+    } catch (error) {
+      lastError = error;
+      if (attempt < attempts) {
+        await sleep(retryDelayMs * attempt);
+      }
+    }
+  }
+
+  return { ok: false, attempts, error: lastError };
+}
 
 function clampNumber(value, min, max) {
   return Math.min(Math.max(value, min), max);
@@ -794,7 +848,6 @@ export function useArcGISMap({
           highlightLayer,
           locationLayer,
         };
-        setMapReady(true);
 
         // Live scale ratio — updates on every zoom/pan
         reactiveUtils.watch(
@@ -803,8 +856,46 @@ export function useArcGISMap({
           { initial: true },
         );
 
+        // Map is considered ready only after view + first operational layer metadata pass.
+        // Failures are tolerated and reported through service health and console warnings.
+        const [boundariesLoad, cadastralLoad, assetsLoad] = await Promise.all([
+          loadLayerWithRetry(hsacBoundariesLayer, { label: "Boundaries layer" }),
+          loadLayerWithRetry(hsacCadastralLayer, { label: "Cadastral layer" }),
+          loadLayerWithRetry(governmentAssetsLayer, { label: "Government Assets layer" }),
+        ]);
+
+        if (isDisposed) return;
+
+        updateHealth("boundaries", boundariesLoad.ok ? "connected" : "degraded");
+        updateHealth("cadastral", cadastralLoad.ok ? "connected" : "degraded");
+        updateHealth("assets", assetsLoad.ok ? "connected" : "degraded");
+
+        if (!boundariesLoad.ok) {
+          console.error("[ArcGIS] Boundaries layer load failed:", boundariesLoad.error);
+        }
+        if (!cadastralLoad.ok) {
+          console.error("[ArcGIS] Cadastral layer load failed:", cadastralLoad.error);
+        }
+        if (!assetsLoad.ok) {
+          console.warn("[ArcGIS] Government Assets layer load failed:", assetsLoad.error);
+        }
+
+        setMapReady(true);
+
+        // Optional overlays should not block core tool readiness.
+        void Promise.all([
+          loadLayerWithRetry(nhaiLayer, { label: "NHAI layer", attempts: 1 }),
+          loadLayerWithRetry(roadsLayer, { label: "Haryana Roads layer", attempts: 1 }),
+        ]).then(([nhaiLoad, roadsLoad]) => {
+          if (!nhaiLoad.ok) {
+            console.warn("[ArcGIS] NHAI layer load failed:", nhaiLoad.error);
+          }
+          if (!roadsLoad.ok) {
+            console.warn("[ArcGIS] Haryana Roads layer load failed:", roadsLoad.error);
+          }
+        });
+
         if (layerPlan.usesFallback) {
-          await hsacCadastralLayer.load().catch(() => undefined);
           const cadastralExtent = hsacCadastralLayer.fullExtent;
           if (cadastralExtent) {
             await view.goTo(cadastralExtent.expand(1.15), {
@@ -820,11 +911,23 @@ export function useArcGISMap({
           easing: "ease-in-out",
         }).catch(() => undefined);
 
-        setMapStatus(
-          layerPlan.usesFallback
-            ? "HSAC map loaded with dynamic layer fallback."
-            : "HSAC Haryana map is live with district / tehsil / village boundaries.",
-        );
+        const coreLayerHealthy = boundariesLoad.ok && cadastralLoad.ok;
+        if (!coreLayerHealthy) {
+          setMapStatus(
+            "HSAC map loaded with limited connectivity. Core services will auto-recover when available.",
+          );
+        } else {
+          setMapStatus(
+            layerPlan.usesFallback
+              ? "HSAC map loaded with dynamic layer fallback."
+              : "HSAC Haryana map is live with district / tehsil / village boundaries.",
+          );
+        }
+      }).catch((error) => {
+        if (isDisposed) return;
+        console.error("[ArcGIS] View initialization failed:", error);
+        setMapReady(false);
+        setMapStatus("ArcGIS map initialization failed. Please refresh and try again.");
       });
 
       popupExtentHandle = reactiveUtils.watch(() => view.extent, () => {
@@ -834,23 +937,14 @@ export function useArcGISMap({
         syncLandRecordMiniPopup({ popupStateRef, view });
       });
 
-      hsacBoundariesLayer.load().then(
-        () => updateHealth("boundaries", "connected"),
-        () => updateHealth("boundaries", "degraded"),
-      );
-      hsacCadastralLayer.load().then(
-        () => updateHealth("cadastral", "connected"),
-        () => updateHealth("cadastral", "degraded"),
-      );
-      governmentAssetsLayer.load().then(
-        () => updateHealth("assets", "connected"),
-        () => updateHealth("assets", "degraded"),
-      );
-
       let boundaryQueryCounter = 0;
 
       clickHandle = view.on("click", async (event) => {
         const currentLayers = layersRef.current;
+        if (currentLayers?.__selectionDrawing || currentLayers?.__measurementDrawing) {
+          return;
+        }
+
         const zoom = Math.round(view.zoom);
 
         // Clear the previous boundary highlight and any open popup on every click

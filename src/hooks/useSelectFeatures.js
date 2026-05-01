@@ -42,13 +42,22 @@ export function useSelectFeatures({ viewRef, layersRef }) {
   const [rows,          setRows]          = useState([]);
   const [statusMessage, setStatusMessage] = useState(null);
 
+  const setSelectionDrawingFlag = useCallback((value) => {
+    if (layersRef.current) {
+      layersRef.current.__selectionDrawing = Boolean(value);
+    }
+  }, [layersRef]);
+
   // ── Cleanup SketchViewModel on unmount ───────────────────────────────────────
   useEffect(() => {
     return () => {
       createHandleRef.current?.remove();
       sketchVmRef.current?.destroy?.();
+      sketchVmRef.current = null;
+      sketchLayerRef.current = null;
+      setSelectionDrawingFlag(false);
     };
-  }, []);
+  }, [setSelectionDrawingFlag]);
 
   // ── Lazy SketchViewModel initialiser ────────────────────────────────────────
   // Called only when view and map are confirmed ready.
@@ -263,11 +272,15 @@ export function useSelectFeatures({ viewRef, layersRef }) {
     setProgress({ current: 0, total: 0, running: false });
     setRows([]);
     setStatusMessage(null);
-  }, [layersRef]);
+    setSelectionDrawingFlag(false);
+  }, [layersRef, setSelectionDrawingFlag]);
 
   const startSelect = useCallback((tool) => {
     const vm = getOrCreateSketchVm();
-    if (!vm) return;
+    if (!vm) {
+      console.warn("[Select Features] SketchViewModel is not ready. Map view/assets may still be loading.");
+      return;
+    }
 
     // Cancel any ongoing draw and invalidate in-flight async ops
     createHandleRef.current?.remove();
@@ -286,12 +299,13 @@ export function useSelectFeatures({ viewRef, layersRef }) {
     setRows([]);
     setProgress({ current: 0, total: 0, running: false });
     setStatusMessage("Draw on the map to select Khasra parcels…");
+    setSelectionDrawingFlag(true);
 
     const drawTool =
       tool === "rectangle" ? "rectangle" :
       tool === "polygon"   ? "polygon"   : "polyline";
 
-    vm.create(drawTool);
+    vm.create(drawTool).catch(() => {});
 
     createHandleRef.current = vm.on("create", async (event) => {
       if (event.state === "cancel") {
@@ -299,6 +313,7 @@ export function useSelectFeatures({ viewRef, layersRef }) {
         createHandleRef.current = null;
         setActiveTool(null);
         setStatusMessage(null);
+        setSelectionDrawingFlag(false);
         return;
       }
 
@@ -307,6 +322,7 @@ export function useSelectFeatures({ viewRef, layersRef }) {
       createHandleRef.current?.remove();
       createHandleRef.current = null;
       setActiveTool(null);
+      setSelectionDrawingFlag(false);
 
       // Remove the temporary sketch graphic immediately after draw
       if (event.graphic && sketchLayerRef.current) {
@@ -323,7 +339,7 @@ export function useSelectFeatures({ viewRef, layersRef }) {
       await processGeometry(drawn, token);
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // All referenced values are refs or stable imported functions
+  }, [setSelectionDrawingFlag]); // All other referenced values are refs or stable imported functions
 
   return {
     activeTool,
