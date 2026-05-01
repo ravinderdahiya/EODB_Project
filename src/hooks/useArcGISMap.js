@@ -12,8 +12,10 @@ import Point from "@arcgis/core/geometry/Point.js";
 import Polygon from "@arcgis/core/geometry/Polygon.js";
 import Graphic from "@arcgis/core/Graphic.js";
 import ArcGISMap from "@arcgis/core/Map.js";
+import Basemap from "@arcgis/core/Basemap.js";
 import GraphicsLayer from "@arcgis/core/layers/GraphicsLayer.js";
 import MapImageLayer from "@arcgis/core/layers/MapImageLayer.js";
+import TileLayer from "@arcgis/core/layers/TileLayer.js";
 import MapView from "@arcgis/core/views/MapView.js";
 import * as identify from "@arcgis/core/rest/identify.js";
 import * as locator from "@arcgis/core/rest/locator.js";
@@ -405,8 +407,54 @@ function createLocationGraphic(point, title) {
   });
 }
 
-function resolveBasemapId(activeBasemap) {
-  return basemapPresets[activeBasemap]?.basemapId ?? basemapPresets.cadastral.basemapId;
+// Public raster tile services — no ArcGIS API key required.
+// The SDK 5.x built-in "classic" basemaps (hybrid, topo-vector, streets-vector) rely on
+// cdn.arcgis.com VectorTile CDN items that fail without an API key, so we build
+// explicit Basemap instances from these authenticated-free tile endpoints instead.
+const _TILE = {
+  imagery:   "https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer",
+  reference: "https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer",
+  topo:      "https://services.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer",
+  streets:   "https://services.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer",
+};
+
+const _basemapInstanceCache = {};
+
+function resolveBasemap(activeBasemap) {
+  const id = basemapPresets[activeBasemap]?.basemapId ?? basemapPresets.cadastral.basemapId;
+  if (_basemapInstanceCache[id]) return _basemapInstanceCache[id];
+
+  let basemap;
+  switch (id) {
+    case "satellite":
+      basemap = new Basemap({
+        baseLayers: [new TileLayer({ url: _TILE.imagery })],
+        title: "Imagery",
+      });
+      break;
+    case "hybrid":
+      basemap = new Basemap({
+        baseLayers: [new TileLayer({ url: _TILE.imagery })],
+        referenceLayers: [new TileLayer({ url: _TILE.reference })],
+        title: "Hybrid",
+      });
+      break;
+    case "topo-vector":
+      basemap = new Basemap({
+        baseLayers: [new TileLayer({ url: _TILE.topo })],
+        title: "Topographic",
+      });
+      break;
+    case "streets-vector":
+    default:
+      basemap = new Basemap({
+        baseLayers: [new TileLayer({ url: _TILE.streets })],
+        title: "Streets",
+      });
+  }
+
+  _basemapInstanceCache[id] = basemap;
+  return basemap;
 }
 
 function getVisibleCadastralLayerIds(layers) {
@@ -543,7 +591,6 @@ export function useArcGISMap({
   useEffect(() => {
     if (!containerRef.current) return undefined;
 
-    esriConfig.assetsPath = import.meta.env.BASE_URL + "arcgis/assets";
     if (import.meta.env.VITE_ARCGIS_API_KEY) {
       esriConfig.apiKey = import.meta.env.VITE_ARCGIS_API_KEY;
     }
@@ -653,7 +700,7 @@ export function useArcGISMap({
       const selectionLayer  = new GraphicsLayer({ title: "Feature selection",  listMode: "hide" });
 
       const map = new ArcGISMap({
-        basemap: resolveBasemapId(activeBasemap),
+        basemap: resolveBasemap(activeBasemap),
       });
 
       map.addMany([
@@ -932,7 +979,7 @@ export function useArcGISMap({
     const layers = layersRef.current;
     if (!layers.map) return;
 
-    layers.map.basemap = resolveBasemapId(activeBasemap);
+    layers.map.basemap = resolveBasemap(activeBasemap);
 
     // Boundary sub-layer visibility
     const layerPlan = layers.layerPlan;
@@ -1044,7 +1091,7 @@ export function useArcGISMap({
     const layers = layersRef.current;
     if (!layers.map) return { ok: false, message: "Map is still loading." };
 
-    layers.map.basemap = resolveBasemapId(activeBasemap);
+    layers.map.basemap = resolveBasemap(activeBasemap);
 
     [
       layers.hsacBoundariesLayer,

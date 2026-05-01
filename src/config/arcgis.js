@@ -113,33 +113,36 @@ export const arcgisPortalConfig = {
   ],
 };
 
+const _arcgisThumb = (name) =>
+  `${import.meta.env.BASE_URL}arcgis/assets/esri/images/basemap/${name}`;
+
 export const basemapPresets = {
   satellite: {
     id: "satellite",
     label: "Imagery",
     description: "High-resolution satellite imagery",
     basemapId: "satellite",
-    thumbnail: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/6/26/45",
+    thumbnail: _arcgisThumb("satellite.jpg"),
   },
   cadastral: {
     id: "cadastral",
     label: "Hybrid",
     description: "Imagery with labels and boundary context",
     basemapId: "hybrid",
-    thumbnail: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/6/26/45",
+    thumbnail: _arcgisThumb("hybrid.jpg"),
   },
   topo: {
     id: "topo",
     label: "Topo",
     description: "Terrain and road context",
     basemapId: "topo-vector",
-    thumbnail: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/6/26/45",
+    thumbnail: _arcgisThumb("topo-vector.jpg"),
   },
   streets: {
     id: "streets",
     label: "Streets",
     description: "Road network and local address context",
     basemapId: "streets-vector",
-    thumbnail: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/6/26/45",
+    thumbnail: _arcgisThumb("streets-vector.jpg"),
   },
 };

@@ -45,6 +45,7 @@ export const navigationItems = [
     label: "Help / FAQ",
     description: "Guides and support links",
     icon: CircleHelp,
+    pdfUrl: `${import.meta.env.BASE_URL}Help-FAQ.pdf`,
   },
 ];
 
