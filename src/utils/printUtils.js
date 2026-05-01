@@ -1,3 +1,6 @@
+export const PRINT_DISCLAIMER =
+  "All the revenue information displayed on these maps is based on the data provided by Haryana Revenue Department. HARSAC is not responsible for any discrepancy in the data, if any. This information on the map is not for any dispute in the court of law. It is for viewing purposes only. The map scale is 1:10,000.";
+
 let _lastBaseName = null;
 let _counter = 1;
 

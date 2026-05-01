@@ -24,7 +24,7 @@ ReactDOM.createRoot(document.getElementById("root")).render(
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/" element={<Navigate to="/login" replace />} />
-          <Route path="/map" element={<ProtectedRoute><App /></ProtectedRoute>} />
+          <Route path="/map" element={<App />} />
           <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
           {/* Catch-all: redirect unknown paths to login */}
           <Route path="*" element={<Navigate to="/login" replace />} />
