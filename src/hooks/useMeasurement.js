@@ -2,7 +2,7 @@
  * useMeasurement
  *
  * Geodesic distance (polyline) and area (polygon) measurement using
- * SketchViewModel + geometryEngine. Follows the same lazy-layer pattern
+ * SketchViewModel + geodesicUtils. Follows the same lazy-layer pattern
  * as useSelectFeatures so it is safe to call before the map is ready.
  *
  * @param {{ viewRef: React.MutableRefObject, layersRef: React.MutableRefObject }} opts
@@ -11,7 +11,19 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import GraphicsLayer from "@arcgis/core/layers/GraphicsLayer.js";
 import SketchViewModel from "@arcgis/core/widgets/Sketch/SketchViewModel.js";
-import * as geometryEngine from "@arcgis/core/geometry/geometryEngine.js";
+import { geodesicLengths, geodesicAreas } from "@arcgis/core/geometry/geodesicUtils.js";
+import { webMercatorToGeographic } from "@arcgis/core/geometry/support/webMercatorUtils.js";
+import { isWebMercator } from "@arcgis/core/geometry/support/spatialReferenceUtils.js";
+
+// geodesicLengths/geodesicAreas only accept geographic (lat-lon) coordinate systems.
+// SketchViewModel produces Web Mercator geometries when the map uses tile basemaps,
+// so we must project to WGS84 first.
+function toGeographic(geometry) {
+  if (!geometry) return null;
+  return isWebMercator(geometry.spatialReference)
+    ? webMercatorToGeographic(geometry)
+    : geometry;
+}
 
 const MEASURE_LINE_SYMBOL = {
   type: "simple-line",
@@ -98,11 +110,11 @@ export function useMeasurement({ viewRef, layersRef }) {
       createHandleRef.current = null;
       setIsDrawing(false);
 
-      const geometry = event.graphic?.geometry;
-      if (!geometry) return;
+      const geoGeometry = toGeographic(event.graphic?.geometry);
+      if (!geoGeometry) return;
 
       if (type === "distance") {
-        const meters = geometryEngine.geodesicLength(geometry, "meters");
+        const meters = geodesicLengths([geoGeometry], "meters")[0];
         setResult({
           type: "distance",
           meters,
@@ -111,7 +123,7 @@ export function useMeasurement({ viewRef, layersRef }) {
           karam: meters / 1.6764,
         });
       } else {
-        const sqMeters = Math.abs(geometryEngine.geodesicArea(geometry, "square-meters"));
+        const sqMeters = Math.abs(geodesicAreas([geoGeometry], "square-meters")[0]);
         setResult({
           type: "area",
           sqMeters,
