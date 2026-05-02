@@ -10,7 +10,7 @@ export default defineConfig(({ mode }) => {
   const hsacTarget = env.VITE_HSAC_ORIGIN    || "https://hsac.org.in";
   const hsacProxy  = env.VITE_HSAC_DEV_PROXY || "/hsac";
   const devPort    = parseInt(env.VITE_DEV_PORT || "5173", 10);
-  const baseURL    = env.VITE_SERVER_BASE_URL || "http://localhost:8080";
+  const baseURL    = env.VITE_SERVER_BASE_URL || "https://hsac.org.in/eodb_backend";
   const rawBase    = env.VITE_BASENAME || "/";
   const base       = rawBase.endsWith("/") ? rawBase : rawBase + "/";
   return {
