@@ -8,6 +8,7 @@ import MapToolbar from "@/components/MapToolbar";
 import MeasurementPanel from "@/components/MeasurementPanel";
 import ParcelDetailsModal from "@/components/ParcelDetailsModal";
 import SidebarNav from "@/components/SidebarNav";
+import VoiceAssistantPopup from "@/components-addon/VoiceAssistantPopup";
 import { navigationItems } from "@/data/portalData";
 import { useArcGISMap } from "@/hooks/useArcGISMap";
 import { useDashboardPreferences } from "@/hooks/useDashboardPreferences";
@@ -19,6 +20,7 @@ import { useLanguage } from "@/context/LanguageContext";
 import { searchAdministrativeAreas } from "@/services/mapQueryService";
 import { createEmptyParcelRecord } from "@/services/parcelRecordService";
 import { triggerPrint } from "@/utils/printUtils";
+import { VOICE_COMMAND_ACTIONS } from "@/voice-addon/voiceCommandRegistry";
 
 const initialLayers = {
   cadastral: true,
@@ -60,7 +62,7 @@ export default function App() {
   const [isPending, startTransition] = useTransition();
   const { theme, setTheme } = useDashboardPreferences();
 
-  const { t } = useLanguage();
+  const { t, setLang } = useLanguage();
   const [activeNav, setActiveNav] = useState(navigationItems[0]?.id ?? "");
   const [sidebarOpen, setSidebarOpen] = useState(!isTablet);
   // single active-panel state — only one floating panel open at a time
@@ -387,9 +389,6 @@ export default function App() {
 
   const handleBasemapChange = (nextPreset) => {
     setActiveBasemap(nextPreset);
-    // Keep cadastral land information visible across all basemaps so staging Ambala data remains on map.
-    setLayerVisibility((current) => ({ ...current, cadastral: true }));
-
     setSystemMessage(`${nextPreset[0].toUpperCase()}${nextPreset.slice(1)} map preset applied.`);
   };
 
@@ -443,12 +442,17 @@ export default function App() {
     }
 
     if (actionId === "measurement") {
+      if (!mapReady) {
+        setSystemMessage("Map is still initializing. Please wait a moment before using measurement tools.");
+        return;
+      }
       setActiveMapPanel(null); // close layers / basemap panels
       if (measurementMode !== null) {
         measurement.clearMeasure();
         setMeasurementMode(null);
         setSystemMessage("Measurement tool closed.");
       } else {
+        sf.clearSelection();
         setMeasurementMode("panel");
         setSystemMessage("Select Measure Distance or Measure Area, then draw on the map.");
       }
@@ -460,6 +464,23 @@ export default function App() {
       ...current,
       [layerKey]: !current[layerKey],
     }));
+  };
+
+  const applyLayerVisibilityPatchFromVoice = (layerPatch = {}, message) => {
+    const nextEntries = Object.entries(layerPatch).filter(([key]) => key in initialLayers);
+    if (!nextEntries.length) {
+      return { ok: false };
+    }
+
+    setLayerVisibility((current) => {
+      const next = { ...current };
+      nextEntries.forEach(([key, value]) => {
+        next[key] = Boolean(value);
+      });
+      return next;
+    });
+    setSystemMessage(message || "Layer visibility updated from voice command.");
+    return { ok: true };
   };
 
   const handleRefresh = () => {
@@ -483,6 +504,59 @@ export default function App() {
     );
   };
 
+  const voiceActionHandlers = {
+    [VOICE_COMMAND_ACTIONS.APPLY_TOPO_BASEMAP]: () => {
+      handleBasemapChange("topo");
+      return { ok: true };
+    },
+    [VOICE_COMMAND_ACTIONS.APPLY_HYBRID_BASEMAP]: () => {
+      handleBasemapChange("cadastral");
+      return { ok: true };
+    },
+    [VOICE_COMMAND_ACTIONS.APPLY_IMAGERY_BASEMAP]: () => {
+      handleBasemapChange("satellite");
+      return { ok: true };
+    },
+    [VOICE_COMMAND_ACTIONS.APPLY_STREETS_BASEMAP]: () => {
+      handleBasemapChange("streets");
+      return { ok: true };
+    },
+    [VOICE_COMMAND_ACTIONS.SET_LANGUAGE_ENGLISH]: () => {
+      setLang("en");
+      setSystemMessage("Language changed to English via voice command.");
+      return { ok: true };
+    },
+    [VOICE_COMMAND_ACTIONS.SET_LANGUAGE_HINDI]: () => {
+      setLang("hi");
+      setSystemMessage("Language changed to Hindi via voice command.");
+      return { ok: true };
+    },
+    [VOICE_COMMAND_ACTIONS.TURN_ON_DISTRICT_BOUNDARY]: () =>
+      applyLayerVisibilityPatchFromVoice({ district: true }, "District boundary enabled."),
+    [VOICE_COMMAND_ACTIONS.TURN_OFF_DISTRICT_BOUNDARY]: () =>
+      applyLayerVisibilityPatchFromVoice({ district: false }, "District boundary disabled."),
+    [VOICE_COMMAND_ACTIONS.TURN_ON_TEHSIL_BOUNDARY]: () =>
+      applyLayerVisibilityPatchFromVoice({ tehsil: true }, "Tehsil boundary enabled."),
+    [VOICE_COMMAND_ACTIONS.TURN_OFF_TEHSIL_BOUNDARY]: () =>
+      applyLayerVisibilityPatchFromVoice({ tehsil: false }, "Tehsil boundary disabled."),
+    [VOICE_COMMAND_ACTIONS.TURN_ON_VILLAGE_BOUNDARY]: () =>
+      applyLayerVisibilityPatchFromVoice({ village: true }, "Village boundary enabled."),
+    [VOICE_COMMAND_ACTIONS.TURN_OFF_VILLAGE_BOUNDARY]: () =>
+      applyLayerVisibilityPatchFromVoice({ village: false }, "Village boundary disabled."),
+    [VOICE_COMMAND_ACTIONS.TURN_ON_ALL_BOUNDARIES]: () =>
+      applyLayerVisibilityPatchFromVoice(
+        { district: true, tehsil: true, village: true },
+        "All boundaries enabled.",
+      ),
+    [VOICE_COMMAND_ACTIONS.TURN_OFF_ALL_BOUNDARIES]: () =>
+      applyLayerVisibilityPatchFromVoice(
+        { district: false, tehsil: false, village: false },
+        "All boundaries disabled.",
+      ),
+    [VOICE_COMMAND_ACTIONS.APPLY_LAYER_VISIBILITY]: ({ command }) =>
+      applyLayerVisibilityPatchFromVoice(command?.layerPatch, "Layer visibility updated."),
+  };
+
   return (
     <div className="app-shell">
       <AppHeader
@@ -503,6 +577,10 @@ export default function App() {
         onSearchSubmit={handleSearchSubmit}
         searchSuggestions={searchSuggestions}
         onSuggestionSelect={handleSuggestionSelect}
+      />
+      <VoiceAssistantPopup
+        actionHandlers={voiceActionHandlers}
+        onStatusChange={setSystemMessage}
       />
 
       {isTablet && sidebarOpen ? (
@@ -545,6 +623,10 @@ export default function App() {
           sfRows={sf.rows}
           sfStatusMessage={sf.statusMessage}
           onSfStart={(tool) => {
+            if (measurementMode !== null) {
+              measurement.clearMeasure();
+              setMeasurementMode(null);
+            }
             resetParcelSelection();
             sf.startSelect(tool);
           }}
@@ -592,11 +674,21 @@ export default function App() {
               isDrawing={measurement.isDrawing}
               result={measurement.result}
               onMeasureDistance={() => {
+                if (!mapReady) {
+                  setSystemMessage("Map is still initializing. Please wait a moment before using measurement tools.");
+                  return;
+                }
+                sf.clearSelection();
                 setMeasurementMode("distance");
                 measurement.startMeasure("distance");
                 setSystemMessage("Click on the map to place points. Double-click to finish the line.");
               }}
               onMeasureArea={() => {
+                if (!mapReady) {
+                  setSystemMessage("Map is still initializing. Please wait a moment before using measurement tools.");
+                  return;
+                }
+                sf.clearSelection();
                 setMeasurementMode("area");
                 measurement.startMeasure("area");
                 setSystemMessage("Click on the map to place vertices. Double-click to close the polygon.");

@@ -7,15 +7,9 @@
 // deployments.
 // ─────────────────────────────────────────────────────────────────────────────
 
-// In dev AND preview (localhost) Vite proxies VITE_HSAC_DEV_PROXY → VITE_HSAC_ORIGIN so
-// that browser requests never cross origins.  In production the full origin is used directly.
-const _isLocalhost =
-  typeof window !== "undefined" &&
-  (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1");
-
-const _hsacOrigin = (import.meta.env.DEV || _isLocalhost)
-  ? (import.meta.env.VITE_HSAC_DEV_PROXY          ?? "/hsac")
-  : (import.meta.env.VITE_HSAC_ORIGIN              ?? "https://hsac.org.in");
+// Always use the official HSAC origin for MapServer calls. Proxy routing is
+// handled by ArcGIS proxy rules (proxy.ashx) configured at app startup.
+const _hsacOrigin = import.meta.env.VITE_HSAC_ORIGIN ?? "https://hsac.org.in";
 
 const _mapServicePath =
   import.meta.env.VITE_HSAC_MAP_SERVICE_PATH ??

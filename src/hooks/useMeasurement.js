@@ -46,13 +46,22 @@ export function useMeasurement({ viewRef, layersRef }) {
   const [result,    setResult]    = useState(null);
   const [isDrawing, setIsDrawing] = useState(false);
 
+  const setMeasurementDrawingFlag = useCallback((value) => {
+    if (layersRef.current) {
+      layersRef.current.__measurementDrawing = Boolean(value);
+    }
+  }, [layersRef]);
+
   // Destroy SketchViewModel on unmount to prevent memory leaks
   useEffect(() => {
     return () => {
       createHandleRef.current?.remove();
       sketchVmRef.current?.destroy?.();
+      sketchVmRef.current = null;
+      sketchLayerRef.current = null;
+      setMeasurementDrawingFlag(false);
     };
-  }, []);
+  }, [setMeasurementDrawingFlag]);
 
   // Lazily creates the graphics layer and SketchViewModel the first time
   // startMeasure is called — safe to call before the map is ready.
@@ -83,7 +92,10 @@ export function useMeasurement({ viewRef, layersRef }) {
   // Start a new measurement draw. Cancels any active sketch first.
   const startMeasure = useCallback((type) => {
     const vm = getOrCreateSketchVm();
-    if (!vm) return;
+    if (!vm) {
+      console.warn("[Measurement] SketchViewModel is not ready. Map view/assets may still be loading.");
+      return;
+    }
 
     // Cancel previous draw and detach its event handler
     createHandleRef.current?.remove();
@@ -93,14 +105,16 @@ export function useMeasurement({ viewRef, layersRef }) {
     sketchLayerRef.current?.removeAll();
     setResult(null);
     setIsDrawing(true);
+    setMeasurementDrawingFlag(true);
 
-    vm.create(type === "distance" ? "polyline" : "polygon");
+    vm.create(type === "distance" ? "polyline" : "polygon").catch(() => {});
 
     createHandleRef.current = vm.on("create", (event) => {
       if (event.state === "cancel") {
         createHandleRef.current?.remove();
         createHandleRef.current = null;
         setIsDrawing(false);
+        setMeasurementDrawingFlag(false);
         return;
       }
 
@@ -109,6 +123,7 @@ export function useMeasurement({ viewRef, layersRef }) {
       createHandleRef.current?.remove();
       createHandleRef.current = null;
       setIsDrawing(false);
+      setMeasurementDrawingFlag(false);
 
       const geoGeometry = toGeographic(event.graphic?.geometry);
       if (!geoGeometry) return;
@@ -133,7 +148,7 @@ export function useMeasurement({ viewRef, layersRef }) {
       }
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // All referenced values are stable refs
+  }, [setMeasurementDrawingFlag]); // All other referenced values are stable refs
 
   // Cancel active sketch, clear graphics, and reset result.
   const clearMeasure = useCallback(() => {
@@ -143,7 +158,8 @@ export function useMeasurement({ viewRef, layersRef }) {
     sketchLayerRef.current?.removeAll();
     setResult(null);
     setIsDrawing(false);
-  }, []);
+    setMeasurementDrawingFlag(false);
+  }, [setMeasurementDrawingFlag]);
 
   return { startMeasure, clearMeasure, result, isDrawing };
 }
