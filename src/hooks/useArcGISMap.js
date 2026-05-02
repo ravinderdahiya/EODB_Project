@@ -74,8 +74,6 @@ async function shareLandRecordPreview(preview) {
 const MAP_CLICK_POPUP_MARGIN = 12;
 const MAP_CLICK_POPUP_OFFSET_X = 14;
 const MAP_CLICK_POPUP_OFFSET_Y = 18;
-const CADASTRAL_EFFECTIVE_MIN_SCALE = 5000;
-const CADASTRAL_AUTO_ZOOM_SCALE = 4000;
 const LAYER_LOAD_TIMEOUT_MS = 12000;
 const LAYER_LOAD_RETRY_ATTEMPTS = 2;
 const LAYER_LOAD_RETRY_DELAY_MS = 900;
@@ -642,35 +640,6 @@ export function useArcGISMap({
     boundaries: "loading",
     assets:     "loading",
   });
-  const lastCadastralVisibilityRef = useRef(layerVisibility.cadastral ?? true);
-
-  const ensureCadastralVisibleScale = async (reason = "toggle") => {
-    const view = viewRef.current;
-    if (!view) {
-      return { ok: false, message: "Map is still loading." };
-    }
-
-    const currentScale = view.scale ?? Number.POSITIVE_INFINITY;
-    if (currentScale <= CADASTRAL_EFFECTIVE_MIN_SCALE) {
-      return { ok: true, message: null };
-    }
-
-    await view.goTo(
-      { target: view.center, scale: CADASTRAL_AUTO_ZOOM_SCALE },
-      { duration: 900, easing: "ease-in-out" },
-    ).catch(() => undefined);
-
-    const scaleLabel = formatScaleDenominator(CADASTRAL_EFFECTIVE_MIN_SCALE) ?? "1:5,000";
-    const sourceText = reason === "startup" ? "startup" : "layer";
-
-    return {
-      ok: true,
-      message:
-        `Cadastral visibility is scale-dependent. Auto-zoomed via ${sourceText} control to show parcels ` +
-        `(${scaleLabel} or closer).`,
-    };
-  };
-
   // ── Map initialisation (runs once) ──────────────────────────────────────────
   useEffect(() => {
     if (!containerRef.current) return undefined;
@@ -1130,18 +1099,6 @@ export function useArcGISMap({
     // Cadastral + parcel highlight
     if (layers.hsacCadastralLayer) layers.hsacCadastralLayer.visible = layerVisibility.cadastral;
     if (layers.highlightLayer)     layers.highlightLayer.visible     = layerVisibility.cadastral;
-
-    const wasCadastralVisible = lastCadastralVisibilityRef.current;
-    const isCadastralVisible = layerVisibility.cadastral ?? true;
-    lastCadastralVisibilityRef.current = isCadastralVisible;
-
-    if (isCadastralVisible && !wasCadastralVisible) {
-      void ensureCadastralVisibleScale("layer").then((result) => {
-        if (result?.message) {
-          setMapStatus(result.message);
-        }
-      });
-    }
 
     // Operational overlays
     if (layers.governmentAssetsLayer) layers.governmentAssetsLayer.visible = layerVisibility.assets ?? false;

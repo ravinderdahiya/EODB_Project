@@ -389,9 +389,6 @@ export default function App() {
 
   const handleBasemapChange = (nextPreset) => {
     setActiveBasemap(nextPreset);
-    // Keep cadastral land information visible across all basemaps so staging Ambala data remains on map.
-    setLayerVisibility((current) => ({ ...current, cadastral: true }));
-
     setSystemMessage(`${nextPreset[0].toUpperCase()}${nextPreset.slice(1)} map preset applied.`);
   };
 
