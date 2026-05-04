@@ -21,6 +21,7 @@ import { searchAdministrativeAreas } from "@/services/mapQueryService";
 import { createEmptyParcelRecord } from "@/services/parcelRecordService";
 import { triggerPrint } from "@/utils/printUtils";
 import { VOICE_COMMAND_ACTIONS } from "@/voice-addon/voiceCommandRegistry";
+import { useAnalytics } from "@/services/analyticsService";
 
 const initialLayers = {
   cadastral: true,
@@ -54,6 +55,32 @@ function formatAdminSuggestionDescription(match) {
 
 export default function App() {
   const navigate = useNavigate();
+  const { trackPageView, trackUserInteraction, trackMapInteraction, trackSearch, trackFeatureUsage } = useAnalytics();
+
+  // Track initial page load
+  useEffect(() => {
+    trackPageView('/', 'Digital Land Record Haryana - Home');
+  }, [trackPageView]);
+
+  // Track search interactions
+  useEffect(() => {
+    if (searchValue.trim().length > 2) {
+      trackSearch(searchValue, 'map_search');
+    }
+  }, [searchValue, trackSearch]);
+
+  // Track layer visibility changes
+  useEffect(() => {
+    const visibleLayers = Object.entries(layerVisibility)
+      .filter(([_, visible]) => visible)
+      .map(([layer]) => layer);
+    trackFeatureUsage('layer_visibility', { visibleLayers });
+  }, [layerVisibility, trackFeatureUsage]);
+
+  // Track basemap changes
+  useEffect(() => {
+    trackMapInteraction('basemap_change', { basemap: activeBasemap });
+  }, [activeBasemap, trackMapInteraction]);
 
   // Disable developer tools in production
   useDisableDevTools();
@@ -326,6 +353,9 @@ export default function App() {
       setSystemMessage("Enter a Khasra number, owner, village or place to search.");
       return;
     }
+
+    // Track search submission
+    trackUserInteraction('search_submit', query);
 
     try {
       const adminSearchResult = await resolveAdminBoundarySearch(query);

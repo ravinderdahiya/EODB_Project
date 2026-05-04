@@ -10,6 +10,7 @@ import Login from "./pages/Login";
 import ProtectedRoute from "./routes/ProtectedRoute";
 import { LanguageProvider } from "./context/LanguageContext";
 import { HSAC_PROXY_URL, HSAC_PROXY_URL_PREFIXES } from "./config/proxyConfig";
+import { initGA } from "./services/analyticsService";
 import "./styles/global.css";
 
 function normalizeBaseUrl(baseUrl) {
@@ -28,6 +29,10 @@ const arcgisAssetsPath = getArcgisAssetsPath();
 // ArcGIS local assets (workers/wasm/i18n/images) are served from /public/arcgis/assets.
 esriConfig.assetsPath = arcgisAssetsPath;
 esriConfig.workers.workerPath = `${arcgisAssetsPath}esri/core/workers/RemoteClient.js`;
+
+// Initialize Google Analytics
+const GA_MEASUREMENT_ID = import.meta.env.VITE_GA_MEASUREMENT_ID;
+initGA(GA_MEASUREMENT_ID);
 
 if (import.meta.env.VITE_ARCGIS_API_KEY) {
   esriConfig.apiKey = import.meta.env.VITE_ARCGIS_API_KEY;
