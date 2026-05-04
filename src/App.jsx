@@ -8,6 +8,7 @@ import MapToolbar from "@/components/MapToolbar";
 import MeasurementPanel from "@/components/MeasurementPanel";
 import ParcelDetailsModal from "@/components/ParcelDetailsModal";
 import SidebarNav from "@/components/SidebarNav";
+import SaarthiChatbotWidget from "@/components-addon/SaarthiChatbotWidget";
 import VoiceAssistantPopup from "@/components-addon/VoiceAssistantPopup";
 import { navigationItems } from "@/data/portalData";
 import { useArcGISMap } from "@/hooks/useArcGISMap";
@@ -713,6 +714,7 @@ export default function App() {
         parcel={selectedParcel}
         onClose={() => setDetailsOpen(false)}
       />
+      <SaarthiChatbotWidget />
     </div>
   );
 }

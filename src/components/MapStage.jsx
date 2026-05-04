@@ -1,5 +1,5 @@
 import "./MapStage.css";
-import { Printer, TableProperties, X } from "lucide-react";
+import { ChevronDown, ChevronUp, Printer, X } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
 import { normalizeParcel } from "@/utils/parcelUtils";
 import { triggerPrint, PRINT_DISCLAIMER } from "@/utils/printUtils";
@@ -86,7 +86,7 @@ export default function MapStage({
           aria-label={tableOpen ? t("mapStage.hideTable") : t("mapStage.showTable")}
           title={tableOpen ? t("mapStage.hideTable") : t("mapStage.showTable")}
         >
-          <TableProperties size={20} />
+          {tableOpen ? <ChevronDown size={22} /> : <ChevronUp size={22} />}
         </button>
 
         {tableOpen ? (

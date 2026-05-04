@@ -330,7 +330,6 @@ export default function Login() {
           <div className="lp-socials" aria-label="Social links" />
         </div>
       </footer>
-
     </div>
   );
 }
