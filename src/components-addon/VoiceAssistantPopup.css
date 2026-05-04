@@ -32,12 +32,12 @@
 
 .voice-panel {
   position: fixed;
-  inset: var(--voice-panel-top, calc(var(--header-height) + 0.32rem))
-    var(--voice-panel-right, 0.9rem) 0 auto;
+  inset: var(--voice-panel-top, calc(var(--header-height) + 0.72rem))
+    var(--voice-panel-right, 0.95rem) 0 var(--voice-panel-left, auto);
   z-index: 66;
   display: grid;
-  place-items: start end;
-  padding: 0;
+  place-items: start center;
+  padding: 0 0 0.5rem;
   overflow-y: auto;
   pointer-events: none;
 }
@@ -51,13 +51,17 @@
 .voice-panel__card {
   position: relative;
   z-index: 1;
-  width: min(460px, calc(100vw - 5.6rem));
-  max-height: calc(100vh - var(--header-height) - 4rem);
-  padding: clamp(0.58rem, 0.8vw, 0.8rem);
+  width: min(var(--voice-panel-max-width, 420px), calc(100vw - 3.1rem));
+  max-height: min(
+    var(--voice-panel-max-height, calc(100vh - var(--header-height) - 5.2rem)),
+    calc(100vh - var(--header-height) - 5.2rem)
+  );
+  padding: clamp(0.52rem, 0.76vw, 0.74rem);
   border: 1px solid rgba(26, 66, 88, 0.12);
-  border-radius: clamp(0.52rem, 0.8vw, 0.8rem);
-  background: rgba(255, 255, 255, 0.98);
-  box-shadow: 0 10px 28px rgba(22, 45, 62, 0.18);
+  border-radius: clamp(0.48rem, 0.72vw, 0.72rem);
+  background: rgba(255, 255, 255, 0.975);
+  box-shadow: 0 12px 34px rgba(22, 45, 62, 0.2);
+  backdrop-filter: blur(4px);
   overflow: auto;
   pointer-events: auto;
 }
@@ -81,8 +85,9 @@
 .voice-panel__title {
   margin: 0.04rem 2rem 0.35rem 0;
   color: var(--ink);
-  font-size: clamp(0.82rem, 0.88vw, 0.94rem);
+  font-size: clamp(0.8rem, 0.84vw, 0.9rem);
   font-weight: 700;
+  line-height: 1.35;
 }
 
 .voice-panel__pulse-row {
@@ -149,10 +154,10 @@
 }
 
 .voice-panel__transcript {
-  min-height: 50px;
-  max-height: 104px;
+  min-height: 46px;
+  max-height: 94px;
   overflow: auto;
-  padding: 0.46rem 0.52rem;
+  padding: 0.42rem 0.48rem;
   border: 1px solid rgba(26, 66, 88, 0.12);
   border-radius: 0.52rem;
   background: rgba(248, 251, 253, 0.95);
@@ -169,10 +174,15 @@
 }
 
 .voice-panel__examples {
-  margin-top: 0.3rem;
+  margin-top: 0.25rem;
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.25rem;
+  flex-wrap: nowrap;
+  gap: 0.22rem;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  padding-top: 0.08rem;
+  padding-bottom: 0.16rem;
 }
 
 .voice-panel__example-chip {
@@ -180,9 +190,11 @@
   background: rgba(46, 115, 180, 0.08);
   color: var(--ink);
   border-radius: 999px;
-  padding: 0.15rem 0.44rem;
-  font-size: 0.66rem;
+  padding: 0.14rem 0.4rem;
+  font-size: 0.63rem;
   line-height: 1.15;
+  flex: 0 0 auto;
+  white-space: nowrap;
 }
 
 .voice-panel__example-chip:disabled {
@@ -190,16 +202,25 @@
   cursor: not-allowed;
 }
 
+.voice-panel__examples::-webkit-scrollbar {
+  height: 5px;
+}
+
+.voice-panel__examples::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(46, 115, 180, 0.24);
+}
+
 .voice-panel__actions {
-  margin-top: 0.38rem;
+  margin-top: 0.3rem;
   display: flex;
   justify-content: center;
 }
 
 .voice-panel__action-btn {
-  min-height: 31px;
-  width: min(190px, 100%);
-  font-size: 0.8rem;
+  min-height: 30px;
+  width: min(176px, 100%);
+  font-size: 0.76rem;
 }
 
 .voice-panel__action-btn:disabled {
@@ -239,14 +260,17 @@
 
 @media (max-width: 1024px) {
   .voice-panel {
-    inset: var(--voice-panel-top, calc(var(--header-height) + 0.4rem))
-      var(--voice-panel-right, 0.55rem) 0 auto;
+    inset: var(--voice-panel-top, calc(var(--header-height) + 0.72rem))
+      var(--voice-panel-right, 0.65rem) 0 auto;
   }
 
   .voice-panel__card {
-    width: min(420px, calc(100vw - 4.4rem));
-    max-height: min(430px, calc(100vh - var(--header-height) - 3.2rem));
-    padding: 0.52rem;
+    width: min(var(--voice-panel-max-width, 390px), calc(100vw - 2.1rem));
+    max-height: min(
+      var(--voice-panel-max-height, 400px),
+      calc(100vh - var(--header-height) - 4.1rem)
+    );
+    padding: 0.5rem;
     border-radius: 0.54rem;
   }
 
@@ -255,26 +279,29 @@
   }
 
   .voice-panel__transcript {
-    min-height: 48px;
-    max-height: 98px;
+    min-height: 44px;
+    max-height: 88px;
     font-size: 0.78rem;
   }
 
-  .voice-panel__actions { margin-top: 0.52rem; }
+  .voice-panel__actions { margin-top: 0.38rem; }
 }
 
 @media (max-width: 768px) {
   .voice-panel {
-    inset: var(--voice-panel-top, calc(var(--header-height) + 2.72rem))
-      var(--voice-panel-right, 0) 0 auto;
+    inset: var(--voice-panel-top, calc(var(--header-height) + 0.9rem))
+      var(--voice-panel-right, 0.42rem) 0 auto;
     z-index: 63;
   }
 
   .voice-panel__card {
-    width: min(360px, calc(100vw - 0.4rem));
-    max-height: min(300px, calc(100vh - var(--header-height) - 5.8rem));
+    width: min(var(--voice-panel-max-width, 320px), calc(100vw - 0.95rem));
+    max-height: min(
+      var(--voice-panel-max-height, 316px),
+      calc(100vh - var(--header-height) - 3.4rem)
+    );
     padding: 0.44rem;
-    border-radius: 0.5rem 0 0 0.5rem;
+    border-radius: 0.5rem;
   }
 
   .voice-command-button {
@@ -285,7 +312,7 @@
 
   .voice-panel__transcript {
     min-height: 44px;
-    max-height: 76px;
+    max-height: 78px;
     padding: 0.38rem;
     font-size: 0.74rem;
   }
@@ -306,22 +333,25 @@
 
   .voice-panel__action-btn {
     min-height: 30px;
-    width: min(170px, 100%);
+    width: min(164px, 100%);
     font-size: 0.76rem;
   }
 }
 
 @media (max-width: 560px) {
   .voice-panel {
-    inset: var(--voice-panel-top, calc(var(--header-height) + 2.5rem))
-      var(--voice-panel-right, 0) 0 auto;
+    inset: var(--voice-panel-top, calc(var(--header-height) + 0.82rem))
+      var(--voice-panel-right, 0.28rem) 0 auto;
   }
 
   .voice-panel__card {
-    width: min(332px, calc(100vw - 0.2rem));
-    max-height: min(270px, calc(100vh - var(--header-height) - 5.2rem));
-    padding: 0.4rem;
-    border-radius: 0.46rem 0 0 0.46rem;
+    width: min(var(--voice-panel-max-width, 300px), calc(100vw - 0.55rem));
+    max-height: min(
+      var(--voice-panel-max-height, 288px),
+      calc(100vh - var(--header-height) - 3.2rem)
+    );
+    padding: 0.36rem;
+    border-radius: 0.46rem;
   }
 
   .voice-panel__title {

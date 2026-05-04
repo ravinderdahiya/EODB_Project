@@ -1,39 +1,46 @@
 .saarthi-chatbot-widget {
   position: fixed;
-  right: max(28px, env(safe-area-inset-right));
+  right: max(18px, env(safe-area-inset-right));
   bottom: calc(var(--chatbot-bottom-offset, 14px) + env(safe-area-inset-bottom));
   z-index: 1400;
-  transition: bottom 220ms ease, right 220ms ease;
+  transition: bottom 220ms ease, right 220ms ease, filter 180ms ease, opacity 180ms ease;
+}
+
+.saarthi-chatbot-widget--blurred {
+  z-index: 70;
+  pointer-events: none;
+  filter: blur(3px);
+  opacity: 0.86;
 }
 
 .saarthi-chatbot-widget iframe {
-  width: 238px;
-  height: 168px;
+  width: 220px;
+  height: 152px;
   border: 0;
-  border-radius: 18px;
+  border-radius: 14px;
   background: transparent;
   display: block;
 }
 
 .saarthi-chatbot-widget--open iframe {
-  width: min(332px, calc(100vw - 34px));
-  height: min(520px, calc(100vh - 120px));
-  border-radius: 20px;
+  width: min(318px, calc(100vw - 24px));
+  height: min(485px, calc(100vh - 138px));
+  border-radius: 14px;
 }
 
 @media (max-width: 600px) {
   .saarthi-chatbot-widget {
-    right: max(18px, env(safe-area-inset-right));
+    right: max(10px, env(safe-area-inset-right));
   }
 
   .saarthi-chatbot-widget iframe {
-    width: 198px;
-    height: 148px;
+    width: 184px;
+    height: 136px;
   }
 
   .saarthi-chatbot-widget--open iframe {
-    width: min(306px, calc(100vw - 24px));
-    height: min(440px, calc(100vh - 96px));
-    border-radius: 16px;
+    width: min(294px, calc(100vw - 14px));
+    height: min(430px, calc(100vh - 116px));
+    border-radius: 12px;
   }
 }

@@ -714,7 +714,7 @@ export default function App() {
         parcel={selectedParcel}
         onClose={() => setDetailsOpen(false)}
       />
-      <SaarthiChatbotWidget />
+      <SaarthiChatbotWidget blurred={detailsOpen} />
     </div>
   );
 }

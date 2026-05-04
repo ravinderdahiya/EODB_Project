@@ -32,8 +32,8 @@ body {
   --header-gradient: ${gradient} !important;
 }
 .floating-wrapper {
-  right: 12px !important;
-  bottom: 12px !important;
+  right: 10px !important;
+  bottom: 10px !important;
   gap: 6px !important;
 }
 .notify-dot {
@@ -45,8 +45,8 @@ body {
   padding: 7px 10px !important;
 }
 .floating-btn {
-  width: 52px !important;
-  height: 52px !important;
+  width: 48px !important;
+  height: 48px !important;
 }
 .floating-bot-img img,
 .bot-logo-img img {
@@ -55,15 +55,15 @@ body {
 .chat-box {
   right: 8px !important;
   bottom: 8px !important;
-  width: min(320px, calc(100vw - 24px)) !important;
-  height: min(500px, calc(100vh - 120px)) !important;
-  border-radius: 16px !important;
+  width: min(308px, calc(100vw - 24px)) !important;
+  height: min(468px, calc(100vh - 148px)) !important;
+  border-radius: 14px !important;
 }
 .chat-container {
-  padding: 10px !important;
+  padding: 9px !important;
 }
 .message-bubble {
-  font-size: 12.5px !important;
+  font-size: 12px !important;
 }
 .header-text p {
   display: block !important;
@@ -74,16 +74,17 @@ body {
 }
 @media (max-width: 640px) {
   .chat-box {
-    width: min(300px, calc(100vw - 20px)) !important;
-    height: min(450px, calc(100vh - 92px)) !important;
-    right: 6px !important;
-    bottom: 6px !important;
+    width: min(292px, calc(100vw - 16px)) !important;
+    height: min(420px, calc(100vh - 118px)) !important;
+    right: 4px !important;
+    bottom: 4px !important;
+    border-radius: 12px !important;
   }
 }
 `;
 }
 
-export default function SaarthiChatbotWidget() {
+export default function SaarthiChatbotWidget({ blurred = false }) {
   const iframeRef = useRef(null);
   const observerRef = useRef(null);
   const layoutObserverRef = useRef(null);
@@ -288,7 +289,7 @@ export default function SaarthiChatbotWidget() {
 
   return (
     <div
-      className={`saarthi-chatbot-widget ${isOpen ? "saarthi-chatbot-widget--open" : ""}`}
+      className={`saarthi-chatbot-widget ${isOpen ? "saarthi-chatbot-widget--open" : ""} ${blurred ? "saarthi-chatbot-widget--blurred" : ""}`}
       style={{ "--chatbot-bottom-offset": `${bottomOffset}px` }}
     >
       <iframe

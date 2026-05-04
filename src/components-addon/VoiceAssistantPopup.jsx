@@ -76,7 +76,13 @@ export default function VoiceAssistantPopup({
   const [voiceButtonHost, setVoiceButtonHost] = useState(null);
   const [micPermissionState, setMicPermissionState] = useState("unknown");
   const [listenCountdown, setListenCountdown] = useState(6);
-  const [voicePanelAnchor, setVoicePanelAnchor] = useState({ top: null, right: null });
+  const [voicePanelAnchor, setVoicePanelAnchor] = useState({
+    top: null,
+    left: null,
+    right: null,
+    maxHeight: null,
+    maxWidth: null,
+  });
 
   const promptText = useMemo(() => (
     lang === "hi"
@@ -86,7 +92,20 @@ export default function VoiceAssistantPopup({
           noSpeechTimedOut: "6 सेकंड तक आवाज़ नहीं मिली। फिर से बोलें।",
           speakingNow: "अब बोलें",
           waiting: "सुनने का समय",
-          examples: ["topo map dikhao", "hybrid map lagao", "hindi to english karo"],
+          examples: [
+            "topo map dikhao",
+            "hybrid map lagao",
+            "satellite map dikhao",
+            "streets map dikhao",
+            "district boundary on",
+            "district boundary off",
+            "village boundary on",
+            "village boundary off",
+            "all boundaries on",
+            "all boundaries off",
+            "hindi to english karo",
+            "english to hindi karo",
+          ],
           buttons: {
             stop: "रोकें",
             speak: "बोलें",
@@ -98,7 +117,20 @@ export default function VoiceAssistantPopup({
           noSpeechTimedOut: "No speech detected in 6 seconds. Try to say again.",
           speakingNow: "Speak now",
           waiting: "Listening window",
-          examples: ["topo map dikhao", "hybrid map lagao", "hindi to english karo"],
+          examples: [
+            "topo map dikhao",
+            "hybrid map lagao",
+            "satellite map dikhao",
+            "streets map dikhao",
+            "district boundary on",
+            "district boundary off",
+            "village boundary on",
+            "village boundary off",
+            "all boundaries on",
+            "all boundaries off",
+            "hindi to english karo",
+            "english to hindi karo",
+          ],
           buttons: {
             stop: "Stop",
             speak: "Speak",
@@ -111,21 +143,70 @@ export default function VoiceAssistantPopup({
       return;
     }
 
+    const mapViewport = document.querySelector(".map-stage__viewport");
     const searchShell = document.querySelector(".search-shell");
-    if (!(searchShell instanceof HTMLElement)) {
-      setVoicePanelAnchor({ top: null, right: null });
+    const rootStyles = window.getComputedStyle(document.documentElement);
+    const headerHeight = Number.parseFloat(rootStyles.getPropertyValue("--header-height")) || 0;
+    const isMobileViewport = window.innerWidth <= 768;
+    const topOffset = isMobileViewport ? 10 : 12;
+    const sideOffset = isMobileViewport ? 6 : 10;
+    const minimumTopGap = isMobileViewport ? 10 : 10;
+    const minTop = Math.max(Math.round(headerHeight + minimumTopGap), 8);
+    const bottomPadding = isMobileViewport ? 14 : 18;
+
+    let nextTop = null;
+    let nextLeft = null;
+    let nextRight = null;
+    let nextMaxHeight = null;
+    let nextMaxWidth = null;
+
+    if (mapViewport instanceof HTMLElement) {
+      const rect = mapViewport.getBoundingClientRect();
+      nextTop = Math.max(Math.round(rect.top + topOffset), minTop);
+      nextLeft = Math.max(Math.round(rect.left + sideOffset), 0);
+      nextRight = Math.max(Math.round(window.innerWidth - rect.right + sideOffset), 0);
+      nextMaxHeight = Math.max(Math.round(rect.height - (topOffset + bottomPadding)), 220);
+      nextMaxWidth = Math.max(
+        Math.round(
+          Math.min(
+            isMobileViewport ? 332 : 420,
+            rect.width - (isMobileViewport ? 26 : 22),
+          ),
+        ),
+        isMobileViewport ? 248 : 260,
+      );
+    } else if (searchShell instanceof HTMLElement) {
+      const rect = searchShell.getBoundingClientRect();
+      nextTop = Math.max(Math.round(rect.bottom + (isMobileViewport ? 12 : 16)), minTop);
+      nextLeft = null;
+      nextRight = Math.max(Math.round(window.innerWidth - rect.right), 0);
+      nextMaxHeight = null;
+      nextMaxWidth = null;
+    } else {
+      setVoicePanelAnchor({
+        top: null,
+        left: null,
+        right: null,
+        maxHeight: null,
+        maxWidth: null,
+      });
       return;
     }
 
-    const rect = searchShell.getBoundingClientRect();
-    const topOffset = window.innerWidth <= 768 ? 8 : 10;
-    const nextTop = Math.max(Math.round(rect.bottom + topOffset), 0);
-    const nextRight = Math.max(Math.round(window.innerWidth - rect.right), 0);
-
     setVoicePanelAnchor((current) => (
-      current.top === nextTop && current.right === nextRight
+      current.top === nextTop
+      && current.left === nextLeft
+      && current.right === nextRight
+      && current.maxHeight === nextMaxHeight
+      && current.maxWidth === nextMaxWidth
         ? current
-        : { top: nextTop, right: nextRight }
+        : {
+            top: nextTop,
+            left: nextLeft,
+            right: nextRight,
+            maxHeight: nextMaxHeight,
+            maxWidth: nextMaxWidth,
+          }
     ));
   };
 
@@ -757,7 +838,10 @@ export default function VoiceAssistantPopup({
       aria-label="Voice command"
       style={{
         "--voice-panel-top": voicePanelAnchor.top == null ? undefined : `${voicePanelAnchor.top}px`,
+        "--voice-panel-left": voicePanelAnchor.left == null ? undefined : `${voicePanelAnchor.left}px`,
         "--voice-panel-right": voicePanelAnchor.right == null ? undefined : `${voicePanelAnchor.right}px`,
+        "--voice-panel-max-height": voicePanelAnchor.maxHeight == null ? undefined : `${voicePanelAnchor.maxHeight}px`,
+        "--voice-panel-max-width": voicePanelAnchor.maxWidth == null ? undefined : `${voicePanelAnchor.maxWidth}px`,
       }}
     >
       <div className="voice-panel__backdrop" onClick={stopAndClosePanel} />
