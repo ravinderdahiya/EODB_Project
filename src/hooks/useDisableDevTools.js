@@ -7,8 +7,6 @@ export default function useDisableDevTools() {
 
     if (!isEnabled) return;
 
-    console.log("🔒 DevTools disabled for security");
-
     const onContextMenu = (e) => {
       e.preventDefault();
     };

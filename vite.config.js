@@ -206,6 +206,10 @@ export default defineConfig(({ mode }) => {
   const base       = rawBase.endsWith("/") ? rawBase : rawBase + "/";
   return {
     base,
+    build: {
+      // Security: never emit source maps in production — they expose original source to browsers.
+      sourcemap: false,
+    },
     plugins: [
       react(),
       {
