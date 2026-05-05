@@ -57,31 +57,6 @@ export default function App() {
   const navigate = useNavigate();
   const { trackPageView, trackUserInteraction, trackMapInteraction, trackSearch, trackFeatureUsage } = useAnalytics();
 
-  // Track initial page load
-  useEffect(() => {
-    trackPageView('/', 'Digital Land Record Haryana - Home');
-  }, [trackPageView]);
-
-  // Track search interactions
-  useEffect(() => {
-    if (searchValue.trim().length > 2) {
-      trackSearch(searchValue, 'map_search');
-    }
-  }, [searchValue, trackSearch]);
-
-  // Track layer visibility changes
-  useEffect(() => {
-    const visibleLayers = Object.entries(layerVisibility)
-      .filter(([_, visible]) => visible)
-      .map(([layer]) => layer);
-    trackFeatureUsage('layer_visibility', { visibleLayers });
-  }, [layerVisibility, trackFeatureUsage]);
-
-  // Track basemap changes
-  useEffect(() => {
-    trackMapInteraction('basemap_change', { basemap: activeBasemap });
-  }, [activeBasemap, trackMapInteraction]);
-
   // Disable developer tools in production
   useDisableDevTools();
   const isTablet = useMediaQuery("(max-width: 1024px)");
@@ -110,6 +85,31 @@ export default function App() {
   const [adminSuggestions, setAdminSuggestions] = useState([]);
   const hasSelectedParcel = selectedParcel.registryRef !== "DLR-UNAVAILABLE";
   const adminSuggestionRequestIdRef = useRef(0);
+
+  // Track initial page load
+  useEffect(() => {
+    trackPageView('/', 'Digital Land Record Haryana - Home');
+  }, [trackPageView]);
+
+  // Track search interactions
+  useEffect(() => {
+    if (searchValue.trim().length > 2) {
+      trackSearch(searchValue, 'map_search');
+    }
+  }, [searchValue, trackSearch]);
+
+  // Track layer visibility changes
+  useEffect(() => {
+    const visibleLayers = Object.entries(layerVisibility)
+      .filter(([_, visible]) => visible)
+      .map(([layer]) => layer);
+    trackFeatureUsage('layer_visibility', { visibleLayers });
+  }, [layerVisibility, trackFeatureUsage]);
+
+  // Track basemap changes
+  useEffect(() => {
+    trackMapInteraction('basemap_change', { basemap: activeBasemap });
+  }, [activeBasemap, trackMapInteraction]);
 
   const parcelHistorySuggestions =
     deferredSearch.trim().length < 2
