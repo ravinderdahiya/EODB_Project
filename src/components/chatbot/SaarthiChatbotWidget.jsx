@@ -6,15 +6,32 @@ function readToken(styles, name, fallback) {
   return value || fallback;
 }
 
-function buildBridgeStyles({ surface, surfaceStrong, bgSecondary, ink, inkSoft, border, shadowSoft, green, mint }) {
+function buildBridgeStyles({
+  surface,
+  surfaceStrong,
+  bgSecondary,
+  ink,
+  inkSoft,
+  border,
+  shadowSoft,
+  green,
+  mint,
+}) {
   const gradient = `linear-gradient(135deg, ${green}, ${mint})`;
 
   return `
 html, body, #root {
+  width: 100% !important;
+  height: 100% !important;
   background: transparent !important;
 }
 body {
   overflow: hidden;
+}
+.app {
+  width: 100% !important;
+  height: 100% !important;
+  background: transparent !important;
 }
 .header-actions .icon-btn:nth-of-type(2) {
   display: none !important;
@@ -35,28 +52,111 @@ body {
   right: 10px !important;
   bottom: 10px !important;
   gap: 6px !important;
+  background: transparent !important;
+  background-color: transparent !important;
+}
+.app.dark .floating-wrapper {
+  background: transparent !important;
+  background-color: transparent !important;
 }
 .notify-dot {
   background: #17b26a !important;
-  box-shadow: 0 0 0 2px #ffffff !important;
+  border: 1px solid rgba(15, 23, 42, 0.18) !important;
+  box-shadow: none !important;
 }
 .helper-bubble {
-  font-size: 11px !important;
-  padding: 7px 10px !important;
+  display: none !important;
+}
+.app.dark .helper-bubble {
+  display: none !important;
 }
 .floating-btn {
-  width: 48px !important;
-  height: 48px !important;
+  width: 52px !important;
+  height: 52px !important;
+  padding: 0 !important;
+  border: none !important;
+  border-radius: 50% !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  color: ${green} !important;
+  position: relative !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  overflow: visible !important;
+  box-shadow: none !important;
+  -webkit-appearance: none !important;
+  appearance: none !important;
+}
+.app.dark .floating-btn {
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+.floating-btn > svg,
+.floating-btn > i {
+  display: none !important;
+}
+.floating-btn::before {
+  content: "" !important;
+  position: absolute !important;
+  inset: -4px !important;
+  border-radius: 50% !important;
+  border: 2px solid currentColor !important;
+  background: transparent !important;
+  opacity: 0.36 !important;
+  animation: saarthiPulse 2.2s ease-out infinite !important;
+  pointer-events: none !important;
+}
+.floating-btn::after {
+  content: "" !important;
+  position: absolute !important;
+  inset: -1px !important;
+  border-radius: 50% !important;
+  border: 1px solid currentColor !important;
+  background: transparent !important;
+  opacity: 0.22 !important;
+  pointer-events: none !important;
+}
+.floating-btn:hover,
+.floating-btn:focus-visible {
+  transform: none !important;
+  box-shadow: none !important;
+}
+.ping-ring {
+  display: none !important;
+}
+.floating-bot-img {
+  width: 100% !important;
+  height: 100% !important;
+  border-radius: 50% !important;
+  overflow: hidden !important;
+  background: transparent !important;
+}
+.app.dark .floating-bot-img {
+  background: transparent !important;
 }
 .floating-bot-img img,
 .bot-logo-img img {
+  width: 100% !important;
+  height: 100% !important;
+  border-radius: 50% !important;
   object-fit: contain !important;
+  object-position: center center !important;
+  transform: scale(0.98) !important;
+  transform-origin: center center !important;
+  background: transparent !important;
+  display: block !important;
 }
 .chat-box {
-  right: 8px !important;
-  bottom: 8px !important;
-  width: min(308px, calc(100vw - 24px)) !important;
-  height: min(520px, calc(100vh - 122px)) !important;
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  max-width: none !important;
+  height: 100% !important;
+  max-height: none !important;
+  margin: 0 !important;
   border-radius: 14px !important;
 }
 .chat-container {
@@ -72,12 +172,26 @@ body {
 .faq-suggestions-list {
   max-height: 74px !important;
 }
+@keyframes saarthiPulse {
+  0% {
+    transform: scale(0.92);
+    opacity: 0.42;
+  }
+  75% {
+    transform: scale(1.22);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1.22);
+    opacity: 0;
+  }
+}
 @media (max-width: 640px) {
+  .floating-btn {
+    width: 48px !important;
+    height: 48px !important;
+  }
   .chat-box {
-    width: min(292px, calc(100vw - 16px)) !important;
-    height: min(462px, calc(100vh - 102px)) !important;
-    right: 4px !important;
-    bottom: 4px !important;
     border-radius: 12px !important;
   }
 }
@@ -94,18 +208,17 @@ export default function SaarthiChatbotWidget({ blurred = false }) {
   const chatbotCssPath = `${import.meta.env.BASE_URL}chatbot/assets/index-CleebXl6.css`;
   const chatbotJsPath = `${import.meta.env.BASE_URL}chatbot/assets/index-h95SWGsY.js`;
   const chatbotIconPath = `${import.meta.env.BASE_URL}chatbot/assets/eodb-saarthi-_EV4f2aO.png`;
+  const openChatFromHost = () => {
+    const frameDoc = iframeRef.current?.contentDocument;
+    const floatingButton = frameDoc?.querySelector(".floating-btn");
+    if (floatingButton && typeof floatingButton.click === "function") {
+      floatingButton.click();
+    }
+  };
 
   useEffect(() => {
     const iframe = iframeRef.current;
     if (!iframe) return undefined;
-    const chatbotCssUrl = new URL(
-      chatbotCssPath,
-      window.location.origin,
-    ).toString();
-    const chatbotJsUrl = new URL(
-      chatbotJsPath,
-      window.location.origin,
-    ).toString();
     const iconUrl = new URL(
       chatbotIconPath,
       window.location.origin,
@@ -182,6 +295,7 @@ export default function SaarthiChatbotWidget({ blurred = false }) {
           img.setAttribute("src", iconUrl);
         }
       });
+
       const subtitleNode = frameDoc.querySelector(".header-text p");
       if (subtitleNode && subtitleNode.textContent?.trim() !== "Assistant + FAQ") {
         subtitleNode.textContent = "Assistant + FAQ";
@@ -292,8 +406,19 @@ export default function SaarthiChatbotWidget({ blurred = false }) {
       className={`saarthi-chatbot-widget ${isOpen ? "saarthi-chatbot-widget--open" : ""} ${blurred ? "saarthi-chatbot-widget--blurred" : ""}`}
       style={{ "--chatbot-bottom-offset": `${bottomOffset}px` }}
     >
+      {!isOpen ? (
+        <button
+          type="button"
+          className="saarthi-chatbot-widget__launcher"
+          onClick={openChatFromHost}
+          aria-label="Open EODB Saarthi chatbot"
+        >
+          <img src={chatbotIconPath} alt="EODB Saarthi" />
+        </button>
+      ) : null}
       <iframe
         ref={iframeRef}
+        className="saarthi-chatbot-widget__frame"
         src="about:blank"
         srcDoc={`<!doctype html>
 <html lang="en">
@@ -301,6 +426,18 @@ export default function SaarthiChatbotWidget({ blurred = false }) {
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>EODB Saarthi Chatbot</title>
+    <style>
+      html, body, #root {
+        width: 100%;
+        min-height: 100%;
+        margin: 0;
+        padding: 0;
+        background: transparent !important;
+      }
+      body {
+        overflow: hidden;
+      }
+    </style>
     <link rel="stylesheet" crossorigin href="${chatbotCssPath}">
     <script type="module" crossorigin src="${chatbotJsPath}"></script>
   </head>

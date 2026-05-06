@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import AppHeader from "@/components/AppHeader";
 import AdminDashboardView from "@/components/admin/AdminDashboardView";
 import SidebarNav from "@/components/SidebarNav";
-import SaarthiChatbotWidget from "@/components/chatbot/SaarthiChatbotWidget";
 import { adminNavigationItems } from "@/data/adminData";
 import { useDashboardPreferences } from "@/hooks/useDashboardPreferences";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
@@ -141,7 +140,6 @@ export default function AdminDashboard() {
           />
         </main>
       </div>
-      <SaarthiChatbotWidget />
     </div>
   );
 }

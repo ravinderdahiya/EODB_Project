@@ -5,6 +5,99 @@
   z-index: 1400;
   transition: bottom 220ms ease, right 220ms ease, filter 180ms ease, opacity 180ms ease;
 }
+.saarthi-chatbot-widget__launcher {
+  width: 58px;
+  height: 58px;
+  border: 0;
+  border-radius: 50%;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+  background: transparent !important;
+  background-color: transparent !important;
+  position: relative;
+  display: block;
+  box-shadow: none !important;
+}
+.saarthi-chatbot-widget__launcher img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: contain;
+  object-position: center;
+  background: transparent !important;
+  display: block;
+}
+.saarthi-chatbot-widget__launcher::before {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 2px solid var(--green, #2f8d5d);
+  opacity: 0.34;
+  animation: saarthiHostPulse 2.2s ease-out infinite;
+  pointer-events: none;
+}
+.saarthi-chatbot-widget__launcher::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: 50%;
+  border: 1px solid var(--green, #2f8d5d);
+  opacity: 0.2;
+  pointer-events: none;
+}
+.saarthi-chatbot-widget__launcher:focus-visible {
+  outline: 2px solid var(--mint, #1b9b8b);
+  outline-offset: 2px;
+}
+.saarthi-chatbot-widget__hint {
+  display: none !important;
+  position: absolute;
+  right: -2px;
+  bottom: 74px;
+  max-width: 210px;
+  padding: 7px 12px;
+  border-radius: 999px;
+  background: var(--surface-strong, rgba(255, 255, 255, 0.95));
+  color: var(--ink, #1f6a45);
+  border: 1px solid var(--border, rgba(23, 50, 72, 0.12));
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.2;
+  box-shadow: var(--shadow-soft, 0 8px 18px rgba(15, 23, 42, 0.16));
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 2;
+}
+.saarthi-chatbot-widget__hint::after {
+  content: "";
+  position: absolute;
+  right: 24px;
+  bottom: -5px;
+  width: 10px;
+  height: 10px;
+  background: var(--surface-strong, rgba(255, 255, 255, 0.95));
+  border-right: 1px solid var(--border, rgba(23, 50, 72, 0.12));
+  border-bottom: 1px solid var(--border, rgba(23, 50, 72, 0.12));
+  transform: rotate(45deg);
+}
+:root[data-theme="dark"] .saarthi-chatbot-widget__hint,
+[data-theme="dark"] .saarthi-chatbot-widget__hint,
+.dark .saarthi-chatbot-widget__hint,
+body.dark .saarthi-chatbot-widget__hint {
+  background: var(--surface, rgba(14, 28, 40, 0.92));
+  color: var(--ink, #e6edf5);
+  border-color: var(--border, rgba(154, 181, 203, 0.24));
+}
+:root[data-theme="dark"] .saarthi-chatbot-widget__hint::after,
+[data-theme="dark"] .saarthi-chatbot-widget__hint::after,
+.dark .saarthi-chatbot-widget__hint::after,
+body.dark .saarthi-chatbot-widget__hint::after {
+  background: var(--surface, rgba(14, 28, 40, 0.92));
+  border-right-color: var(--border, rgba(154, 181, 203, 0.24));
+  border-bottom-color: var(--border, rgba(154, 181, 203, 0.24));
+}
 
 .saarthi-chatbot-widget--blurred {
   z-index: 70;
@@ -14,28 +107,69 @@
 }
 
 .saarthi-chatbot-widget iframe {
-  width: 220px;
-  height: 152px;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
   border: 0;
-  border-radius: 14px;
-  background: transparent;
+  border-radius: 50%;
+  background: transparent !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+  position: absolute;
+  right: 0;
+  bottom: 0;
   display: block;
+}
+:root[data-theme="dark"] .saarthi-chatbot-widget iframe,
+[data-theme="dark"] .saarthi-chatbot-widget iframe,
+.dark .saarthi-chatbot-widget iframe,
+body.dark .saarthi-chatbot-widget iframe {
+  background: transparent !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
 }
 
 .saarthi-chatbot-widget--open iframe {
+  opacity: 1;
+  pointer-events: auto;
   width: min(318px, calc(100vw - 24px));
   height: min(530px, calc(100vh - 118px));
   border-radius: 14px;
+}
+@keyframes saarthiHostPulse {
+  0% {
+    transform: scale(0.92);
+    opacity: 0.42;
+  }
+  75% {
+    transform: scale(1.22);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1.22);
+    opacity: 0;
+  }
 }
 
 @media (max-width: 600px) {
   .saarthi-chatbot-widget {
     right: max(10px, env(safe-area-inset-right));
   }
+  .saarthi-chatbot-widget__launcher {
+    width: 52px;
+    height: 52px;
+  }
+  .saarthi-chatbot-widget__hint {
+    right: -2px;
+    bottom: 68px;
+    font-size: 10.5px;
+    max-width: 178px;
+  }
 
   .saarthi-chatbot-widget iframe {
-    width: 184px;
-    height: 136px;
+    width: 1px;
+    height: 1px;
   }
 
   .saarthi-chatbot-widget--open iframe {
