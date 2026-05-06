@@ -1,4 +1,5 @@
 import "./AppHeader.css";
+import { useState } from "react";
 import {
   LogOut,
   Menu,
@@ -26,6 +27,7 @@ export default function AppHeader({
   showSearch = true,
 }) {
   const { t } = useLanguage();
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
 
   const title    = t("header.title");
   const subtitle = isAdmin ? t("header.adminSubtitle") : t("header.subtitle");
@@ -83,13 +85,15 @@ export default function AppHeader({
             className="search-shell__input"
             value={searchValue}
             onChange={(event) => onSearchValueChange(event.target.value)}
+            onFocus={() => setIsSearchFocused(true)}
+            onBlur={() => setIsSearchFocused(false)}
             placeholder={searchPlaceholder}
           />
           <button type="submit" className="search-shell__submit">
             {t("header.searchSubmit")}
           </button>
 
-          {searchSuggestions.length > 0 ? (
+          {isSearchFocused && searchSuggestions.length > 0 ? (
             <div className="search-shell__suggestions" role="listbox">
               {searchSuggestions.map((suggestion, index) => {
                 const suggestionTitle = getSuggestionTitle(suggestion);

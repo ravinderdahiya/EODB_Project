@@ -8,7 +8,8 @@ import MapToolbar from "@/components/MapToolbar";
 import MeasurementPanel from "@/components/MeasurementPanel";
 import ParcelDetailsModal from "@/components/ParcelDetailsModal";
 import SidebarNav from "@/components/SidebarNav";
-import VoiceAssistantPopup from "@/components-addon/VoiceAssistantPopup";
+import SaarthiChatbotWidget from "@/components/chatbot/SaarthiChatbotWidget";
+import VoiceAssistantPopup from "@/components/voiceAssistant/VoiceAssistantPopup";
 import { navigationItems } from "@/data/portalData";
 import { useArcGISMap } from "@/hooks/useArcGISMap";
 import { useDashboardPreferences } from "@/hooks/useDashboardPreferences";
@@ -17,9 +18,22 @@ import { useMeasurement } from "@/hooks/useMeasurement";
 import { useSelectFeatures } from "@/hooks/useSelectFeatures";
 import useDisableDevTools from "@/hooks/useDisableDevTools";
 import { useLanguage } from "@/context/LanguageContext";
-import { searchAdministrativeAreas } from "@/services/mapQueryService";
+import { getAllTehsils, getAllVillages, getDistricts, searchAdministrativeAreas } from "@/services/mapQueryService";
 import { createEmptyParcelRecord } from "@/services/parcelRecordService";
 import { triggerPrint } from "@/utils/printUtils";
+import { VOICE_COMMAND_ACTIONS, normalizeVoiceTranscript } from "@/voice-addon/voiceCommandRegistry";
+import {
+  DISTRICT_VOICE_STOPWORDS,
+  TEHSIL_INTENT_TOKENS,
+  TEHSIL_VOICE_STOPWORDS,
+  VILLAGE_INTENT_TOKENS,
+  VILLAGE_VOICE_STOPWORDS,
+  buildVoiceCandidatePhrases,
+  hasVoiceIntentToken,
+  pickBestVoiceNameMatch,
+  stripDistrictNameTokens,
+} from "@/voice-addon/voiceAdminMatcher";
+
 import { VOICE_COMMAND_ACTIONS } from "@/voice-addon/voiceCommandRegistry";
 import { useAnalytics } from "@/services/analyticsService";
 
@@ -83,6 +97,9 @@ export default function App() {
   );
   const [measurementMode, setMeasurementMode] = useState(null);
   const [adminSuggestions, setAdminSuggestions] = useState([]);
+  const [voiceDistricts, setVoiceDistricts] = useState([]);
+  const [voiceTehsils, setVoiceTehsils] = useState([]);
+  const [voiceVillages, setVoiceVillages] = useState([]);
   const hasSelectedParcel = selectedParcel.registryRef !== "DLR-UNAVAILABLE";
   const adminSuggestionRequestIdRef = useRef(0);
 
@@ -301,6 +318,41 @@ export default function App() {
       });
   }, [deferredSearch]);
 
+  useEffect(() => {
+    let active = true;
+    Promise.allSettled([getDistricts(), getAllTehsils(), getAllVillages()])
+      .then(([districtResult, tehsilResult, villageResult]) => {
+        if (!active) return;
+
+        setVoiceDistricts(
+          districtResult.status === "fulfilled" && Array.isArray(districtResult.value)
+            ? districtResult.value
+            : [],
+        );
+        setVoiceTehsils(
+          tehsilResult.status === "fulfilled" && Array.isArray(tehsilResult.value)
+            ? tehsilResult.value
+            : [],
+        );
+        setVoiceVillages(
+          villageResult.status === "fulfilled" && Array.isArray(villageResult.value)
+            ? villageResult.value
+            : [],
+        );
+      })
+      .catch(() => {
+        if (!active) return;
+        setVoiceDistricts([]);
+        setVoiceTehsils([]);
+        setVoiceVillages([]);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  // Resolve search text into the best matching administrative boundary target.
   const resolveAdminBoundarySearch = async (rawQuery) => {
     const matches = await searchAdministrativeAreas(rawQuery, { limit: 10 });
     if (!matches.length) return null;
@@ -325,6 +377,7 @@ export default function App() {
     };
   };
 
+  // Draw and zoom to selected administrative boundary from search/voice target.
   const highlightAdminBoundary = async (target, options = {}) => {
     const { exactMatch = true } = options;
     const result = await drawBoundary(target.type, target.codes);
@@ -341,6 +394,481 @@ export default function App() {
         : `Showing closest ${target.type} match: ${target.label}.`,
     );
     return true;
+  };
+
+  // Voice district resolver: exact + fuzzy + phonetic against cached district list.
+  const matchDistrictFromNormalizedTranscript = (normalizedText) =>
+    pickBestVoiceNameMatch(
+      normalizedText,
+      voiceDistricts,
+      (district) => district?.name || "",
+      { minSimilarity: 0.7 },
+    );
+
+  // Resolve district name from transcript by direct + stopword-stripped matching.
+  const resolveDistrictFromVoiceTranscript = (transcript, normalizedTranscript) => {
+    const normalizedText = normalizeVoiceTranscript(normalizedTranscript || transcript);
+    if (!normalizedText) {
+      return null;
+    }
+
+    const directMatch = matchDistrictFromNormalizedTranscript(normalizedText);
+    if (directMatch) {
+      return directMatch;
+    }
+
+    const strippedTokens = normalizedText
+      .split(" ")
+      .filter(Boolean)
+      .filter((token) => !DISTRICT_VOICE_STOPWORDS.has(token));
+
+    if (!strippedTokens.length) {
+      return null;
+    }
+
+    return matchDistrictFromNormalizedTranscript(strippedTokens.join(" "));
+  };
+
+  // Execute district focus flow and fallback to child intent when user also speaks tehsil/village.
+  const runDistrictVoiceFocus = async ({ transcript, normalizedTranscript, strictIntent }) => {
+    if (!voiceDistricts.length) {
+      if (strictIntent) {
+        setSystemMessage("District list is loading. Please try district command again.");
+        return { ok: false };
+      }
+      return { ok: false };
+    }
+
+    const normalizedText = normalizeVoiceTranscript(normalizedTranscript || transcript);
+    const matchedDistrict = resolveDistrictFromVoiceTranscript(transcript, normalizedText);
+    if (!matchedDistrict?.code) {
+      if (strictIntent) {
+        setSystemMessage(`District name not recognized in "${transcript}". Try saying "Panipat district dikhao".`);
+        return { ok: false };
+      }
+      return { ok: false };
+    }
+
+    // If user explicitly said tehsil/village with district context, try child boundary first.
+    if (hasVoiceIntentToken(normalizedText, VILLAGE_INTENT_TOKENS)) {
+      const villageOutcome = await runVillageVoiceFocus({
+        transcript,
+        normalizedTranscript: normalizedText,
+        strictIntent,
+      });
+      if (villageOutcome?.ok) {
+        return villageOutcome;
+      }
+      return { ok: false };
+    }
+
+    if (hasVoiceIntentToken(normalizedText, TEHSIL_INTENT_TOKENS)) {
+      const tehsilOutcome = await runTehsilVoiceFocus({
+        transcript,
+        normalizedTranscript: normalizedText,
+        strictIntent,
+      });
+      if (tehsilOutcome?.ok) {
+        return tehsilOutcome;
+      }
+      return { ok: false };
+    }
+
+    // If district is spoken with extra place words, try tehsil/village before district.
+    const districtNameTokens = normalizeVoiceTranscript(matchedDistrict.name || "")
+      .split(" ")
+      .filter(Boolean);
+    const districtExtraTokens = normalizedText
+      .split(" ")
+      .filter(Boolean)
+      .filter((token) => !DISTRICT_VOICE_STOPWORDS.has(token))
+      .filter((token) => !districtNameTokens.includes(token));
+    const hasDistrictChildHint = districtExtraTokens.length > 0;
+    if (hasDistrictChildHint) {
+      const tehsilOutcome = await runTehsilVoiceFocus({
+        transcript,
+        normalizedTranscript: normalizedText,
+        strictIntent,
+      });
+      if (tehsilOutcome?.ok) {
+        return tehsilOutcome;
+      }
+
+      const villageOutcome = await runVillageVoiceFocus({
+        transcript,
+        normalizedTranscript: normalizedText,
+        strictIntent,
+      });
+      if (villageOutcome?.ok) {
+        return villageOutcome;
+      }
+
+      // Strict mode: if user said district + extra place words, do not fallback to district only.
+      if (strictIntent) {
+        setSystemMessage(
+          `Could not find tehsil/village inside district ${matchedDistrict.name}. Try full order: "${matchedDistrict.name} district <tehsil> tehsil <village> village dikhao".`,
+        );
+        return { ok: false };
+      }
+    }
+
+    const result = await drawBoundary(
+      "district",
+      { dCode: matchedDistrict.code },
+      { expandFactor: 1.28 },
+    );
+    if (!result?.ok) {
+      setSystemMessage(result?.message || "Failed to highlight district boundary.");
+      return { ok: false };
+    }
+
+    setSearchValue("");
+    setSystemMessage(`Highlighted district boundary for ${matchedDistrict.name}.`);
+    return { ok: true };
+  };
+
+  // Voice tehsil resolver: exact + fuzzy + phonetic against cached tehsil list.
+  const matchTehsilFromNormalizedTranscript = (normalizedText, options = {}) =>
+    pickBestVoiceNameMatch(
+      normalizedText,
+      options?.districtCode
+        ? voiceTehsils.filter((tehsil) => tehsil?.dCode === options.districtCode)
+        : voiceTehsils,
+      (tehsil) => tehsil?.tName || "",
+      { minSimilarity: 0.7 },
+    );
+
+  // Resolve tehsil from transcript, optionally constrained inside a spoken district.
+  const resolveTehsilFromVoiceTranscript = (transcript, normalizedTranscript, options = {}) => {
+    const normalizedText = normalizeVoiceTranscript(normalizedTranscript || transcript);
+    if (!normalizedText) {
+      return null;
+    }
+
+    const matchedDistrict = options?.districtCode
+      ? voiceDistricts.find((district) => district?.code === options.districtCode)
+      : null;
+
+    const strippedTokens = normalizedText
+      .split(" ")
+      .filter(Boolean)
+      .filter((token) => !TEHSIL_VOICE_STOPWORDS.has(token));
+
+    const districtStrippedTokens = stripDistrictNameTokens(strippedTokens, matchedDistrict?.name || "");
+    if (!districtStrippedTokens.length) {
+      return null;
+    }
+
+    const candidatePhrases = buildVoiceCandidatePhrases(districtStrippedTokens);
+    for (const candidate of candidatePhrases) {
+      const match = matchTehsilFromNormalizedTranscript(candidate, {
+        districtCode: options?.districtCode,
+      });
+      if (match) {
+        return match;
+      }
+    }
+
+    // Fallback: try full transcript only after context-stripped matching.
+    // This avoids false matches like choosing "Jhajjar" tehsil from
+    // "Jhajjar district me Beri tehsil dikhao".
+    const directMatch = matchTehsilFromNormalizedTranscript(normalizedText, {
+      districtCode: options?.districtCode,
+    });
+    if (directMatch) {
+      const districtName = normalizeVoiceTranscript(matchedDistrict?.name || "");
+      const tehsilName = normalizeVoiceTranscript(directMatch?.tName || "");
+      const hasExplicitChildWords = districtStrippedTokens.length > 0;
+
+      if (hasExplicitChildWords && districtName && tehsilName === districtName) {
+        return null;
+      }
+      return directMatch;
+    }
+
+    return null;
+  };
+
+  // Execute tehsil focus flow and highlight the matched tehsil boundary.
+  const runTehsilVoiceFocus = async ({ transcript, normalizedTranscript, strictIntent }) => {
+    if (!voiceTehsils.length) {
+      if (strictIntent) {
+        setSystemMessage("Tehsil list is loading. Please try tehsil command again.");
+        return { ok: false };
+      }
+      return { ok: false };
+    }
+
+    const normalizedText = normalizeVoiceTranscript(normalizedTranscript || transcript);
+    const matchedDistrict = resolveDistrictFromVoiceTranscript(transcript, normalizedText);
+    const matchedTehsil = resolveTehsilFromVoiceTranscript(transcript, normalizedText, {
+      districtCode: matchedDistrict?.code,
+    });
+
+    if (!matchedTehsil?.dCode || !matchedTehsil?.tCode) {
+      if (strictIntent) {
+        if (matchedDistrict?.name) {
+          setSystemMessage(`Tehsil not recognized in district ${matchedDistrict.name}. Try saying "Beri tehsil in Jhajjar".`);
+        } else {
+          setSystemMessage(`Tehsil name not recognized in "${transcript}". Try saying "Ganaur tehsil dikhao".`);
+        }
+        return { ok: false };
+      }
+      return { ok: false };
+    }
+
+    const result = await drawBoundary(
+      "tehsil",
+      { dCode: matchedTehsil.dCode, tCode: matchedTehsil.tCode },
+      { expandFactor: 1.28 },
+    );
+    if (!result?.ok) {
+      setSystemMessage(result?.message || "Failed to highlight tehsil boundary.");
+      return { ok: false };
+    }
+
+    setSearchValue("");
+    const districtName = matchedTehsil.dName ? ` (${matchedTehsil.dName})` : "";
+    setSystemMessage(`Highlighted tehsil boundary for ${matchedTehsil.tName}${districtName}.`);
+    return { ok: true };
+  };
+
+  // Narrow village candidates by spoken district/tehsil to avoid same-name conflicts.
+  const getVillageCandidatesByContext = (context = {}) => {
+    const { districtCode, tehsilCode } = context;
+    if (!voiceVillages.length) {
+      return [];
+    }
+
+    if (tehsilCode) {
+      const byTehsil = voiceVillages.filter((village) =>
+        village?.tCode === tehsilCode
+        && (!districtCode || village?.dCode === districtCode),
+      );
+      if (byTehsil.length) {
+        return byTehsil;
+      }
+    }
+
+    if (districtCode) {
+      const byDistrict = voiceVillages.filter((village) => village?.dCode === districtCode);
+      if (byDistrict.length) {
+        return byDistrict;
+      }
+    }
+
+    return voiceVillages;
+  };
+
+  // Voice village resolver: exact + fuzzy + phonetic; if district/tehsil is spoken,
+  // we filter candidates inside that context to avoid same-name village conflicts.
+  const matchVillageFromNormalizedTranscript = (normalizedText, context = {}) =>
+    pickBestVoiceNameMatch(
+      normalizedText,
+      getVillageCandidatesByContext(context),
+      (village) => village?.vName || "",
+      { minSimilarity: 0.68 },
+    );
+
+  // Extract district/tehsil context from transcript so village matching stays local.
+  const extractVillageVoiceContext = (transcript, normalizedTranscript) => {
+    const normalizedText = normalizeVoiceTranscript(normalizedTranscript || transcript);
+    const matchedDistrict = resolveDistrictFromVoiceTranscript(transcript, normalizedText);
+    const matchedTehsil = resolveTehsilFromVoiceTranscript(transcript, normalizedText, {
+      districtCode: matchedDistrict?.code,
+    });
+
+    // Tehsil implies district. Use tehsil context only if it matches the spoken district.
+    if (
+      matchedTehsil?.tCode
+      && matchedTehsil?.dCode
+      && (!matchedDistrict?.code || matchedTehsil.dCode === matchedDistrict.code)
+    ) {
+      return {
+        districtCode: matchedTehsil.dCode,
+        tehsilCode: matchedTehsil.tCode,
+      };
+    }
+
+    if (matchedDistrict?.code) {
+      return { districtCode: matchedDistrict.code };
+    }
+
+    return {};
+  };
+
+  // Remove context words (district/tehsil names) from village transcript tokens so
+  // phrases like "Jhajjar district main Beri Khas village dikhao" keep only village terms.
+  const stripVillageContextTokens = (tokens, context = {}) => {
+    if (!tokens?.length) {
+      return [];
+    }
+
+    const blockedTokens = new Set();
+    const district = context?.districtCode
+      ? voiceDistricts.find((item) => item?.code === context.districtCode)
+      : null;
+    const tehsil = context?.tehsilCode
+      ? voiceTehsils.find((item) =>
+        item?.tCode === context.tehsilCode
+        && (!context?.districtCode || item?.dCode === context.districtCode),
+      )
+      : null;
+
+    for (const name of [district?.name, tehsil?.tName]) {
+      const normalizedName = normalizeVoiceTranscript(name);
+      if (!normalizedName) continue;
+      normalizedName
+        .split(" ")
+        .filter(Boolean)
+        .forEach((part) => blockedTokens.add(part));
+    }
+
+    return tokens.filter((token) => !blockedTokens.has(token));
+  };
+
+  // Resolve village from transcript using context-aware exact/fuzzy phrase candidates.
+  const resolveVillageFromVoiceTranscript = (transcript, normalizedTranscript) => {
+    const normalizedText = normalizeVoiceTranscript(normalizedTranscript || transcript);
+    if (!normalizedText) {
+      return null;
+    }
+
+    const context = extractVillageVoiceContext(transcript, normalizedText);
+
+    const strippedTokens = normalizedText
+      .split(" ")
+      .filter(Boolean)
+      .filter((token) => !VILLAGE_VOICE_STOPWORDS.has(token));
+
+    const contextStrippedTokens = stripVillageContextTokens(strippedTokens, context);
+
+    const contextCandidatePhrases = buildVoiceCandidatePhrases(contextStrippedTokens);
+    for (const candidate of contextCandidatePhrases) {
+      const contextStrippedMatch = matchVillageFromNormalizedTranscript(candidate, context);
+      if (contextStrippedMatch) {
+        return contextStrippedMatch;
+      }
+    }
+
+    const directMatch = matchVillageFromNormalizedTranscript(normalizedText, context);
+    if (directMatch) {
+      return directMatch;
+    }
+
+    if (!strippedTokens.length) {
+      return null;
+    }
+
+    const strippedCandidatePhrases = buildVoiceCandidatePhrases(strippedTokens);
+    for (const candidate of strippedCandidatePhrases) {
+      const strippedMatch = matchVillageFromNormalizedTranscript(candidate, context);
+      if (strippedMatch) {
+        return strippedMatch;
+      }
+    }
+
+    // If district/tehsil context was spoken, do not jump to another district.
+    if (context?.districtCode || context?.tehsilCode) {
+      return null;
+    }
+
+    // Final fallback without context filter only when no context was spoken.
+    return matchVillageFromNormalizedTranscript(strippedCandidatePhrases[0] || "");
+  };
+
+  // Execute village focus flow and highlight the matched village boundary.
+  const runVillageVoiceFocus = async ({ transcript, normalizedTranscript, strictIntent }) => {
+    if (!voiceVillages.length) {
+      if (strictIntent) {
+        setSystemMessage("Village list is loading. Please try village command again.");
+        return { ok: false };
+      }
+      return { ok: false };
+    }
+
+    const matchedVillage = resolveVillageFromVoiceTranscript(transcript, normalizedTranscript);
+
+    if (!matchedVillage?.dCode || !matchedVillage?.tCode || !matchedVillage?.vCode) {
+      if (strictIntent) {
+        setSystemMessage(`Village name not recognized in "${transcript}". Try saying "Sisana village dikhao".`);
+        return { ok: false };
+      }
+      return { ok: false };
+    }
+
+    const result = await drawBoundary(
+      "village",
+      {
+        dCode: matchedVillage.dCode,
+        tCode: matchedVillage.tCode,
+        vCode: matchedVillage.vCode,
+      },
+      { expandFactor: 1.28 },
+    );
+    if (!result?.ok) {
+      setSystemMessage(result?.message || "Failed to highlight village boundary.");
+      return { ok: false };
+    }
+
+    setSearchValue("");
+    const contextParts = [matchedVillage.tName, matchedVillage.dName].filter(Boolean);
+    const contextText = contextParts.length ? ` (${contextParts.join(", ")})` : "";
+    setSystemMessage(`Highlighted village boundary for ${matchedVillage.vName}${contextText}.`);
+    return { ok: true };
+  };
+
+  // Fallback router when command is generic: picks district/tehsil/village handler by intent clues.
+  const runAdministrativeVoiceFallback = async ({ transcript, normalizedTranscript }) => {
+    const normalizedText = normalizeVoiceTranscript(normalizedTranscript || transcript);
+    const hasVillageIntent = hasVoiceIntentToken(normalizedText, VILLAGE_INTENT_TOKENS);
+    const hasTehsilIntent = hasVoiceIntentToken(normalizedText, TEHSIL_INTENT_TOKENS);
+    const matchedDistrict = resolveDistrictFromVoiceTranscript(transcript, normalizedText);
+    const districtNameTokens = normalizeVoiceTranscript(matchedDistrict?.name || "")
+      .split(" ")
+      .filter(Boolean);
+
+    // Combo hint: user said a district + extra place words (often village name).
+    const districtComboTokens = normalizedText
+      .split(" ")
+      .filter(Boolean)
+      .filter((token) => !DISTRICT_VOICE_STOPWORDS.has(token))
+      .filter((token) => !districtNameTokens.includes(token));
+    const hasDistrictPlaceCombo = Boolean(matchedDistrict?.code) && districtComboTokens.length > 0;
+    const hasDistrictContext = Boolean(matchedDistrict?.code);
+
+    // Strict hierarchy routing:
+    // 1) If user says district + tehsil/village context, do NOT fallback to district-only highlight.
+    // 2) Prefer village when village token is spoken; otherwise prefer tehsil for district+place combo.
+    // 3) Keep legacy broad fallback only when no child context was spoken.
+    const fallbackHandlers = hasVillageIntent
+      ? (hasDistrictContext
+        ? [runVillageVoiceFocus, runTehsilVoiceFocus]
+        : [runVillageVoiceFocus, runTehsilVoiceFocus, runDistrictVoiceFocus])
+      : hasTehsilIntent
+        ? (hasDistrictContext
+          ? [runTehsilVoiceFocus, runVillageVoiceFocus]
+          : [runTehsilVoiceFocus, runVillageVoiceFocus, runDistrictVoiceFocus])
+        : hasDistrictPlaceCombo
+          ? [runTehsilVoiceFocus, runVillageVoiceFocus]
+          : [runDistrictVoiceFocus, runTehsilVoiceFocus, runVillageVoiceFocus];
+
+    const useStrictHierarchy =
+      (hasDistrictContext && (hasTehsilIntent || hasVillageIntent))
+      || hasDistrictPlaceCombo;
+
+    for (const handler of fallbackHandlers) {
+      const outcome = await handler({
+        transcript,
+        normalizedTranscript: normalizedText,
+        strictIntent: useStrictHierarchy,
+      });
+      if (outcome?.ok) {
+        return outcome;
+      }
+    }
+
+    return { ok: false };
   };
 
   const handleSearchSubmit = async (event) => {
@@ -496,6 +1024,7 @@ export default function App() {
     }));
   };
 
+  // Apply voice-driven layer visibility changes in one consistent update path.
   const applyLayerVisibilityPatchFromVoice = (layerPatch = {}, message) => {
     const nextEntries = Object.entries(layerPatch).filter(([key]) => key in initialLayers);
     if (!nextEntries.length) {
@@ -534,6 +1063,7 @@ export default function App() {
     );
   };
 
+  // App-side execution map for parsed voice actions from voiceCommandRegistry.
   const voiceActionHandlers = {
     [VOICE_COMMAND_ACTIONS.APPLY_TOPO_BASEMAP]: () => {
       handleBasemapChange("topo");
@@ -585,6 +1115,14 @@ export default function App() {
       ),
     [VOICE_COMMAND_ACTIONS.APPLY_LAYER_VISIBILITY]: ({ command }) =>
       applyLayerVisibilityPatchFromVoice(command?.layerPatch, "Layer visibility updated."),
+    [VOICE_COMMAND_ACTIONS.GO_TO_DISTRICT_BOUNDARY]: ({ transcript, normalizedTranscript }) =>
+      runDistrictVoiceFocus({ transcript, normalizedTranscript, strictIntent: true }),
+    [VOICE_COMMAND_ACTIONS.GO_TO_TEHSIL_BOUNDARY]: ({ transcript, normalizedTranscript }) =>
+      runTehsilVoiceFocus({ transcript, normalizedTranscript, strictIntent: true }),
+    [VOICE_COMMAND_ACTIONS.GO_TO_VILLAGE_BOUNDARY]: ({ transcript, normalizedTranscript }) =>
+      runVillageVoiceFocus({ transcript, normalizedTranscript, strictIntent: true }),
+    [VOICE_COMMAND_ACTIONS.HANDLE_FALLBACK_TRANSCRIPT]: ({ transcript, normalizedTranscript }) =>
+      runAdministrativeVoiceFallback({ transcript, normalizedTranscript }),
   };
 
   return (
@@ -743,6 +1281,8 @@ export default function App() {
         parcel={selectedParcel}
         onClose={() => setDetailsOpen(false)}
       />
+      <SaarthiChatbotWidget blurred={detailsOpen} />
     </div>
   );
 }
+

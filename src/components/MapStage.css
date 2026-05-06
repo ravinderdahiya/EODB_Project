@@ -58,16 +58,17 @@
 
 .parcel-table-toggle {
   position: absolute;
-  right: 1rem;
-  bottom: 1.8rem;
+  left: 50%;
+  bottom: 1.5rem;
+  transform: translateX(-50%);
   z-index: 18;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 54px;
-  height: 54px;
+  width: 52px;
+  height: 32px;
   border: 0;
-  border-radius: 18px;
+  border-radius: 999px;
   background: rgba(255, 255, 255, 0.96);
   color: var(--ink);
   box-shadow: var(--shadow-soft);
@@ -75,11 +76,11 @@
 }
 
 .parcel-table-toggle:hover {
-  transform: translateY(-1px);
+  transform: translateX(-50%) translateY(-1px);
 }
 
 .map-stage__viewport--table-open .parcel-table-toggle {
-  bottom: calc(30% + 1rem);
+  bottom: calc(30% + 0.35rem);
 }
 
 /* ── Parcel Table Panel ───────────────────────────────────── */

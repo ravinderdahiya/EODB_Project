@@ -1279,12 +1279,15 @@ export function useArcGISMap({
     return { ok: true, message: `Land record opened for Khasra ${selectedParcel.khasraNo}.` };
   };
 
-  const drawBoundary = async (type, codes) => {
+  const drawBoundary = async (type, codes, options = {}) => {
     if (!layersRef.current.boundaryLayer || !viewRef.current) {
       return { ok: false, message: "Map is not ready." };
     }
 
     try {
+      const expandFactor = Number.isFinite(options?.expandFactor)
+        ? Math.max(options.expandFactor, 1.02)
+        : 5;
       const { features } = await getBoundaryGeometry(type, codes);
 
       if (!features.length) {
@@ -1309,7 +1312,7 @@ export function useArcGISMap({
 
       if (unionExtent) {
         await viewRef.current.goTo(
-          { target: unionExtent.expand(5) },
+          { target: unionExtent.expand(expandFactor) },
           { duration: 800, easing: "ease-in-out" },
         );
       }

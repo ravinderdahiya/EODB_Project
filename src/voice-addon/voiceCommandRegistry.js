@@ -14,9 +14,12 @@
   TURN_ON_ALL_BOUNDARIES: "TURN_ON_ALL_BOUNDARIES",
   TURN_OFF_ALL_BOUNDARIES: "TURN_OFF_ALL_BOUNDARIES",
   APPLY_LAYER_VISIBILITY: "APPLY_LAYER_VISIBILITY",
+  GO_TO_DISTRICT_BOUNDARY: "GO_TO_DISTRICT_BOUNDARY",
+  GO_TO_TEHSIL_BOUNDARY: "GO_TO_TEHSIL_BOUNDARY",
+  GO_TO_VILLAGE_BOUNDARY: "GO_TO_VILLAGE_BOUNDARY",
+  HANDLE_FALLBACK_TRANSCRIPT: "HANDLE_FALLBACK_TRANSCRIPT",
 });
 
-const BOUNDARY_KEYS = ["district", "tehsil", "village"];
 const ALL_BOUNDARY_LAYER_KEYS = ["district", "tehsil", "village", "cadastral", "assets", "roads"];
 const ALL_LAYER_ON_KEYS = ["district", "tehsil", "village", "cadastral", "assets", "roads"];
 const ALL_LAYER_OFF_KEYS = ["district", "tehsil", "village", "cadastral", "assets", "roads", "nhai"];
@@ -323,6 +326,76 @@ export const voiceCommandRegistry = Object.freeze([
       "सभी लेयर हटाओ",
     ],
   },
+  {
+    id: "district.focus",
+    actionId: VOICE_COMMAND_ACTIONS.GO_TO_DISTRICT_BOUNDARY,
+    phrases: [
+      "zoom to district",
+      "zoom in district",
+      "zoom district",
+      "district dikhao",
+      "district dikha do",
+      "district pe zoom karo",
+      "district par zoom karo",
+      "show district",
+      "focus district",
+      "select district",
+      "zoom to this district",
+      "zila dikhao",
+      "jila dikhao",
+      "जिला दिखाओ",
+      "डिस्ट्रिक्ट दिखाओ",
+      "जिले पर ज़ूम करो",
+      "जिला zoom करो",
+    ],
+  },
+  {
+    id: "tehsil.focus",
+    actionId: VOICE_COMMAND_ACTIONS.GO_TO_TEHSIL_BOUNDARY,
+    phrases: [
+      "zoom to tehsil",
+      "zoom in tehsil",
+      "zoom tehsil",
+      "tehsil dikhao",
+      "tehsil dikha do",
+      "tehsil pe zoom karo",
+      "tehsil par zoom karo",
+      "show tehsil",
+      "focus tehsil",
+      "select tehsil",
+      "zoom to this tehsil",
+      "tahsil dikhao",
+      "thsil dikhao",
+      "तहसील दिखाओ",
+      "तहसील पर ज़ूम करो",
+      "तहसील zoom करो",
+    ],
+  },
+  {
+    id: "village.focus",
+    actionId: VOICE_COMMAND_ACTIONS.GO_TO_VILLAGE_BOUNDARY,
+    phrases: [
+      "zoom to village",
+      "zoom in village",
+      "zoom village",
+      "village dikhao",
+      "village dikha do",
+      "village pe zoom karo",
+      "village par zoom karo",
+      "show village",
+      "focus village",
+      "select village",
+      "zoom to this village",
+      "gaon dikhao",
+      "gram dikhao",
+      "गांव दिखाओ",
+      "गाँव दिखाओ",
+      "विलेज दिखाओ",
+      "गांव पर ज़ूम करो",
+      "गाँव पर ज़ूम करो",
+      "गांव zoom करो",
+    ],
+  },
 ]);
 
 const COMMAND_WORDS = [
@@ -373,6 +446,57 @@ const BOUNDARY_HINTS = [
   "boundary", "boundaries", "boundry", "seema", "sheema", "sima", "shima",
   "borders", "border", "layer", "layers", "सीमा", "बाउंड्री", "सरहद", "लेयर", "परत",
 ];
+const DISTRICT_TOKENS = [
+  "district",
+  "districts",
+  "distict",
+  "distrct",
+  "distic",
+  "districtt",
+  "zila",
+  "jila",
+  "जिला",
+  "जिले",
+  "डिस्ट्रिक्ट",
+];
+const DISTRICT_FOCUS_HINTS = [
+  "zoom", "zoom in", "zoom to", "zomm", "zom", "focus", "select", "show", "go to", "goto",
+  "dikhao", "dikha do", "dikhado", "lagao", "lgao", "highlight",
+  "दिखाओ", "ज़ूम", "जूम", "फोकस", "चुनो", "लगाओ", "हाइलाइट",
+];
+// Include common speech-to-text spellings so tehsil intent is not missed.
+const TEHSIL_TOKENS = [
+  "tehsil",
+  "tehsils",
+  "tahsil",
+  "thsil",
+  "thesil",
+  "teshal",
+  "teshil",
+  "teshsil",
+  "teshsi",
+  "teshil",
+  "teshll",
+  "tehsi",
+  "tehshil",
+  "tehshal",
+  "tahseel",
+  "taseel",
+  "tahsil",
+  "tehseel",
+  "tahsheel",
+  "tesil",
+  "tehsill",
+  "tasil",
+  "tehsiln",
+  "तहसील",
+];
+const TEHSIL_FOCUS_HINTS = DISTRICT_FOCUS_HINTS;
+const VILLAGE_TOKENS = [
+  "village", "villages", "villag", "villagee", "vilege", "vilage", "vllage",
+  "gaon", "gram", "गांव", "गाँव", "विलेज", "विलेज़", "विलेज्",
+];
+const VILLAGE_FOCUS_HINTS = DISTRICT_FOCUS_HINTS;
 const ALL_BOUNDARY_HINTS = [
   "all boundary", "all boundaries", "sab boundary", "sab boundaries", "boundary all", "boundaries all",
   "sari boundary", "saari boundary", "sabhi boundary", "sbhi boundary", "shbi boundary", "saree boundary",
@@ -399,6 +523,7 @@ const TOGGLE_INTENT_WORDS = [...ON_TOGGLE_WORDS, ...OFF_TOGGLE_WORDS];
 const ENGLISH_WORDS = ["english", "eng", "angrezi", "inglish", "अंग्रेजी", "इंग्लिश"];
 const HINDI_WORDS = ["hindi", "hindee", "hindustani", "हिंदी", "हिन्दी"];
 
+// Normalize transcript into a comparable lowercase token stream for matching.
 export function normalizeVoiceTranscript(value) {
   return `${value ?? ""}`
     .toLowerCase()
@@ -407,6 +532,7 @@ export function normalizeVoiceTranscript(value) {
     .replace(/\s+/g, " ");
 }
 
+// Parse raw transcript into a known command object with normalized text attached.
 export function resolveVoiceCommand(rawTranscript) {
   const normalizedTranscript = normalizeVoiceTranscript(rawTranscript);
   if (!normalizedTranscript) return null;
@@ -418,12 +544,21 @@ export function resolveVoiceCommand(rawTranscript) {
   const resolvedCommand = matchVariantCommand(normalizedTranscript) || command;
   if (!resolvedCommand) return null;
 
+  // Hierarchy override: when district is spoken with child admin words,
+  // prefer tehsil/village action over district action to avoid wrong boundary selection.
+  const hierarchyOverride = resolveHierarchyFocusOverride(
+    normalizedTranscript,
+    resolvedCommand.actionId,
+  );
+  const finalCommand = hierarchyOverride || resolvedCommand;
+
   return {
-    ...resolvedCommand,
+    ...finalCommand,
     normalizedTranscript,
   };
 }
 
+// Handle flexible "variant" speech that may not exactly match a static phrase list.
 function matchVariantCommand(normalizedTranscript) {
   const hasActionWord = containsAny(normalizedTranscript, COMMAND_WORDS);
   const hasMapWord = containsAny(normalizedTranscript, MAP_WORDS);
@@ -468,9 +603,25 @@ function matchVariantCommand(normalizedTranscript) {
     return layerCommand;
   }
 
+  const villageFocusCommand = resolveVillageFocusCommand(normalizedTranscript);
+  if (villageFocusCommand) {
+    return villageFocusCommand;
+  }
+
+  const tehsilFocusCommand = resolveTehsilFocusCommand(normalizedTranscript);
+  if (tehsilFocusCommand) {
+    return tehsilFocusCommand;
+  }
+
+  const districtFocusCommand = resolveDistrictFocusCommand(normalizedTranscript);
+  if (districtFocusCommand) {
+    return districtFocusCommand;
+  }
+
   return null;
 }
 
+// Resolve language-switch commands (Hindi/English) from mixed phrase patterns.
 function resolveLanguageCommand(normalizedTranscript) {
   const hasLanguageWord = containsAny(normalizedTranscript, LANGUAGE_HINTS);
   const hasEnglish = containsAny(normalizedTranscript, ENGLISH_WORDS);
@@ -508,6 +659,7 @@ function resolveLanguageCommand(normalizedTranscript) {
     : findByAction(VOICE_COMMAND_ACTIONS.SET_LANGUAGE_HINDI);
 }
 
+// Resolve layer on/off instructions and return a layer patch to apply.
 function resolveLayerVisibilityCommand(normalizedTranscript) {
   const targetLayerKeys = detectLayerTargets(normalizedTranscript);
   if (!targetLayerKeys.length) {
@@ -541,6 +693,7 @@ function resolveLayerVisibilityCommand(normalizedTranscript) {
   };
 }
 
+// Detect target layers mentioned in the transcript (district/tehsil/village/etc.).
 function detectLayerTargets(normalizedTranscript) {
   const layerKeys = [];
 
@@ -583,6 +736,7 @@ function detectLayerTargets(normalizedTranscript) {
   return Array.from(new Set(layerKeys));
 }
 
+// Accept "all boundaries" only when user clearly says all/sab-style intent.
 function isExplicitAllBoundaryCommand(normalizedTranscript) {
   return (
     containsAny(normalizedTranscript, BOUNDARY_HINTS) &&
@@ -590,10 +744,12 @@ function isExplicitAllBoundaryCommand(normalizedTranscript) {
   );
 }
 
+// Check whether transcript includes any configured terms for one layer type.
 function matchesLayerTerms(normalizedTranscript, layerKey) {
   return containsAny(normalizedTranscript, LAYER_TOKENS[layerKey] ?? []);
 }
 
+// Decide ON vs OFF from the latest toggle word in the sentence.
 function detectToggleIntent(normalizedTranscript) {
   const lastOnIndex = lastIndexOfAny(normalizedTranscript, ON_TOGGLE_WORDS);
   const lastOffIndex = lastIndexOfAny(normalizedTranscript, OFF_TOGGLE_WORDS);
@@ -609,14 +765,123 @@ function detectToggleIntent(normalizedTranscript) {
   return true;
 }
 
+// Resolve district focus intent commands, excluding explicit boundary on/off toggles.
+function resolveDistrictFocusCommand(normalizedTranscript) {
+  const hasDistrictToken = containsAny(normalizedTranscript, DISTRICT_TOKENS);
+  if (!hasDistrictToken) {
+    return null;
+  }
+
+  // Keep explicit boundary on/off commands mapped to layer visibility handlers.
+  if (
+    containsAny(normalizedTranscript, BOUNDARY_HINTS)
+    && containsAny(normalizedTranscript, TOGGLE_INTENT_WORDS)
+  ) {
+    return null;
+  }
+
+  if (!containsAny(normalizedTranscript, DISTRICT_FOCUS_HINTS)) {
+    return null;
+  }
+
+  return {
+    id: "district.focus.variant",
+    actionId: VOICE_COMMAND_ACTIONS.GO_TO_DISTRICT_BOUNDARY,
+  };
+}
+
+// Resolve tehsil focus intent commands, excluding explicit boundary on/off toggles.
+function resolveTehsilFocusCommand(normalizedTranscript) {
+  const hasTehsilToken = containsAny(normalizedTranscript, TEHSIL_TOKENS);
+  if (!hasTehsilToken) {
+    return null;
+  }
+
+  // Keep explicit boundary on/off commands mapped to layer visibility handlers.
+  if (
+    containsAny(normalizedTranscript, BOUNDARY_HINTS)
+    && containsAny(normalizedTranscript, TOGGLE_INTENT_WORDS)
+  ) {
+    return null;
+  }
+
+  if (!containsAny(normalizedTranscript, TEHSIL_FOCUS_HINTS)) {
+    return null;
+  }
+
+  return {
+    id: "tehsil.focus.variant",
+    actionId: VOICE_COMMAND_ACTIONS.GO_TO_TEHSIL_BOUNDARY,
+  };
+}
+
+// Resolve village focus intent commands, excluding explicit boundary on/off toggles.
+function resolveVillageFocusCommand(normalizedTranscript) {
+  const hasVillageToken = containsAny(normalizedTranscript, VILLAGE_TOKENS);
+  if (!hasVillageToken) {
+    return null;
+  }
+
+  // Keep explicit boundary on/off commands mapped to layer visibility handlers.
+  if (
+    containsAny(normalizedTranscript, BOUNDARY_HINTS)
+    && containsAny(normalizedTranscript, TOGGLE_INTENT_WORDS)
+  ) {
+    return null;
+  }
+
+  if (!containsAny(normalizedTranscript, VILLAGE_FOCUS_HINTS)) {
+    return null;
+  }
+
+  return {
+    id: "village.focus.variant",
+    actionId: VOICE_COMMAND_ACTIONS.GO_TO_VILLAGE_BOUNDARY,
+  };
+}
+
+// If user says "district ... tehsil/village ... dikhao", force child-level action.
+function resolveHierarchyFocusOverride(normalizedTranscript, currentActionId) {
+  const hasDistrictToken = containsAny(normalizedTranscript, DISTRICT_TOKENS);
+  if (!hasDistrictToken) {
+    return null;
+  }
+
+  const hasFocusHint = containsAny(normalizedTranscript, DISTRICT_FOCUS_HINTS);
+  if (!hasFocusHint) {
+    return null;
+  }
+
+  const hasVillageToken = containsAny(normalizedTranscript, VILLAGE_TOKENS);
+  if (hasVillageToken && currentActionId !== VOICE_COMMAND_ACTIONS.GO_TO_VILLAGE_BOUNDARY) {
+    return {
+      id: "village.focus.hierarchy.override",
+      actionId: VOICE_COMMAND_ACTIONS.GO_TO_VILLAGE_BOUNDARY,
+    };
+  }
+
+  const hasTehsilToken = containsAny(normalizedTranscript, TEHSIL_TOKENS);
+  if (hasTehsilToken && currentActionId === VOICE_COMMAND_ACTIONS.GO_TO_DISTRICT_BOUNDARY) {
+    return {
+      id: "tehsil.focus.hierarchy.override",
+      actionId: VOICE_COMMAND_ACTIONS.GO_TO_TEHSIL_BOUNDARY,
+    };
+  }
+
+  return null;
+}
+
+// Fetch a registry entry by action id.
 function findByAction(actionId) {
   return voiceCommandRegistry.find((entry) => entry.actionId === actionId) || null;
 }
 
+// True when transcript contains at least one normalized term.
 function containsAny(value, terms) {
   return terms.some((term) => value.includes(normalizeVoiceTranscript(term)));
 }
 
+// Return the last occurrence index among multiple candidate terms.
 function lastIndexOfAny(value, terms) {
   let maxIndex = -1;
 
@@ -630,6 +895,7 @@ function lastIndexOfAny(value, terms) {
   return maxIndex;
 }
 
+// Execute resolved voice action using handlers provided by the App layer.
 export function executeVoiceCommand(command, actionHandlers, context = {}) {
   const handler = actionHandlers?.[command?.actionId];
   if (typeof handler !== "function") {

@@ -158,6 +158,60 @@ export async function getTehsils(dCode) {
   return mapDistinctOptions(res.features, "n_t_code", "n_t_name");
 }
 
+/**
+ * Fetch all Haryana tehsils with district context for voice matching.
+ * This keeps a local list so voice can resolve near-spelling variants
+ * (for example: "badli" -> "badali") without relying only on SQL LIKE.
+ *
+ * @returns {Promise<Array<{ dCode: string, dName: string, tCode: string, tName: string }>>}
+ */
+export async function getAllTehsils() {
+  const layerPlan = await getHsacLayerPlan();
+  const q = new Query({
+    outFields: ["n_d_code", "n_d_name", "n_t_code", "n_t_name"],
+    returnDistinctValues: true,
+    returnGeometry: false,
+    orderByFields: ["n_t_name", "n_d_name"],
+    where:
+      "n_d_code IS NOT NULL AND n_d_code <> '' " +
+      "AND n_t_code IS NOT NULL AND n_t_code <> '' " +
+      "AND n_t_name IS NOT NULL AND n_t_name <> ''",
+  });
+
+  const res = await restQuery.executeQueryJSON(
+    `${HSAC_MAIN_URL}/${layerPlan.tehsilLayerId}`,
+    q,
+  );
+
+  const seen = new Set();
+
+  return (res.features || [])
+    .map((feature) => {
+      const attrs = feature?.attributes ?? {};
+      const dCode = cleanText(attrs.n_d_code);
+      const dName = cleanText(attrs.n_d_name);
+      const tCode = cleanText(attrs.n_t_code);
+      const tName = cleanText(attrs.n_t_name);
+      if (!dCode || !tCode || !tName) {
+        return null;
+      }
+
+      const signature = `${dCode}:${tCode}`;
+      if (seen.has(signature)) {
+        return null;
+      }
+      seen.add(signature);
+
+      return {
+        dCode,
+        dName,
+        tCode,
+        tName,
+      };
+    })
+    .filter(Boolean);
+}
+
 // ─── Villages (Layer 28) ─────────────────────────────────────────────────────
 /**
  * Fetch villages for a district + tehsil from HSAC layer 28.
@@ -182,6 +236,68 @@ export async function getVillages(dCode, tCode) {
   );
 
   return mapDistinctOptions(res.features, "n_v_code", "n_v_name");
+}
+
+/**
+ * Fetch all Haryana villages with district + tehsil context for voice matching.
+ * Used by voice assistant so village-name commands can resolve without requiring
+ * exact spelling from speech recognition.
+ *
+ * @returns {Promise<Array<{
+ *   dCode: string, dName: string, tCode: string, tName: string, vCode: string, vName: string
+ * }>>}
+ */
+export async function getAllVillages() {
+  const layerPlan = await getHsacLayerPlan();
+  const q = new Query({
+    outFields: ["n_d_code", "n_d_name", "n_t_code", "n_t_name", "n_v_code", "n_v_name"],
+    returnDistinctValues: true,
+    returnGeometry: false,
+    orderByFields: ["n_v_name", "n_t_name", "n_d_name"],
+    where:
+      "n_d_code IS NOT NULL AND n_d_code <> '' " +
+      "AND n_t_code IS NOT NULL AND n_t_code <> '' " +
+      "AND n_v_code IS NOT NULL AND n_v_code <> '' " +
+      "AND n_v_name IS NOT NULL AND n_v_name <> ''",
+  });
+
+  const res = await restQuery.executeQueryJSON(
+    `${HSAC_MAIN_URL}/${layerPlan.villageLayerId}`,
+    q,
+  );
+
+  const seen = new Set();
+
+  return (res.features || [])
+    .map((feature) => {
+      const attrs = feature?.attributes ?? {};
+      const dCode = cleanText(attrs.n_d_code);
+      const dName = cleanText(attrs.n_d_name);
+      const tCode = cleanText(attrs.n_t_code);
+      const tName = cleanText(attrs.n_t_name);
+      const vCode = cleanText(attrs.n_v_code);
+      const vName = cleanText(attrs.n_v_name);
+
+      if (!dCode || !tCode || !vCode || !vName) {
+        return null;
+      }
+
+      const signature = `${dCode}:${tCode}:${vCode}`;
+      if (seen.has(signature)) {
+        return null;
+      }
+      seen.add(signature);
+
+      return {
+        dCode,
+        dName,
+        tCode,
+        tName,
+        vCode,
+        vName,
+      };
+    })
+    .filter(Boolean);
 }
 
 // ─── Internal cadastral helper ────────────────────────────────────────────────
