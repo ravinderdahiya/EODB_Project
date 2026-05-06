@@ -4,6 +4,7 @@ import { Mic, MicOff, X } from "lucide-react";
 import "./VoiceAssistantPopup.css";
 import { useLanguage } from "@/context/LanguageContext";
 import {
+  VOICE_COMMAND_ACTIONS,
   executeVoiceCommand,
   normalizeVoiceTranscript,
   resolveVoiceCommand,
@@ -103,6 +104,12 @@ export default function VoiceAssistantPopup({
             "village boundary off",
             "all boundaries on",
             "all boundaries off",
+            "panipat district dikhao",
+            "zoom to gurugram district",
+            "ganaur tehsil dikhao",
+            "zoom to thanesar tehsil",
+            "sisana village dikhao",
+            "zoom to jhajjar village",
             "hindi to english karo",
             "english to hindi karo",
           ],
@@ -128,6 +135,12 @@ export default function VoiceAssistantPopup({
             "village boundary off",
             "all boundaries on",
             "all boundaries off",
+            "panipat district dikhao",
+            "zoom to gurugram district",
+            "ganaur tehsil dikhao",
+            "zoom to thanesar tehsil",
+            "sisana village dikhao",
+            "zoom to jhajjar village",
             "hindi to english karo",
             "english to hindi karo",
           ],
@@ -413,7 +426,7 @@ export default function VoiceAssistantPopup({
     closePanelLater(1800);
   };
 
-  const runCommandFromTranscript = (sourceText) => {
+  const runCommandFromTranscript = async (sourceText) => {
     const commandText = sourceText?.trim();
     if (!commandText) {
       setVoicePanelStatus("No command heard. Please try again.");
@@ -423,18 +436,49 @@ export default function VoiceAssistantPopup({
 
     const command = resolveVoiceCommand(commandText);
     if (!command) {
-      setVoicePanelStatus(`Unknown command: "${commandText}"`);
-      onStatusChange(`Unknown command: "${commandText}".`);
+      const normalizedTranscript = normalizeVoiceTranscript(commandText);
+      let fallbackOutcome = { ok: false };
+      try {
+        fallbackOutcome = await Promise.resolve(executeVoiceCommand(
+          {
+            id: "voice.fallback.transcript",
+            actionId: VOICE_COMMAND_ACTIONS.HANDLE_FALLBACK_TRANSCRIPT,
+            normalizedTranscript,
+          },
+          actionHandlersRef.current,
+          {
+            transcript: commandText,
+            normalizedTranscript,
+          },
+        ));
+      } catch {
+        fallbackOutcome = { ok: false };
+      }
+
+      if (fallbackOutcome?.ok === false) {
+        setVoicePanelStatus(`Unknown command: "${commandText}"`);
+        onStatusChange(`Unknown command: "${commandText}".`);
+        return;
+      }
+
+      setVoicePanelStatus(`Command recognized: "${commandText}"`);
+      onStatusChange(`Command recognized: "${commandText}".`);
+      closePanelLater(1000);
       return;
     }
 
     setVoicePanelStatus(`Command recognized: "${commandText}"`);
     onStatusChange(`Command recognized: "${commandText}".`);
 
-    const outcome = executeVoiceCommand(command, actionHandlersRef.current, {
-      transcript: commandText,
-      normalizedTranscript: normalizeVoiceTranscript(commandText),
-    });
+    let outcome = { ok: false };
+    try {
+      outcome = await Promise.resolve(executeVoiceCommand(command, actionHandlersRef.current, {
+        transcript: commandText,
+        normalizedTranscript: normalizeVoiceTranscript(commandText),
+      }));
+    } catch {
+      outcome = { ok: false };
+    }
 
     if (outcome?.ok === false) {
       setVoicePanelStatus(`Unknown command action for: "${commandText}"`);
