@@ -1,6 +1,19 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Mic, MicOff, X } from "lucide-react";
+import {
+  Building2,
+  Globe,
+  Languages,
+  Layers,
+  Map,
+  MapPin,
+  Mic,
+  MicOff,
+  Navigation,
+  Route,
+  TreePine,
+  ZoomIn,
+} from "lucide-react";
 import "./VoiceAssistantPopup.css";
 import { useLanguage } from "@/context/LanguageContext";
 import {
@@ -10,11 +23,30 @@ import {
   resolveVoiceCommand,
 } from "@/voice-addon/voiceCommandRegistry";
 
-function getSpeechRecognitionConstructor() {
-  if (typeof window === "undefined") {
-    return null;
-  }
+// Icon mapping for suggestion chips — keyed on the phrase string
+const CHIP_ICON = {
+  "topo map dikhao":       <Map size={11} />,
+  "hybrid map lagao":      <Layers size={11} />,
+  "satellite map dikhao":  <Globe size={11} />,
+  "streets map dikhao":    <Route size={11} />,
+  "district boundary on":  <Building2 size={11} />,
+  "district boundary off": <Building2 size={11} />,
+  "village boundary on":   <TreePine size={11} />,
+  "village boundary off":  <TreePine size={11} />,
+  "all boundaries on":     <Navigation size={11} />,
+  "all boundaries off":    <Navigation size={11} />,
+  "panipat district dikhao":   <MapPin size={11} />,
+  "zoom to gurugram district": <ZoomIn size={11} />,
+  "ganaur tehsil dikhao":      <MapPin size={11} />,
+  "zoom to thanesar tehsil":   <ZoomIn size={11} />,
+  "sisana village dikhao":     <MapPin size={11} />,
+  "zoom to jhajjar village":   <ZoomIn size={11} />,
+  "hindi to english karo":     <Languages size={11} />,
+  "english to hindi karo":     <Languages size={11} />,
+};
 
+function getSpeechRecognitionConstructor() {
+  if (typeof window === "undefined") return null;
   return window.SpeechRecognition || window.webkitSpeechRecognition || null;
 }
 
@@ -28,401 +60,230 @@ function extractTranscript(event) {
 function extractLiveTranscript(event) {
   let finalText = "";
   let interimText = "";
-
-  for (let index = 0; index < event.results.length; index += 1) {
-    const chunk = event.results[index]?.[0]?.transcript ?? "";
-    if (event.results[index].isFinal) {
-      finalText += `${chunk} `;
-    } else {
-      interimText += `${chunk} `;
-    }
+  for (let i = 0; i < event.results.length; i += 1) {
+    const chunk = event.results[i]?.[0]?.transcript ?? "";
+    if (event.results[i].isFinal) finalText += `${chunk} `;
+    else interimText += `${chunk} `;
   }
-
-  return {
-    finalText: finalText.trim(),
-    interimText: interimText.trim(),
-  };
+  return { finalText: finalText.trim(), interimText: interimText.trim() };
 }
 
-// Voice assistant trigger + popup UI for listening, transcript typing, and command execution.
+// Voice UI: mic button + inline bar (replaces input row) + chips row.
+// No separate popup/modal — the search bar expands in place.
 export default function VoiceAssistantPopup({
   actionHandlers = {},
   onStatusChange = () => {},
 }) {
   const { lang } = useLanguage();
-  const recognitionRef = useRef(null);
-  const actionHandlersRef = useRef(actionHandlers);
-  const autoCloseTimerRef = useRef(null);
-  const typingTimerRef = useRef(null);
-  const typingDoneTimerRef = useRef(null);
-  const noSpeechTimerRef = useRef(null);
-  const noSpeechCountdownRef = useRef(null);
-  const speechRetryTimerRef = useRef(null);
-  const isProcessingRef = useRef(false);
-  const transcriptRef = useRef("");
-  const heardSpeechRef = useRef(false);
-  const noSpeechTimedOutRef = useRef(false);
+
+  // ── Refs ──────────────────────────────────────────────────────────
+  const recognitionRef        = useRef(null);
+  const actionHandlersRef     = useRef(actionHandlers);
+  const autoCloseTimerRef     = useRef(null);
+  const typingTimerRef        = useRef(null);
+  const typingDoneTimerRef    = useRef(null);
+  const noSpeechTimerRef      = useRef(null);
+  const noSpeechCountdownRef  = useRef(null);
+  const speechRetryTimerRef   = useRef(null);
+  const isProcessingRef       = useRef(false);
+  const transcriptRef         = useRef("");
+  const heardSpeechRef        = useRef(false);
+  const noSpeechTimedOutRef   = useRef(false);
   const micPromptDismissedRef = useRef(false);
-  const speechLangOptionsRef = useRef([]);
-  const speechLangIndexRef = useRef(0);
+  const speechLangOptionsRef  = useRef([]);
+  const speechLangIndexRef    = useRef(0);
 
-  const [isSupported, setIsSupported] = useState(false);
-  const [isListening, setIsListening] = useState(false);
-  const [isProcessingCommand, setIsProcessingCommand] = useState(false);
-  const [voicePanelOpen, setVoicePanelOpen] = useState(false);
-  const [voicePanelStatus, setVoicePanelStatus] = useState("Click microphone and say something...");
-  const [transcriptText, setTranscriptText] = useState("");
-  const [interimText, setInterimText] = useState("");
-  const [typedPreview, setTypedPreview] = useState("");
-  const [voiceButtonHost, setVoiceButtonHost] = useState(null);
+  // ── State ─────────────────────────────────────────────────────────
+  const [isSupported,        setIsSupported]        = useState(false);
+  const [isListening,        setIsListening]        = useState(false);
+  const [isProcessingCmd,    setIsProcessingCmd]    = useState(false);
+  const [voicePanelOpen,     setVoicePanelOpen]     = useState(false);
+  const [voicePanelStatus,   setVoicePanelStatus]   = useState("Click microphone and say something...");
+  const [transcriptText,     setTranscriptText]     = useState("");
+  const [interimText,        setInterimText]        = useState("");
+  const [typedPreview,       setTypedPreview]       = useState("");
   const [micPermissionState, setMicPermissionState] = useState("unknown");
-  const [listenCountdown, setListenCountdown] = useState(6);
-  const [voicePanelAnchor, setVoicePanelAnchor] = useState({
-    top: null,
-    left: null,
-    right: null,
-    maxHeight: null,
-    maxWidth: null,
-  });
+  const [listenCountdown,    setListenCountdown]    = useState(6);
 
+  // DOM host refs — populated once then kept stable
+  const [voiceButtonHost, setVoiceButtonHost] = useState(null); // mic btn host
+  const [voiceBarHost,    setVoiceBarHost]    = useState(null); // bar content (replaces input)
+  const [voiceChipsHost,  setVoiceChipsHost]  = useState(null); // chips row (full-width)
+
+  // ── i18n prompts ──────────────────────────────────────────────────
   const promptText = useMemo(() => (
     lang === "hi"
       ? {
-          saySomething: "कुछ बोलिए...",
-          listening: "वॉइस कमांड के लिए सुन रहा हूँ...",
-          noSpeechTimedOut: "6 सेकंड तक आवाज़ नहीं मिली। फिर से बोलें।",
-          speakingNow: "अब बोलें",
-          waiting: "सुनने का समय",
+          saySomething:    "कुछ बोलिए...",
+          listening:       "वॉइस कमांड के लिए सुन रहा हूँ...",
+          noSpeechTimedOut:"6 सेकंड तक आवाज़ नहीं मिली। फिर से बोलें।",
+          speakingNow:     "सुन रहा हूँ",
+          waiting:         "माइक दबाएं",
           examples: [
-            "topo map dikhao",
-            "hybrid map lagao",
-            "satellite map dikhao",
-            "streets map dikhao",
-            "district boundary on",
-            "district boundary off",
-            "village boundary on",
-            "village boundary off",
-            "all boundaries on",
-            "all boundaries off",
-            "panipat district dikhao",
-            "zoom to gurugram district",
-            "ganaur tehsil dikhao",
-            "zoom to thanesar tehsil",
-            "sisana village dikhao",
-            "zoom to jhajjar village",
-            "hindi to english karo",
-            "english to hindi karo",
+            "topo map dikhao", "hybrid map lagao", "satellite map dikhao",
+            "streets map dikhao", "district boundary on", "district boundary off",
+            "village boundary on", "village boundary off", "all boundaries on",
+            "all boundaries off", "panipat district dikhao", "zoom to gurugram district",
+            "ganaur tehsil dikhao", "zoom to thanesar tehsil", "sisana village dikhao",
+            "zoom to jhajjar village", "hindi to english karo", "english to hindi karo",
           ],
-          buttons: {
-            stop: "रोकें",
-            speak: "बोलें",
-          },
+          buttons: { stop: "रोकें", speak: "बोलें" },
         }
       : {
-          saySomething: "Say something...",
-          listening: "Listening for voice command...",
-          noSpeechTimedOut: "No speech detected in 6 seconds. Try to say again.",
-          speakingNow: "Speak now",
-          waiting: "Listening window",
+          saySomething:    "Say something...",
+          listening:       "Listening for voice command...",
+          noSpeechTimedOut:"No speech detected in 6 seconds. Try again.",
+          speakingNow:     "Listening",
+          waiting:         "Press mic to speak",
           examples: [
-            "topo map dikhao",
-            "hybrid map lagao",
-            "satellite map dikhao",
-            "streets map dikhao",
-            "district boundary on",
-            "district boundary off",
-            "village boundary on",
-            "village boundary off",
-            "all boundaries on",
-            "all boundaries off",
-            "panipat district dikhao",
-            "zoom to gurugram district",
-            "ganaur tehsil dikhao",
-            "zoom to thanesar tehsil",
-            "sisana village dikhao",
-            "zoom to jhajjar village",
-            "hindi to english karo",
-            "english to hindi karo",
+            "topo map dikhao", "hybrid map lagao", "satellite map dikhao",
+            "streets map dikhao", "district boundary on", "district boundary off",
+            "village boundary on", "village boundary off", "all boundaries on",
+            "all boundaries off", "panipat district dikhao", "zoom to gurugram district",
+            "ganaur tehsil dikhao", "zoom to thanesar tehsil", "sisana village dikhao",
+            "zoom to jhajjar village", "hindi to english karo", "english to hindi karo",
           ],
-          buttons: {
-            stop: "Stop",
-            speak: "Speak",
-          },
+          buttons: { stop: "Stop", speak: "Speak" },
         }
   ), [lang]);
 
-  const updateVoicePanelAnchor = () => {
-    if (typeof window === "undefined") {
-      return;
-    }
+  // ── Timer helpers ─────────────────────────────────────────────────
+  useEffect(() => { actionHandlersRef.current = actionHandlers; }, [actionHandlers]);
+  useEffect(() => { transcriptRef.current = transcriptText; },    [transcriptText]);
 
-    const mapViewport = document.querySelector(".map-stage__viewport");
-    const searchShell = document.querySelector(".search-shell");
-    const rootStyles = window.getComputedStyle(document.documentElement);
-    const headerHeight = Number.parseFloat(rootStyles.getPropertyValue("--header-height")) || 0;
-    const isMobileViewport = window.innerWidth <= 768;
-    const topOffset = isMobileViewport ? 10 : 12;
-    const sideOffset = isMobileViewport ? 6 : 10;
-    const minimumTopGap = isMobileViewport ? 10 : 10;
-    const minTop = Math.max(Math.round(headerHeight + minimumTopGap), 8);
-    const bottomPadding = isMobileViewport ? 14 : 18;
-
-    let nextTop = null;
-    let nextLeft = null;
-    let nextRight = null;
-    let nextMaxHeight = null;
-    let nextMaxWidth = null;
-
-    if (mapViewport instanceof HTMLElement) {
-      const rect = mapViewport.getBoundingClientRect();
-      nextTop = Math.max(Math.round(rect.top + topOffset), minTop);
-      nextLeft = Math.max(Math.round(rect.left + sideOffset), 0);
-      nextRight = Math.max(Math.round(window.innerWidth - rect.right + sideOffset), 0);
-      nextMaxHeight = Math.max(Math.round(rect.height - (topOffset + bottomPadding)), 220);
-      nextMaxWidth = Math.max(
-        Math.round(
-          Math.min(
-            isMobileViewport ? 332 : 420,
-            rect.width - (isMobileViewport ? 26 : 22),
-          ),
-        ),
-        isMobileViewport ? 248 : 260,
-      );
-    } else if (searchShell instanceof HTMLElement) {
-      const rect = searchShell.getBoundingClientRect();
-      nextTop = Math.max(Math.round(rect.bottom + (isMobileViewport ? 12 : 16)), minTop);
-      nextLeft = null;
-      nextRight = Math.max(Math.round(window.innerWidth - rect.right), 0);
-      nextMaxHeight = null;
-      nextMaxWidth = null;
-    } else {
-      setVoicePanelAnchor({
-        top: null,
-        left: null,
-        right: null,
-        maxHeight: null,
-        maxWidth: null,
-      });
-      return;
-    }
-
-    setVoicePanelAnchor((current) => (
-      current.top === nextTop
-      && current.left === nextLeft
-      && current.right === nextRight
-      && current.maxHeight === nextMaxHeight
-      && current.maxWidth === nextMaxWidth
-        ? current
-        : {
-            top: nextTop,
-            left: nextLeft,
-            right: nextRight,
-            maxHeight: nextMaxHeight,
-            maxWidth: nextMaxWidth,
-          }
-    ));
-  };
-
-  useEffect(() => {
-    actionHandlersRef.current = actionHandlers;
-  }, [actionHandlers]);
-
-  useEffect(() => {
-    transcriptRef.current = transcriptText;
-  }, [transcriptText]);
-
-  const closePanelLater = (delayMs = 1200) => {
+  const closePanelLater = (ms = 1200) => {
     if (autoCloseTimerRef.current) {
       window.clearTimeout(autoCloseTimerRef.current);
       autoCloseTimerRef.current = null;
     }
-
     autoCloseTimerRef.current = window.setTimeout(() => {
       setVoicePanelOpen(false);
       autoCloseTimerRef.current = null;
-    }, delayMs);
+    }, ms);
   };
 
   const clearTypingTimers = () => {
-    if (typingTimerRef.current) {
-      window.clearInterval(typingTimerRef.current);
-      typingTimerRef.current = null;
-    }
-
-    if (typingDoneTimerRef.current) {
-      window.clearTimeout(typingDoneTimerRef.current);
-      typingDoneTimerRef.current = null;
-    }
+    if (typingTimerRef.current)     { window.clearInterval(typingTimerRef.current);     typingTimerRef.current = null; }
+    if (typingDoneTimerRef.current) { window.clearTimeout(typingDoneTimerRef.current);  typingDoneTimerRef.current = null; }
   };
 
   const clearNoSpeechTimer = () => {
-    if (noSpeechTimerRef.current) {
-      window.clearTimeout(noSpeechTimerRef.current);
-      noSpeechTimerRef.current = null;
-    }
-
-    if (noSpeechCountdownRef.current) {
-      window.clearInterval(noSpeechCountdownRef.current);
-      noSpeechCountdownRef.current = null;
-    }
+    if (noSpeechTimerRef.current)     { window.clearTimeout(noSpeechTimerRef.current);   noSpeechTimerRef.current = null; }
+    if (noSpeechCountdownRef.current) { window.clearInterval(noSpeechCountdownRef.current); noSpeechCountdownRef.current = null; }
   };
 
   const clearSpeechRetryTimer = () => {
-    if (speechRetryTimerRef.current) {
-      window.clearTimeout(speechRetryTimerRef.current);
-      speechRetryTimerRef.current = null;
-    }
+    if (speechRetryTimerRef.current) { window.clearTimeout(speechRetryTimerRef.current); speechRetryTimerRef.current = null; }
   };
 
   const buildSpeechLangOptions = (nextLang) => {
-    const langOptions = nextLang === "hi"
+    const opts = nextLang === "hi"
       ? ["hi-IN", "hi", "en-IN", "en-US"]
       : ["en-IN", "en-US", "en-GB", "hi-IN"];
-
-    return Array.from(new Set(langOptions));
+    return Array.from(new Set(opts));
   };
 
   const resetSpeechLangCycle = (nextLang) => {
-    const options = buildSpeechLangOptions(nextLang);
-    speechLangOptionsRef.current = options;
+    const opts = buildSpeechLangOptions(nextLang);
+    speechLangOptionsRef.current = opts;
     speechLangIndexRef.current = 0;
-    return options[0];
+    return opts[0];
   };
 
   const getNextSpeechLang = () => {
-    const nextIndex = speechLangIndexRef.current + 1;
-    if (nextIndex >= speechLangOptionsRef.current.length) {
-      return null;
-    }
-    speechLangIndexRef.current = nextIndex;
-    return speechLangOptionsRef.current[nextIndex];
+    const next = speechLangIndexRef.current + 1;
+    if (next >= speechLangOptionsRef.current.length) return null;
+    speechLangIndexRef.current = next;
+    return speechLangOptionsRef.current[next];
   };
 
   const armNoSpeechTimer = () => {
     clearNoSpeechTimer();
     noSpeechTimedOutRef.current = false;
     setListenCountdown(6);
-
     noSpeechCountdownRef.current = window.setInterval(() => {
-      setListenCountdown((current) => (current > 0 ? current - 1 : 0));
+      setListenCountdown((c) => (c > 0 ? c - 1 : 0));
     }, 1000);
-
     noSpeechTimerRef.current = window.setTimeout(() => {
-      if (heardSpeechRef.current || isProcessingRef.current) {
-        return;
-      }
-
+      if (heardSpeechRef.current || isProcessingRef.current) return;
       noSpeechTimedOutRef.current = true;
       setVoicePanelStatus(promptText.noSpeechTimedOut);
       onStatusChange(promptText.noSpeechTimedOut);
       clearNoSpeechTimer();
-
-      try {
-        recognitionRef.current?.stop();
-      } catch {
-        // Ignore stale recognition errors.
-      }
+      try { recognitionRef.current?.stop(); } catch { /* ignore */ }
     }, 6000);
   };
 
-  const getMicrophonePermissionState = async () => {
-    if (!navigator?.permissions?.query) {
-      return "unknown";
-    }
-
+  // ── Mic permission helpers ────────────────────────────────────────
+  const getMicPermission = async () => {
+    if (!navigator?.permissions?.query) return "unknown";
     try {
-      const status = await navigator.permissions.query({ name: "microphone" });
-      return status.state || "unknown";
-    } catch {
-      return "unknown";
-    }
+      const s = await navigator.permissions.query({ name: "microphone" });
+      return s.state || "unknown";
+    } catch { return "unknown"; }
   };
 
-  const refreshPermissionState = async () => {
-    const state = await getMicrophonePermissionState();
-    setMicPermissionState(state);
-    return state;
+  const refreshPermission = async () => {
+    const s = await getMicPermission();
+    setMicPermissionState(s);
+    return s;
   };
 
-  const requestMicrophonePermission = async () => {
+  const requestMicPermission = async () => {
     if (!navigator?.mediaDevices?.getUserMedia) {
       setMicPermissionState("unsupported");
       setVoicePanelStatus("Microphone needs HTTPS/localhost and browser support.");
-      onStatusChange("Microphone is unavailable. Use HTTPS/localhost and a supported browser.");
       return false;
     }
-
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      stream.getTracks().forEach((track) => track.stop());
+      stream.getTracks().forEach((t) => t.stop());
       setMicPermissionState("granted");
       micPromptDismissedRef.current = false;
       setVoicePanelStatus("Microphone access granted.");
-      onStatusChange("Microphone access granted.");
       return true;
-    } catch (error) {
-      if (error?.name === "NotAllowedError" || error?.name === "SecurityError") {
-        const permissionState = await getMicrophonePermissionState();
-        setMicPermissionState(permissionState);
-
-        if (permissionState === "prompt" || permissionState === "unknown") {
+    } catch (err) {
+      if (err?.name === "NotAllowedError" || err?.name === "SecurityError") {
+        const s = await getMicPermission();
+        setMicPermissionState(s);
+        if (s === "prompt" || s === "unknown") {
           micPromptDismissedRef.current = true;
-          setVoicePanelStatus("Microphone permission popup was closed. Tap mic again to refresh.");
-          onStatusChange("Microphone permission popup was closed.");
+          setVoicePanelStatus("Microphone permission popup closed. Tap mic again to retry.");
           return false;
         }
-
-        micPromptDismissedRef.current = false;
         setVoicePanelStatus("Microphone permission denied. Allow it in browser site settings.");
-        onStatusChange("Microphone permission denied. Please allow microphone access.");
         return false;
       }
-
-      if (error?.name === "NotFoundError") {
+      if (err?.name === "NotFoundError") {
         setMicPermissionState("denied");
         setVoicePanelStatus("No microphone device found.");
-        onStatusChange("No microphone device found.");
         return false;
       }
-
-      setMicPermissionState("unknown");
       setVoicePanelStatus("Could not access microphone.");
-      onStatusChange("Could not access microphone. Check browser/device settings.");
       return false;
     }
   };
 
+  // ── Recognition control ───────────────────────────────────────────
   const startRecognition = () => {
     if (!recognitionRef.current) return;
-
     clearSpeechRetryTimer();
-
     try {
       recognitionRef.current.start();
       return;
-    } catch (error) {
-      if (error?.name === "InvalidStateError") {
-        try {
-          recognitionRef.current.stop();
-        } catch {
-          // Ignore stop failure and retry once.
-        }
-
+    } catch (err) {
+      if (err?.name === "InvalidStateError") {
+        try { recognitionRef.current.stop(); } catch { /* ignore */ }
         window.setTimeout(() => {
-          try {
-            recognitionRef.current?.start();
-          } catch {
+          try { recognitionRef.current?.start(); } catch {
             setVoicePanelStatus("Voice recognition failed to start.");
-            onStatusChange("Voice recognition failed to start. Please try again.");
             closePanelLater(1800);
           }
         }, 120);
         return;
       }
     }
-
     setVoicePanelStatus("Voice recognition failed to start.");
-    onStatusChange("Voice recognition failed to start. Please try again.");
     closePanelLater(1800);
   };
 
@@ -430,74 +291,50 @@ export default function VoiceAssistantPopup({
     const commandText = sourceText?.trim();
     if (!commandText) {
       setVoicePanelStatus("No command heard. Please try again.");
-      onStatusChange("Unknown command: no speech recognized.");
       return;
     }
-
     const command = resolveVoiceCommand(commandText);
     if (!command) {
-      const normalizedTranscript = normalizeVoiceTranscript(commandText);
-      let fallbackOutcome = { ok: false };
+      const norm = normalizeVoiceTranscript(commandText);
+      let fb = { ok: false };
       try {
-        fallbackOutcome = await Promise.resolve(executeVoiceCommand(
-          {
-            id: "voice.fallback.transcript",
-            actionId: VOICE_COMMAND_ACTIONS.HANDLE_FALLBACK_TRANSCRIPT,
-            normalizedTranscript,
-          },
+        fb = await Promise.resolve(executeVoiceCommand(
+          { id: "voice.fallback.transcript", actionId: VOICE_COMMAND_ACTIONS.HANDLE_FALLBACK_TRANSCRIPT, normalizedTranscript: norm },
           actionHandlersRef.current,
-          {
-            transcript: commandText,
-            normalizedTranscript,
-          },
+          { transcript: commandText, normalizedTranscript: norm },
         ));
-      } catch {
-        fallbackOutcome = { ok: false };
-      }
-
-      if (fallbackOutcome?.ok === false) {
+      } catch { fb = { ok: false }; }
+      if (fb?.ok === false) {
         setVoicePanelStatus(`Unknown command: "${commandText}"`);
         onStatusChange(`Unknown command: "${commandText}".`);
         return;
       }
-
       setVoicePanelStatus(`Command recognized: "${commandText}"`);
-      onStatusChange(`Command recognized: "${commandText}".`);
       closePanelLater(1000);
       return;
     }
-
     setVoicePanelStatus(`Command recognized: "${commandText}"`);
     onStatusChange(`Command recognized: "${commandText}".`);
-
     let outcome = { ok: false };
     try {
       outcome = await Promise.resolve(executeVoiceCommand(command, actionHandlersRef.current, {
         transcript: commandText,
         normalizedTranscript: normalizeVoiceTranscript(commandText),
       }));
-    } catch {
-      outcome = { ok: false };
-    }
-
+    } catch { outcome = { ok: false }; }
     if (outcome?.ok === false) {
-      setVoicePanelStatus(`Unknown command action for: "${commandText}"`);
-      onStatusChange(`Unknown command action: "${commandText}".`);
+      setVoicePanelStatus(`Command action failed for: "${commandText}"`);
       return;
     }
-
     closePanelLater(1000);
   };
 
   const animateTypingThenRunCommand = (sourceText) => {
-    const commandText = sourceText?.trim();
-    if (!commandText || isProcessingRef.current) {
-      return;
-    }
-
+    const txt = sourceText?.trim();
+    if (!txt || isProcessingRef.current) return;
     clearTypingTimers();
     isProcessingRef.current = true;
-    setIsProcessingCommand(true);
+    setIsProcessingCmd(true);
     setIsListening(false);
     clearNoSpeechTimer();
     setInterimText("");
@@ -505,25 +342,22 @@ export default function VoiceAssistantPopup({
     setTypedPreview("");
     setVoicePanelStatus("Processing command...");
     onStatusChange("Processing voice command...");
-
-    let index = 0;
-    const intervalMs = Math.min(42, Math.max(16, Math.floor(820 / commandText.length)));
-
+    let idx = 0;
+    const ms = Math.min(42, Math.max(16, Math.floor(820 / txt.length)));
     typingTimerRef.current = window.setInterval(() => {
-      index += 1;
-      setTypedPreview(commandText.slice(0, index));
-
-      if (index >= commandText.length) {
+      idx += 1;
+      setTypedPreview(txt.slice(0, idx));
+      if (idx >= txt.length) {
         clearTypingTimers();
         typingDoneTimerRef.current = window.setTimeout(() => {
-          setTranscriptText(commandText);
+          setTranscriptText(txt);
           setTypedPreview("");
-          setIsProcessingCommand(false);
+          setIsProcessingCmd(false);
           isProcessingRef.current = false;
-          runCommandFromTranscript(commandText);
+          runCommandFromTranscript(txt);
         }, 140);
       }
-    }, intervalMs);
+    }, ms);
   };
 
   const stopAndClosePanel = () => {
@@ -531,15 +365,9 @@ export default function VoiceAssistantPopup({
       window.clearTimeout(autoCloseTimerRef.current);
       autoCloseTimerRef.current = null;
     }
-
-    try {
-      recognitionRef.current?.stop();
-    } catch {
-      // Ignore stale recognition state.
-    }
-
+    try { recognitionRef.current?.stop(); } catch { /* ignore */ }
     setIsListening(false);
-    setIsProcessingCommand(false);
+    setIsProcessingCmd(false);
     isProcessingRef.current = false;
     clearSpeechRetryTimer();
     clearTypingTimers();
@@ -548,22 +376,20 @@ export default function VoiceAssistantPopup({
     setVoicePanelOpen(false);
   };
 
+  // ── Speech recognition setup ──────────────────────────────────────
   useEffect(() => {
     const SpeechRecognition = getSpeechRecognitionConstructor();
-    if (!SpeechRecognition) {
-      setIsSupported(false);
-      return undefined;
-    }
+    if (!SpeechRecognition) { setIsSupported(false); return undefined; }
 
-    const recognition = new SpeechRecognition();
-    recognition.lang = resetSpeechLangCycle(lang);
-    recognition.continuous = false;
-    recognition.interimResults = true;
-    recognition.maxAlternatives = 1;
+    const r = new SpeechRecognition();
+    r.lang = resetSpeechLangCycle(lang);
+    r.continuous = false;
+    r.interimResults = true;
+    r.maxAlternatives = 1;
 
-    recognition.onstart = () => {
+    r.onstart = () => {
       setIsListening(true);
-      setIsProcessingCommand(false);
+      setIsProcessingCmd(false);
       isProcessingRef.current = false;
       clearTypingTimers();
       clearNoSpeechTimer();
@@ -576,14 +402,10 @@ export default function VoiceAssistantPopup({
       armNoSpeechTimer();
     };
 
-    recognition.onend = () => {
+    r.onend = () => {
       setIsListening(false);
       clearNoSpeechTimer();
-      if (noSpeechTimedOutRef.current) {
-        noSpeechTimedOutRef.current = false;
-        return;
-      }
-
+      if (noSpeechTimedOutRef.current) { noSpeechTimedOutRef.current = false; return; }
       if (isProcessingRef.current) return;
       if (!transcriptRef.current.trim()) {
         setVoicePanelStatus(
@@ -594,395 +416,316 @@ export default function VoiceAssistantPopup({
       }
     };
 
-    recognition.onerror = (event) => {
+    r.onerror = (event) => {
       setIsListening(false);
-      setIsProcessingCommand(false);
+      setIsProcessingCmd(false);
       isProcessingRef.current = false;
       clearTypingTimers();
       clearNoSpeechTimer();
-
-      if (event?.error === "language-not-supported") {
-        const nextLang = getNextSpeechLang();
-        if (nextLang) {
-          recognition.lang = nextLang;
-          setVoicePanelStatus(`Voice language fallback: trying ${nextLang}.`);
-          onStatusChange(`Trying compatible voice language (${nextLang}) for this browser.`);
+      const e = event?.error;
+      if (e === "language-not-supported") {
+        const next = getNextSpeechLang();
+        if (next) {
+          r.lang = next;
+          setVoicePanelStatus(`Trying language: ${next}.`);
           clearSpeechRetryTimer();
-          speechRetryTimerRef.current = window.setTimeout(() => {
-            startRecognition();
-          }, 180);
+          speechRetryTimerRef.current = window.setTimeout(() => startRecognition(), 180);
           return;
         }
-
-        setVoicePanelStatus("Speech recognition language is not supported in this browser.");
-        onStatusChange("Voice language is unsupported in this browser. Try Chrome or change browser speech settings.");
+        setVoicePanelStatus("Speech language not supported. Try Chrome.");
         closePanelLater(2400);
         return;
       }
-
-      if (event?.error === "network") {
-        setVoicePanelStatus("Speech service network error. Check internet or browser voice settings.");
-        onStatusChange("Speech recognition network error. Check internet/browser voice settings.");
-        return;
-      }
-
-      if (event?.error === "not-allowed") {
-        setMicPermissionState("denied");
-        setVoicePanelStatus("Microphone permission denied.");
-        onStatusChange("Microphone permission denied. Please allow microphone access.");
-        closePanelLater(2200);
-        return;
-      }
-
-      if (event?.error === "audio-capture") {
-        setVoicePanelStatus("Audio capture failed. Check mic device and browser input.");
-        onStatusChange("Audio capture failed. Check microphone device/browser settings.");
-        return;
-      }
-
-      if (event?.error === "service-not-allowed") {
-        setVoicePanelStatus("Speech service blocked in this browser. Try allowing browser speech service.");
-        onStatusChange("Speech recognition service is blocked by browser policy/settings.");
-        return;
-      }
-
-      if (event?.error === "no-speech") {
-        setVoicePanelStatus("No speech detected. Try again.");
-        onStatusChange("No speech detected. Please try again.");
-        closePanelLater(1800);
-        return;
-      }
-
-      setVoicePanelStatus(`Voice recognition failed (${event?.error || "unknown"}).`);
-      onStatusChange(`Voice recognition failed (${event?.error || "unknown"}). Please try again.`);
+      if (e === "network")          { setVoicePanelStatus("Network error. Check internet connection."); return; }
+      if (e === "not-allowed")      { setMicPermissionState("denied"); setVoicePanelStatus("Microphone permission denied."); closePanelLater(2200); return; }
+      if (e === "audio-capture")    { setVoicePanelStatus("Audio capture failed. Check microphone device."); return; }
+      if (e === "service-not-allowed") { setVoicePanelStatus("Speech service blocked by browser."); return; }
+      if (e === "no-speech")        { setVoicePanelStatus("No speech detected. Try again."); closePanelLater(1800); return; }
+      setVoicePanelStatus(`Voice error (${e || "unknown"}).`);
       closePanelLater(1800);
     };
 
-    recognition.onresult = (event) => {
-      if (isProcessingRef.current) {
-        return;
-      }
-
+    r.onresult = (event) => {
+      if (isProcessingRef.current) return;
       const { finalText, interimText: nextInterim } = extractLiveTranscript(event);
       setInterimText(nextInterim);
-
-      if (finalText || nextInterim) {
-        heardSpeechRef.current = true;
-        clearNoSpeechTimer();
-        setListenCountdown(0);
-      }
-
-      if (finalText) {
-        setTranscriptText(finalText);
-      }
-
+      if (finalText || nextInterim) { heardSpeechRef.current = true; clearNoSpeechTimer(); setListenCountdown(0); }
+      if (finalText) setTranscriptText(finalText);
       const allFinal = extractTranscript(event);
-      const latestResult = event.results[event.resultIndex];
-      if (latestResult?.isFinal && allFinal.trim()) {
-        animateTypingThenRunCommand(allFinal.trim());
-      }
+      const latest = event.results[event.resultIndex];
+      if (latest?.isFinal && allFinal.trim()) animateTypingThenRunCommand(allFinal.trim());
     };
 
-    recognitionRef.current = recognition;
+    recognitionRef.current = r;
     setIsSupported(true);
 
     return () => {
-      clearSpeechRetryTimer();
-      clearTypingTimers();
-      clearNoSpeechTimer();
-      recognition.onstart = null;
-      recognition.onend = null;
-      recognition.onerror = null;
-      recognition.onresult = null;
-      recognition.stop();
+      clearSpeechRetryTimer(); clearTypingTimers(); clearNoSpeechTimer();
+      r.onstart = null; r.onend = null; r.onerror = null; r.onresult = null;
+      r.stop();
       recognitionRef.current = null;
     };
   }, [lang, onStatusChange, promptText]);
 
   useEffect(() => () => {
-    if (autoCloseTimerRef.current) {
-      window.clearTimeout(autoCloseTimerRef.current);
-      autoCloseTimerRef.current = null;
-    }
+    if (autoCloseTimerRef.current) { window.clearTimeout(autoCloseTimerRef.current); autoCloseTimerRef.current = null; }
   }, []);
 
-  useEffect(() => {
-    void refreshPermissionState();
-  }, []);
+  useEffect(() => { void refreshPermission(); }, []);
 
+  // ── Toggle search-shell expanded class ────────────────────────────
   useEffect(() => {
-    if (!voicePanelOpen || typeof window === "undefined") {
-      return undefined;
+    const shell = document.querySelector(".search-shell");
+    if (!(shell instanceof HTMLElement)) return undefined;
+    if (voicePanelOpen) {
+      shell.classList.add("search-shell--voice-open");
+    } else {
+      shell.classList.remove("search-shell--voice-open");
     }
+    return () => shell.classList.remove("search-shell--voice-open");
+  }, [voicePanelOpen]);
 
-    updateVoicePanelAnchor();
-
-    const handleViewportChange = () => {
-      updateVoicePanelAnchor();
+  // ── Escape + click outside ────────────────────────────────────────
+  useEffect(() => {
+    if (!voicePanelOpen) return undefined;
+    const onKey = (e) => { if (e.key === "Escape") stopAndClosePanel(); };
+    const onPtr = (e) => {
+      const shell = document.querySelector(".search-shell");
+      if (shell && !shell.contains(e.target)) stopAndClosePanel();
     };
-
-    window.addEventListener("resize", handleViewportChange);
-    window.addEventListener("orientationchange", handleViewportChange);
-
+    document.addEventListener("keydown", onKey);
+    document.addEventListener("pointerdown", onPtr, { capture: true });
     return () => {
-      window.removeEventListener("resize", handleViewportChange);
-      window.removeEventListener("orientationchange", handleViewportChange);
+      document.removeEventListener("keydown", onKey);
+      document.removeEventListener("pointerdown", onPtr, { capture: true });
     };
   }, [voicePanelOpen]);
 
+  // ── DOM host injection ────────────────────────────────────────────
+  // Three hosts injected imperatively into the search-shell form:
+  //   1. voice-command-button-host  — mic button (before Search button)
+  //   2. voice-bar-host             — bar content replacing the input (after input)
+  //   3. voice-chips-host           — full-width chips row (last child)
   useEffect(() => {
-    if (typeof document === "undefined") {
-      return undefined;
-    }
-
+    if (typeof document === "undefined") return undefined;
     let disposed = false;
 
-    const ensureVoiceButtonHost = () => {
-      const searchShell = document.querySelector(".search-shell");
-      if (!(searchShell instanceof HTMLElement)) {
-        return;
+    const ensureHosts = () => {
+      const shell = document.querySelector(".search-shell");
+      if (!(shell instanceof HTMLElement)) return;
+
+      const submitBtn = shell.querySelector("button.search-shell__submit[type='submit']");
+      const input     = shell.querySelector(".search-shell__input");
+
+      // 1. Mic button host — before Search button
+      if (submitBtn instanceof HTMLElement) {
+        let btnHost = shell.querySelector(".voice-command-button-host");
+        if (!(btnHost instanceof HTMLElement)) {
+          btnHost = document.createElement("span");
+          btnHost.className = "voice-command-button-host";
+          shell.insertBefore(btnHost, submitBtn);
+        }
+        if (!disposed) setVoiceButtonHost(btnHost);
       }
 
-      const searchSubmit = searchShell.querySelector("button.search-shell__submit[type='submit']");
-      if (!(searchSubmit instanceof HTMLElement)) {
-        return;
+      // 2. Bar content host — inserted immediately after the input element
+      let barHost = shell.querySelector(".voice-bar-host");
+      if (!(barHost instanceof HTMLElement)) {
+        barHost = document.createElement("div");
+        barHost.className = "voice-bar-host";
+        const insertBefore = (input && input.nextSibling) ? input.nextSibling
+          : shell.querySelector(".voice-command-button-host") || submitBtn;
+        if (insertBefore) shell.insertBefore(barHost, insertBefore);
+        else shell.appendChild(barHost);
       }
+      if (!disposed) setVoiceBarHost(barHost);
 
-      let host = searchShell.querySelector(".voice-command-button-host");
-      if (!(host instanceof HTMLElement)) {
-        host = document.createElement("span");
-        host.className = "voice-command-button-host";
-        searchShell.insertBefore(host, searchSubmit);
+      // 3. Chips host — last child (full-width row below)
+      let chipsHost = shell.querySelector(".voice-chips-host");
+      if (!(chipsHost instanceof HTMLElement)) {
+        chipsHost = document.createElement("div");
+        chipsHost.className = "voice-chips-host";
+        shell.appendChild(chipsHost);
       }
-
-      if (!disposed) {
-        setVoiceButtonHost(host);
-      }
+      if (!disposed) setVoiceChipsHost(chipsHost);
     };
 
-    ensureVoiceButtonHost();
-
-    const observer = new MutationObserver(() => {
-      ensureVoiceButtonHost();
-    });
-
-    observer.observe(document.body, { childList: true, subtree: true });
-
+    ensureHosts();
+    const obs = new MutationObserver(ensureHosts);
+    obs.observe(document.body, { childList: true, subtree: true });
     return () => {
       disposed = true;
-      observer.disconnect();
+      obs.disconnect();
       setVoiceButtonHost(null);
+      setVoiceBarHost(null);
+      setVoiceChipsHost(null);
     };
   }, []);
 
+  // ── Voice toggle handlers ─────────────────────────────────────────
   const handleOpenVoicePanel = () => {
-    updateVoicePanelAnchor();
     setVoicePanelOpen(true);
     setTranscriptText("");
     setInterimText("");
     setTypedPreview("");
-
-    if (micPermissionState === "granted") {
-      setVoicePanelStatus(promptText.saySomething);
-    } else if (micPermissionState === "denied") {
-      setVoicePanelStatus("Microphone is blocked. Allow mic in browser site settings.");
-    } else {
-      setVoicePanelStatus("Click Speak to allow microphone and start listening.");
-    }
-
-    void refreshPermissionState();
+    if (micPermissionState === "granted") setVoicePanelStatus(promptText.saySomething);
+    else if (micPermissionState === "denied") setVoicePanelStatus("Microphone blocked. Allow mic in browser settings.");
+    else setVoicePanelStatus("Click Speak to allow microphone and start listening.");
+    void refreshPermission();
   };
 
   const handleVoiceToggle = () => {
     if (!isSupported || !recognitionRef.current) {
       setVoicePanelOpen(true);
-      const browserHint = /edg|opr|opera/i.test(navigator.userAgent)
-        ? "Edge/Opera support is limited. Try Chrome for full voice command support."
-        : "Web Speech API is unavailable in this browser.";
-      setVoicePanelStatus(browserHint);
-      onStatusChange(browserHint);
+      setVoicePanelStatus(/edg|opr|opera/i.test(navigator.userAgent)
+        ? "Edge/Opera support is limited. Try Chrome."
+        : "Web Speech API unavailable in this browser.");
       return;
     }
-
-    if (micPromptDismissedRef.current) {
-      onStatusChange("Refreshing page to retry microphone permission.");
-      if (typeof window !== "undefined") {
-        window.location.reload();
-      }
-      return;
-    }
-
-    if (voicePanelOpen && !isListening && !isProcessingCommand) {
-      stopAndClosePanel();
-      return;
-    }
-
+    if (micPromptDismissedRef.current) { if (typeof window !== "undefined") window.location.reload(); return; }
+    if (voicePanelOpen && !isListening && !isProcessingCmd) { stopAndClosePanel(); return; }
     handleOpenVoicePanel();
-
-    if (isListening) {
-      recognitionRef.current.stop();
-      return;
-    }
-
-    if (micPermissionState === "denied") {
-      setVoicePanelStatus("Microphone is blocked. Allow mic in browser site settings.");
-      onStatusChange("Microphone permission is required before listening.");
-      return;
-    }
-
-    if (micPermissionState !== "granted") {
-      setVoicePanelStatus("Click Speak to allow microphone and start listening.");
-      return;
-    }
-
+    if (isListening) { recognitionRef.current.stop(); return; }
+    if (micPermissionState === "denied") { setVoicePanelStatus("Microphone blocked. Allow mic in browser settings."); return; }
+    if (micPermissionState !== "granted") { setVoicePanelStatus("Click Speak to allow microphone."); return; }
     recognitionRef.current.lang = resetSpeechLangCycle(lang);
     onStatusChange(promptText.listening);
     startRecognition();
   };
 
   const handleSpeakAction = async () => {
-    if (micPromptDismissedRef.current) {
-      onStatusChange("Refreshing page to retry microphone permission.");
-      if (typeof window !== "undefined") {
-        window.location.reload();
-      }
-      return;
-    }
-
-    if (isListening) {
-      recognitionRef.current?.stop();
-      return;
-    }
-
-    if (micPermissionState === "denied") {
-      setVoicePanelStatus("Microphone is blocked. Allow mic in browser site settings.");
-      onStatusChange("Microphone permission is required before listening.");
-      return;
-    }
-
-    let hasPermission = micPermissionState === "granted";
-    if (!hasPermission) {
-      hasPermission = await requestMicrophonePermission();
-    }
-
-    if (!hasPermission) {
-      return;
-    }
-
+    if (micPromptDismissedRef.current) { if (typeof window !== "undefined") window.location.reload(); return; }
+    if (isListening) { recognitionRef.current?.stop(); return; }
+    if (micPermissionState === "denied") { setVoicePanelStatus("Microphone blocked. Allow mic in browser settings."); return; }
+    let ok = micPermissionState === "granted";
+    if (!ok) ok = await requestMicPermission();
+    if (!ok) return;
     recognitionRef.current.lang = resetSpeechLangCycle(lang);
     onStatusChange(promptText.listening);
     startRecognition();
   };
 
-  const voicePanel = voicePanelOpen ? (
-    <div
-      className="voice-panel"
-      role="dialog"
-      aria-modal="true"
-      aria-label="Voice command"
-      style={{
-        "--voice-panel-top": voicePanelAnchor.top == null ? undefined : `${voicePanelAnchor.top}px`,
-        "--voice-panel-left": voicePanelAnchor.left == null ? undefined : `${voicePanelAnchor.left}px`,
-        "--voice-panel-right": voicePanelAnchor.right == null ? undefined : `${voicePanelAnchor.right}px`,
-        "--voice-panel-max-height": voicePanelAnchor.maxHeight == null ? undefined : `${voicePanelAnchor.maxHeight}px`,
-        "--voice-panel-max-width": voicePanelAnchor.maxWidth == null ? undefined : `${voicePanelAnchor.maxWidth}px`,
-      }}
-    >
-      <div className="voice-panel__backdrop" onClick={stopAndClosePanel} />
-      <div className="voice-panel__card">
+  // Chip click → run the phrase as if spoken
+  const handleChipClick = (phrase) => {
+    if (isProcessingRef.current) return;
+    setInterimText("");
+    try { recognitionRef.current?.stop(); } catch { /* ignore */ }
+    animateTypingThenRunCommand(phrase);
+  };
+
+  // Shuffle examples once on mount so chips appear in a different order every page load
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const shuffledExamples = useMemo(() => {
+    const arr = [...promptText.examples];
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  }, []); // intentional empty deps — stable random order for the lifetime of this page load
+
+  // ── Portal content ────────────────────────────────────────────────
+
+  // Bar content: [badge] [waveform-left] [transcript] [waveform-right]
+  // Replaces the search input in the same flex row.
+  const barContent = voicePanelOpen ? (
+    <div className="voice-bar__inner">
+      {/* Listening / status badge */}
+      <span className="voice-bar__badge" aria-live="polite">
+        <span className={`voice-bar__dot${isListening ? " voice-bar__dot--active" : ""}`} />
+        <span className="voice-bar__badge-text">
+          {isListening ? `${promptText.speakingNow}...` : voicePanelStatus}
+        </span>
+      </span>
+
+      {/* Left waveform */}
+      <div
+        className={`voice-bar__meter${isListening ? " voice-bar__meter--active" : ""}${isProcessingCmd ? " voice-bar__meter--processing" : ""}`}
+        aria-hidden="true"
+      >
+        <span /><span /><span /><span /><span /><span /><span />
+      </div>
+
+      {/* Live transcript / typed preview — teal color */}
+      <div className="voice-bar__transcript" role="status" aria-live="polite">
+        {typedPreview || transcriptText || interimText ? (
+          <>
+            <span className="voice-bar__transcript-text">
+              {typedPreview || transcriptText}
+            </span>
+            {interimText && !typedPreview
+              ? <span className="voice-bar__interim"> {interimText}</span>
+              : null}
+            {isListening && <span className="voice-bar__cursor" aria-hidden="true" />}
+          </>
+        ) : (
+          <span className="voice-bar__placeholder">
+            {promptText.saySomething}
+          </span>
+        )}
+      </div>
+
+      {/* Right waveform (mirrored) */}
+      <div
+        className={`voice-bar__meter voice-bar__meter--mirror${isListening ? " voice-bar__meter--active" : ""}${isProcessingCmd ? " voice-bar__meter--processing" : ""}`}
+        aria-hidden="true"
+      >
+        <span /><span /><span /><span /><span />
+      </div>
+
+      {/* Speak button — only when mic permission not yet granted */}
+      {micPermissionState !== "granted" && !isListening ? (
         <button
           type="button"
-          className="voice-panel__close"
-          aria-label="Close voice assistant"
-          onClick={stopAndClosePanel}
+          className="voice-bar__speak-btn"
+          onClick={() => { void handleSpeakAction(); }}
+          disabled={isProcessingCmd}
         >
-          <X size={15} />
+          {promptText.buttons.speak}
         </button>
-        <p className="voice-panel__title">{voicePanelStatus}</p>
-
-        <div className="voice-panel__pulse-row" aria-live="polite">
-          <span className={`voice-panel__dot ${isListening ? "voice-panel__dot--active" : ""}`} />
-          <span className="voice-panel__pulse-label">
-            {isListening ? `${promptText.speakingNow} • ${listenCountdown}s` : promptText.waiting}
-          </span>
-        </div>
-
-        <div
-          className={`voice-panel__meter ${
-            isListening ? "voice-panel__meter--active" : ""
-          } ${isProcessingCommand ? "voice-panel__meter--processing" : ""}`}
-          aria-hidden="true"
-        >
-          <span />
-          <span />
-          <span />
-          <span />
-          <span />
-        </div>
-
-        <div className="voice-panel__transcript" role="status" aria-live="polite">
-          {typedPreview || transcriptText || interimText
-            ? (
-              <>
-                <span>{typedPreview || transcriptText}</span>
-                {interimText ? <span className="voice-panel__interim"> {interimText}</span> : null}
-              </>
-            )
-            : promptText.saySomething}
-        </div>
-
-        <div className="voice-panel__examples" aria-label="Voice examples">
-          {promptText.examples.map((phrase) => (
-            <span
-              key={phrase}
-              className="voice-panel__example-chip"
-            >
-              {phrase}
-            </span>
-          ))}
-        </div>
-
-        <div className="voice-panel__actions">
-          <button
-            type="button"
-            className="search-shell__submit voice-panel__action-btn"
-            onClick={() => { void handleSpeakAction(); }}
-            disabled={isProcessingCommand}
-          >
-            {isListening ? promptText.buttons.stop : promptText.buttons.speak}
-          </button>
-        </div>
-      </div>
+      ) : null}
     </div>
   ) : null;
 
+  // Chips row: full-width scrollable row of suggestion chips
+  const chipsContent = voicePanelOpen ? (
+    <div className="voice-chips__row" aria-label="Voice command suggestions">
+      {shuffledExamples.map((phrase) => (
+        <button
+          key={phrase}
+          type="button"
+          className="voice-chips__chip"
+          onClick={() => handleChipClick(phrase)}
+          disabled={isProcessingCmd}
+        >
+          {CHIP_ICON[phrase] ?? null}
+          <span>{phrase}</span>
+        </button>
+      ))}
+    </div>
+  ) : null;
+
+  // Mic toggle button (portaled before Search button)
   const voiceButton = (
     <button
       type="button"
-      className={`search-shell__submit voice-command-button ${
-        isListening ? "voice-command-button--listening" : ""
-      }`}
+      className={`search-shell__submit voice-mic-btn${isListening ? " voice-mic-btn--listening" : ""}`}
       onClick={handleVoiceToggle}
-      aria-label={
-        isSupported
-          ? (isListening ? "Stop voice command" : "Start voice command")
-          : "Voice command not supported"
-      }
+      aria-label={isSupported
+        ? (isListening ? "Stop voice command" : "Start voice command")
+        : "Voice command not supported"}
       title={isSupported ? "Voice command" : "Voice command not supported in this browser"}
     >
-      {isListening ? <MicOff size={16} /> : <Mic size={16} />}
+      <span className="voice-mic-btn__ring" aria-hidden="true" />
+      {isListening ? <MicOff size={17} /> : <Mic size={17} />}
     </button>
   );
 
   return (
     <>
-      {voiceButtonHost
-        ? createPortal(voiceButton, voiceButtonHost)
-        : voiceButton}
-
-      {voicePanel && typeof document !== "undefined"
-        ? createPortal(voicePanel, document.body)
-        : null}
+      {voiceButtonHost ? createPortal(voiceButton, voiceButtonHost) : voiceButton}
+      {barContent   && voiceBarHost   ? createPortal(barContent,   voiceBarHost)   : null}
+      {chipsContent && voiceChipsHost ? createPortal(chipsContent, voiceChipsHost) : null}
     </>
   );
 }
