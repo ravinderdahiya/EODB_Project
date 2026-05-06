@@ -36,6 +36,7 @@ export default function Login() {
       localStorage.setItem("token", encrypt(res.data.token));
       localStorage.setItem("user", JSON.stringify(res.data.user));
       localStorage.setItem("isAdmin", "false");
+      sessionStorage.setItem("isAuthenticated", "true");
       navigate("/map");
     } catch (err) {
       setError(err.response?.data?.message || t("login.errOtpFailed"));
@@ -90,6 +91,7 @@ export default function Login() {
       localStorage.setItem("token", encrypt(res.data.token));
       localStorage.setItem("user", JSON.stringify(res.data.user));
       localStorage.setItem("isAdmin", "true");
+      sessionStorage.setItem("isAuthenticated", "true");
       navigate("/admin");
     } catch (err) {
       setError(err.response?.data?.message || t("login.errBadAdmin"));

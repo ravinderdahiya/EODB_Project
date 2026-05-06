@@ -49,6 +49,7 @@ export default function AdminLoginLogsTable({ logs, loading, error, page, pageSi
             <table className="admin-table">
               <thead>
                 <tr>
+                  <th scope="col">#</th>
                   <th scope="col">User</th>
                   <th scope="col">Email</th>
                   <th scope="col">Role</th>
@@ -65,13 +66,14 @@ export default function AdminLoginLogsTable({ logs, loading, error, page, pageSi
               <tbody>
                 {logs.length === 0 ? (
                   <tr>
-                    <td colSpan="11" style={{ padding: "1rem", textAlign: "center" }}>
+                    <td colSpan="12" style={{ padding: "1rem", textAlign: "center" }}>
                       No login logs found.
                     </td>
                   </tr>
                 ) : (
-                  logs.map((entry) => (
-                    <tr key={entry.id}>
+                  logs.map((entry, index) => (
+                    <tr key={entry.id || index}>
+                      <td>{startIndex + index}</td>
                       <td>
                         <strong>{entry.name}</strong>
                         <small>{entry.userId}</small>

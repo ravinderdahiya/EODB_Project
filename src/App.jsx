@@ -1138,7 +1138,13 @@ export default function App() {
         onToggleTheme={() =>
           setTheme((current) => (current === "light" ? "dark" : "light"))
         }
-        onLogout={() => navigate("/login")}
+        onLogout={() => {
+          localStorage.removeItem("token");
+          localStorage.removeItem("user");
+          localStorage.removeItem("isAdmin");
+          sessionStorage.removeItem("isAuthenticated");
+          navigate("/login");
+        }}
         searchValue={searchValue}
         onSearchValueChange={setSearchValue}
         onSearchSubmit={handleSearchSubmit}

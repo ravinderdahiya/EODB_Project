@@ -80,6 +80,8 @@ export default function AdminDashboard() {
       localStorage.removeItem("token");
       localStorage.removeItem("user");
       localStorage.removeItem("isAdmin");
+      // Clear sessionStorage
+      sessionStorage.removeItem("isAuthenticated");
       navigate("/login");
     }
   };
