@@ -1,7 +1,6 @@
 import "./MapStage.css";
 import { ChevronDown, ChevronUp, Printer, X } from "lucide-react";
 import { useRef, useState } from "react";
-import { Printer, TableProperties, X } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
 import { normalizeParcel } from "@/utils/parcelUtils";
 import { triggerPrint, PRINT_DISCLAIMER } from "@/utils/printUtils";
