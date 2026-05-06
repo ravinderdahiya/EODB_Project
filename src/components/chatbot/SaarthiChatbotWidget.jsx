@@ -56,7 +56,7 @@ body {
   right: 8px !important;
   bottom: 8px !important;
   width: min(308px, calc(100vw - 24px)) !important;
-  height: min(468px, calc(100vh - 148px)) !important;
+  height: min(520px, calc(100vh - 122px)) !important;
   border-radius: 14px !important;
 }
 .chat-container {
@@ -70,12 +70,12 @@ body {
   opacity: 1 !important;
 }
 .faq-suggestions-list {
-  max-height: 92px !important;
+  max-height: 74px !important;
 }
 @media (max-width: 640px) {
   .chat-box {
     width: min(292px, calc(100vw - 16px)) !important;
-    height: min(420px, calc(100vh - 118px)) !important;
+    height: min(462px, calc(100vh - 102px)) !important;
     right: 4px !important;
     bottom: 4px !important;
     border-radius: 12px !important;

@@ -24,7 +24,7 @@
 
 .saarthi-chatbot-widget--open iframe {
   width: min(318px, calc(100vw - 24px));
-  height: min(485px, calc(100vh - 138px));
+  height: min(530px, calc(100vh - 118px));
   border-radius: 14px;
 }
 
@@ -40,7 +40,7 @@
 
   .saarthi-chatbot-widget--open iframe {
     width: min(294px, calc(100vw - 14px));
-    height: min(430px, calc(100vh - 116px));
+    height: min(468px, calc(100vh - 102px));
     border-radius: 12px;
   }
 }
