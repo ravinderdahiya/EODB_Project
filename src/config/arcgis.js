@@ -98,9 +98,9 @@ export const arcgisPortalConfig = {
 
   // Boundary sub-layers shown in LayerPanel toggles
   boundarySublayers: [
-    { id: HSAC_LAYER.DISTRICT, key: "district", title: "District boundaries" },
-    { id: HSAC_LAYER.TEHSIL,   key: "tehsil",   title: "Tehsil boundaries" },
-    { id: HSAC_LAYER.VILLAGE,  key: "village",  title: "Village boundaries" },
+    { id: HSAC_LAYER.DISTRICT, key: "district", title: "District boundaries", description: "23 Districts of Haryana" },
+    { id: HSAC_LAYER.TEHSIL,   key: "tehsil",   title: "Tehsil boundaries",   description: "94 Tehsils of Haryana" },
+    { id: HSAC_LAYER.VILLAGE,  key: "village",  title: "Village boundaries",  description: "6,841 Villages of Haryana" },
   ],
 
   // Additional operational overlay layers shown in LayerPanel

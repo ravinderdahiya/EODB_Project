@@ -148,7 +148,7 @@ export default function Login() {
 
           <div className="lp-stats">
             <div className="lp-stat-card"><h3>23</h3><p>{t("login.statsDistricts")}</p></div>
-            <div className="lp-stat-card"><h3>144</h3><p>{t("login.statsTehsils")}</p></div>
+            <div className="lp-stat-card"><h3>94</h3><p>{t("login.statsTehsils")}</p></div>
             <div className="lp-stat-card"><h3>6,812</h3><p>{t("login.statsVillages")}</p></div>
             <div className="lp-stat-card"><h3>3.2Cr+</h3><p>{t("login.statsParcels")}</p></div>
           </div>

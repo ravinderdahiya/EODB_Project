@@ -64,7 +64,7 @@ export default function LayerPanel({
           <label key={layer.key} className="toggle-row">
             <span className="toggle-row__copy">
               <strong>{layer.title}</strong>
-              <small>HSAC MapServer — sublayer {layer.id}</small>
+              <small>{layer.description}</small>
             </span>
             <input
               type="checkbox"
