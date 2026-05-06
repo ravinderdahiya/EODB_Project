@@ -5,6 +5,7 @@ import axios from "axios";
 import { useLanguage } from "@/context/LanguageContext";
 import axiosInstance from "../utils/axiosInstance";
 import LanguageToggle from "@/components/LanguageToggle";
+import { encrypt } from "../utils/crypto";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -33,7 +34,7 @@ export default function Login() {
         otp: enteredOtp,
       });
 
-      localStorage.setItem("token", res.data.token);
+      localStorage.setItem("token", encrypt(res.data.token));
       localStorage.setItem("user", JSON.stringify(res.data.user));
       localStorage.setItem("isAdmin", "false");
       navigate("/map");
@@ -86,7 +87,7 @@ export default function Login() {
         password
       });
 
-      localStorage.setItem("token", res.data.token);
+      localStorage.setItem("token", encrypt(res.data.token));
       localStorage.setItem("user", JSON.stringify(res.data.user));
       localStorage.setItem("isAdmin", "true");
       navigate("/admin");

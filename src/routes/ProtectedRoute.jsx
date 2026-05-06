@@ -1,4 +1,5 @@
 import { Navigate } from "react-router-dom";
+import { decrypt } from "../utils/crypto";
 
 function ProtectedRoute({ children, requireAdmin = false }) {
   // Developer mode bypass for development only
@@ -10,7 +11,8 @@ function ProtectedRoute({ children, requireAdmin = false }) {
     return children;
   }
 
-  const token = localStorage.getItem("token");
+  const encryptedToken = localStorage.getItem("token");
+  const token = encryptedToken ? decrypt(encryptedToken) : null;
   const isAdmin = localStorage.getItem("isAdmin") === "true";
 
   if (!token) return <Navigate to="/login" />;
