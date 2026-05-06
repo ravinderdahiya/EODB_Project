@@ -129,7 +129,7 @@ const hi = {
     ownershipSummary: "स्वामित्व सारांश",
     murabba:     "मुरब्बा नं.",
     khasra:      "खसरा नं.",
-    area:        "क्षेत्रफल",
+    area:        "क्षेत्रफल (K-M)",
     recordType:  "रिकॉर्ड प्रकार",
     jamabandi:   "जमाबंदी वर्ष",
     verification: "सत्यापन",
