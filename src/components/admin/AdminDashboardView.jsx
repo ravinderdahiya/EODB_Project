@@ -4,6 +4,7 @@ import AdminOverviewChart from "@/components/admin/AdminOverviewChart";
 import AdminRecentActivity from "@/components/admin/AdminRecentActivity";
 import AdminRecentEventsTable from "@/components/admin/AdminRecentEventsTable";
 import AdminLoginLogsTable from "@/components/admin/AdminLoginLogsTable";
+import AdminApiUrlManager from "@/components/admin/AdminApiUrlManager";
 import AdminStatCards from "@/components/admin/AdminStatCards";
 import AdminSummaryCards from "@/components/admin/AdminSummaryCards";
 import {
@@ -104,6 +105,11 @@ export default function AdminDashboardView({
               totalCount={loginLogsTotal}
               onPageChange={onPageChange}
             />
+            <AdminSummaryCards cards={adminSummaryMetrics} />
+          </>
+        ) : activeItem.id === "api-urls" ? (
+          <>
+            <AdminApiUrlManager />
             <AdminSummaryCards cards={adminSummaryMetrics} />
           </>
         ) : (

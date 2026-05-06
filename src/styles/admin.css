@@ -435,6 +435,154 @@
   background: rgba(47, 141, 93, 0.04);
 }
 
+/* API URL manager section */
+.admin-api-url-body {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.admin-api-url-panel {
+  display: grid;
+  grid-template-columns: 1.35fr 0.65fr;
+  gap: 1rem;
+}
+
+.admin-api-url-form {
+  display: grid;
+  gap: 1rem;
+}
+
+.admin-api-url-form__row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.admin-api-url-form__fieldwide {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.admin-api-url-form label {
+  display: grid;
+  gap: 0.35rem;
+  color: var(--ink-muted);
+  font-size: 0.85rem;
+}
+
+.admin-api-url-form input,
+.admin-api-url-form select,
+.admin-api-url-form textarea {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 0.75rem;
+  background: var(--surface);
+  color: var(--ink);
+  padding: 0.75rem 0.9rem;
+}
+
+.admin-api-url-form textarea {
+  resize: vertical;
+}
+
+.admin-api-url-form__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.admin-form-error {
+  color: var(--red);
+  font-size: 0.9rem;
+}
+
+.admin-api-url-details {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.admin-api-url-details__card {
+  display: grid;
+  gap: 0.6rem;
+  padding: 1rem;
+  border-radius: 1rem;
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--line);
+}
+
+.admin-api-url-details__card p {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.admin-api-url-details__empty {
+  color: var(--ink-muted);
+  padding: 1rem;
+  border-radius: 1rem;
+  background: var(--surface);
+  border: 1px solid var(--line);
+}
+
+.admin-api-url-table-wrap {
+  margin-top: 0;
+}
+
+.admin-api-url-table-url {
+  max-width: 28rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-api-url-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  align-items: center;
+}
+
+.admin-api-url-actions button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.45rem 0.65rem;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+  cursor: pointer;
+  font-size: 0.78rem;
+}
+
+.admin-api-url-actions button:hover {
+  background: var(--surface-emphasis);
+}
+
+.admin-api-url-header {
+  gap: 1rem;
+  align-items: center;
+}
+
+@media (max-width: 1080px) {
+  .admin-api-url-panel {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .admin-api-url-form__row {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-api-url-actions {
+    justify-content: flex-start;
+  }
+}
+
 .admin-status {
   display: inline-flex;
   align-items: center;

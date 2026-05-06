@@ -5,7 +5,7 @@ import {
   CircleDollarSign,
   Clock3,
   LayoutDashboard,
-  Mail,
+  Link2,
   Settings,
   Tags,
   TicketCheck,
@@ -61,6 +61,12 @@ export const adminNavigationItems = [
     label: "Categories",
     description: "Event taxonomy and classification",
     icon: Tags,
+  },
+  {
+    id: "api-urls",
+    label: "API URLs",
+    description: "Manage backend API endpoints and metadata",
+    icon: Link2,
   },
   {
     id: "reports",
@@ -255,7 +261,7 @@ export const adminSummaryMetrics = [
     label: "Newsletter Subscribers",
     value: "18,903",
     tone: "mint",
-    icon: Mail,
+    icon: "Mail",
   },
 ];
 
