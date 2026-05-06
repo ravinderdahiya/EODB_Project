@@ -20,17 +20,34 @@
 
 .parcel-modal {
   width: min(880px, 100%);
+  max-height: calc(100vh - 2.5rem);
+  max-height: calc(100dvh - 2.5rem);
   padding: 1.3rem;
   border-radius: 30px;
   background: rgba(255, 255, 255, 0.97);
   box-shadow: var(--shadow-strong);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .parcel-modal__header {
+  flex-shrink: 0;
   display: flex;
   justify-content: space-between;
   gap: 1rem;
   align-items: flex-start;
+}
+
+/* ── Modal Scrollable Body ────────────────────────────────── */
+
+.parcel-modal__body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 0.5rem;
 }
 
 .parcel-modal__header h2 {

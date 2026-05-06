@@ -129,7 +129,7 @@ const en = {
     ownershipSummary: "Ownership Summary",
     murabba:    "Murabba No.",
     khasra:     "Khasra No.",
-    area:       "Area",
+    area:       "Area (K-M)",
     recordType: "Record Type",
     jamabandi:  "Jamabandi Year",
     verification: "Verification",

@@ -32,49 +32,51 @@ export default function ParcelDetailsModal({ open, parcel, onClose }) {
           </button>
         </div>
 
-        <div className="parcel-modal__grid">
-          <div className="modal-info-card">
-            <span>{t("modal.murabba")}</span>
-            <strong>{safeParcel.murabbaNo}</strong>
+        <div className="parcel-modal__body">
+          <div className="parcel-modal__grid">
+            <div className="modal-info-card">
+              <span>{t("modal.murabba")}</span>
+              <strong>{safeParcel.murabbaNo}</strong>
+            </div>
+            <div className="modal-info-card">
+              <span>{t("modal.khasra")}</span>
+              <strong>{safeParcel.khasraNo}</strong>
+            </div>
+            <div className="modal-info-card">
+              <span>{t("modal.area")}</span>
+              <strong>{safeParcel.area}</strong>
+            </div>
+            <div className="modal-info-card">
+              <span>{t("modal.recordType")}</span>
+              <strong>{safeParcel.recordType}</strong>
+            </div>
+            <div className="modal-info-card">
+              <span>{t("modal.jamabandi")}</span>
+              <strong>{safeParcel.jamabandiYear}</strong>
+            </div>
+            <div className="modal-info-card">
+              <span>{t("modal.verification")}</span>
+              <strong>{safeParcel.verificationStatus}</strong>
+            </div>
+            <div className="modal-info-card">
+              <span>{t("modal.khewat")}</span>
+              <strong>{safeParcel.khewatNo}</strong>
+            </div>
+            <div className="modal-info-card">
+              <span>{t("modal.khatoni")}</span>
+              <strong>{safeParcel.khatoniNo}</strong>
+            </div>
+            <div className="modal-info-card">
+              <span>{t("modal.lastUpdated")}</span>
+              <strong>{safeParcel.lastUpdated}</strong>
+            </div>
           </div>
-          <div className="modal-info-card">
-            <span>{t("modal.khasra")}</span>
-            <strong>{safeParcel.khasraNo}</strong>
-          </div>
-          <div className="modal-info-card">
-            <span>{t("modal.area")}</span>
-            <strong>{safeParcel.area}</strong>
-          </div>
-          <div className="modal-info-card">
-            <span>{t("modal.recordType")}</span>
-            <strong>{safeParcel.recordType}</strong>
-          </div>
-          <div className="modal-info-card">
-            <span>{t("modal.jamabandi")}</span>
-            <strong>{safeParcel.jamabandiYear}</strong>
-          </div>
-          <div className="modal-info-card">
-            <span>{t("modal.verification")}</span>
-            <strong>{safeParcel.verificationStatus}</strong>
-          </div>
-          <div className="modal-info-card">
-            <span>{t("modal.khewat")}</span>
-            <strong>{safeParcel.khewatNo}</strong>
-          </div>
-          <div className="modal-info-card">
-            <span>{t("modal.khatoni")}</span>
-            <strong>{safeParcel.khatoniNo}</strong>
-          </div>
-          <div className="modal-info-card">
-            <span>{t("modal.lastUpdated")}</span>
-            <strong>{safeParcel.lastUpdated}</strong>
-          </div>
-        </div>
 
-        <div className="parcel-modal__summary">
-          <h3>{t("modal.ownershipSummary")}</h3>
-          <p>{safeParcel.ownerName}</p>
-          <p>{safeParcel.breadcrumb}</p>
+          <div className="parcel-modal__summary">
+            <h3>{t("modal.ownershipSummary")}</h3>
+            <p>{safeParcel.ownerName}</p>
+            <p>{safeParcel.breadcrumb}</p>
+          </div>
         </div>
       </div>
     </div>
