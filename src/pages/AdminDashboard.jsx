@@ -19,6 +19,12 @@ export default function AdminDashboard() {
   const [systemMessage, setSystemMessage] = useState(
     "Admin dashboard is active with static demo metrics.",
   );
+  const [loginLogs, setLoginLogs] = useState([]);
+  const [loginLogsTotal, setLoginLogsTotal] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize] = useState(10);
+  const [logsLoading, setLogsLoading] = useState(false);
+  const [logsError, setLogsError] = useState(null);
 
   useEffect(() => {
     if (isTablet) {
@@ -26,8 +32,36 @@ export default function AdminDashboard() {
     }
   }, [isTablet]);
 
+  useEffect(() => {
+    const fetchLoginLogs = async () => {
+      if (activeNav !== "login-logs") return;
+
+      setLogsLoading(true);
+      setLogsError(null);
+
+      try {
+        const res = await axiosInstance.get(
+          `/user/login-logs?page=${currentPage}&pageSize=${pageSize}`,
+        );
+        setLoginLogs(res.data.logs || []);
+        setLoginLogsTotal(res.data.totalCount || 0);
+      } catch (err) {
+        console.error("Login logs fetch error:", err);
+        setLogsError(err.response?.data?.message || "Failed to load login logs.");
+      } finally {
+        setLogsLoading(false);
+      }
+    };
+
+    fetchLoginLogs();
+  }, [activeNav, currentPage, pageSize]);
+
   const handleNavSelect = (nextId) => {
     setActiveNav(nextId);
+
+    if (nextId === "login-logs") {
+      setCurrentPage(1);
+    }
 
     const navItem = adminNavigationItems.find((item) => item.id === nextId);
     if (navItem) {
@@ -91,6 +125,13 @@ export default function AdminDashboard() {
           <AdminDashboardView
             activeSection={activeNav}
             systemMessage={systemMessage}
+            loginLogs={loginLogs}
+            logsLoading={logsLoading}
+            logsError={logsError}
+            currentPage={currentPage}
+            pageSize={pageSize}
+            loginLogsTotal={loginLogsTotal}
+            onPageChange={setCurrentPage}
             onCreateEvent={() =>
               setSystemMessage("Create event action can be connected to your form/workflow.")
             }

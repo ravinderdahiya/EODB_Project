@@ -35,7 +35,9 @@ export default function Login() {
       // Token is in httpOnly cookie (set by backend) — not accessible to JS
       // Only store non-sensitive user info for UI display
       sessionStorage.setItem("isAuthenticated", "true");
-      sessionStorage.setItem("user", JSON.stringify(res.data.user));
+      localStorage.setItem("token", res.data.token);
+      localStorage.setItem("user", JSON.stringify(res.data.user));
+      localStorage.setItem("isAdmin", "false");
       navigate("/map");
     } catch (err) {
       setError(err.response?.data?.message || t("login.errOtpFailed"));

@@ -366,6 +366,40 @@
   margin-bottom: 0.2rem;
 }
 
+.admin-table-pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 0.5rem 0.25rem;
+  color: var(--ink-muted);
+  font-size: 0.9rem;
+}
+
+.admin-table-pagination__actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.admin-table-pagination__button {
+  padding: 0.55rem 0.9rem;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.admin-table-pagination__button:hover:not(:disabled) {
+  background: var(--surface-emphasis);
+}
+
+.admin-table-pagination__button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .admin-table td small {
   color: var(--ink-muted);
 }
@@ -397,6 +431,16 @@
 .admin-status--draft {
   background: var(--orange-soft);
   color: var(--orange);
+}
+
+.admin-status--success {
+  background: rgba(47, 141, 93, 0.12);
+  color: var(--green);
+}
+
+.admin-status--failed {
+  background: rgba(189, 44, 0, 0.12);
+  color: var(--red);
 }
 
 /* =========================
