@@ -34,6 +34,8 @@ import {
   stripDistrictNameTokens,
 } from "@/voice-addon/voiceAdminMatcher";
 
+import { VOICE_COMMAND_ACTIONS } from "@/voice-addon/voiceCommandRegistry";
+import { useAnalytics } from "@/services/analyticsService";
 
 const initialLayers = {
   cadastral: true,
@@ -67,6 +69,7 @@ function formatAdminSuggestionDescription(match) {
 
 export default function App() {
   const navigate = useNavigate();
+  const { trackPageView, trackUserInteraction, trackMapInteraction, trackSearch, trackFeatureUsage } = useAnalytics();
 
   // Disable developer tools in production
   useDisableDevTools();
@@ -99,6 +102,31 @@ export default function App() {
   const [voiceVillages, setVoiceVillages] = useState([]);
   const hasSelectedParcel = selectedParcel.registryRef !== "DLR-UNAVAILABLE";
   const adminSuggestionRequestIdRef = useRef(0);
+
+  // Track initial page load
+  useEffect(() => {
+    trackPageView('/', 'Digital Land Record Haryana - Home');
+  }, [trackPageView]);
+
+  // Track search interactions
+  useEffect(() => {
+    if (searchValue.trim().length > 2) {
+      trackSearch(searchValue, 'map_search');
+    }
+  }, [searchValue, trackSearch]);
+
+  // Track layer visibility changes
+  useEffect(() => {
+    const visibleLayers = Object.entries(layerVisibility)
+      .filter(([_, visible]) => visible)
+      .map(([layer]) => layer);
+    trackFeatureUsage('layer_visibility', { visibleLayers });
+  }, [layerVisibility, trackFeatureUsage]);
+
+  // Track basemap changes
+  useEffect(() => {
+    trackMapInteraction('basemap_change', { basemap: activeBasemap });
+  }, [activeBasemap, trackMapInteraction]);
 
   const parcelHistorySuggestions =
     deferredSearch.trim().length < 2
@@ -853,6 +881,9 @@ export default function App() {
       setSystemMessage("Enter a Khasra number, owner, village or place to search.");
       return;
     }
+
+    // Track search submission
+    trackUserInteraction('search_submit', query);
 
     try {
       const adminSearchResult = await resolveAdminBoundarySearch(query);

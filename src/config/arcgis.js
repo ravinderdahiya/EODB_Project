@@ -11,13 +11,17 @@
 // handled by ArcGIS proxy rules (proxy.ashx) configured at app startup.
 const _hsacOrigin = import.meta.env.VITE_HSAC_ORIGIN ?? "https://hsac.org.in";
 
-const _mapServicePath =
-  import.meta.env.VITE_HSAC_MAP_SERVICE_PATH ??
-  "/server/rest/services/EODB/EODB_Staging/MapServer";
+// Security: VITE_HSAC_MAP_SERVICE_PATH MUST be set in production .env.
+// The empty fallback ensures staging service names never leak into production bundles.
+// If this is missing, map queries will fail visibly rather than silently use a staging service.
+const _mapServicePath = import.meta.env.VITE_HSAC_MAP_SERVICE_PATH ?? "";
 
 export const HSAC_MAIN_URL = `${_hsacOrigin}${_mapServicePath}`;
 
-// Sub-layer index constants within the HSAC MapServer
+// Sub-layer index constants within the HSAC MapServer.
+// TODO (ArcGIS Server admin): Enforce layer-level security on the MapServer so that
+// only authenticated/IP-allowlisted clients can query these sublayers directly.
+// Client-side layer IDs alone are not a security boundary.
 export const HSAC_LAYER = {
   DISTRICT: 26, // District boundary polygons  — fields: n_d_code, n_d_name
   TEHSIL:   27, // Tehsil boundary polygons    — fields: n_t_code, n_t_name

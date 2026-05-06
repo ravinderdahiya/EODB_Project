@@ -115,7 +115,9 @@ function SearchSection({
     }
 
     if (onBoundaryDraw && code) {
-      onBoundaryDraw(fieldKey, {
+      const boundaryType =
+        fieldKey === "khewat" || fieldKey === "khatoni" ? "village" : fieldKey;
+      onBoundaryDraw(boundaryType, {
         dCode:     newCodes.district,
         tCode:     newCodes.tehsil,
         vCode:     newCodes.village,

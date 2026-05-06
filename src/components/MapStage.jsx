@@ -1,9 +1,10 @@
 import "./MapStage.css";
 import { ChevronDown, ChevronUp, Printer, X } from "lucide-react";
+import { useRef, useState } from "react";
+import { Printer, TableProperties, X } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
 import { normalizeParcel } from "@/utils/parcelUtils";
 import { triggerPrint, PRINT_DISCLAIMER } from "@/utils/printUtils";
-
 function formatScale(scale) {
   if (!scale || scale <= 0) return null;
   return `1 : ${Math.round(scale).toLocaleString("en-IN")}`;
@@ -24,6 +25,36 @@ export default function MapStage({
 }) {
   const { t } = useLanguage();
   const scaleLabel = formatScale(mapScale);
+
+  const [tableHeight, setTableHeight] = useState(null);
+  const panelRef = useRef(null);
+  const viewportRef = useRef(null);
+
+  const startDrag = (e) => {
+    e.preventDefault();
+    const startY = e.touches ? e.touches[0].clientY : e.clientY;
+    const startH = panelRef.current?.offsetHeight ?? 280;
+    const maxH = (viewportRef.current?.offsetHeight ?? window.innerHeight) * 0.75;
+
+    const onMove = (moveEvt) => {
+      moveEvt.preventDefault();
+      const y = moveEvt.touches ? moveEvt.touches[0].clientY : moveEvt.clientY;
+      const next = Math.min(Math.max(startH + (startY - y), 140), maxH);
+      setTableHeight(next);
+    };
+
+    const onEnd = () => {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onEnd);
+      window.removeEventListener("touchmove", onMove);
+      window.removeEventListener("touchend", onEnd);
+    };
+
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onEnd);
+    window.addEventListener("touchmove", onMove, { passive: false });
+    window.addEventListener("touchend", onEnd);
+  };
 
   const handlePrint = () => {
     if (onPrint) {
@@ -69,7 +100,11 @@ export default function MapStage({
 
   return (
     <section className="map-stage">
-      <div className={`map-stage__viewport ${tableOpen ? "map-stage__viewport--table-open" : ""}`}>
+      <div
+        ref={viewportRef}
+        className={`map-stage__viewport ${tableOpen ? "map-stage__viewport--table-open" : ""}`}
+        style={tableOpen && tableHeight ? { "--table-h": `${tableHeight}px` } : undefined}
+      >
         <div className="map-stage__canvas" ref={mapRef} />
         {children}
 
@@ -82,6 +117,7 @@ export default function MapStage({
         <button
           type="button"
           className="parcel-table-toggle"
+          style={tableOpen && tableHeight ? { bottom: `calc(${tableHeight}px + 1rem)` } : undefined}
           onClick={onToggleTable}
           aria-label={tableOpen ? t("mapStage.hideTable") : t("mapStage.showTable")}
           title={tableOpen ? t("mapStage.hideTable") : t("mapStage.showTable")}
@@ -90,7 +126,18 @@ export default function MapStage({
         </button>
 
         {tableOpen ? (
-          <section className="parcel-table-panel" aria-label={t("mapStage.selectionLabel")}>
+          <section
+            ref={panelRef}
+            className="parcel-table-panel"
+            aria-label={t("mapStage.selectionLabel")}
+            style={tableHeight ? { height: `${tableHeight}px`, maxHeight: `${tableHeight}px` } : undefined}
+          >
+            <div
+              className="parcel-table-panel__resize-handle"
+              onMouseDown={startDrag}
+              onTouchStart={startDrag}
+              aria-hidden="true"
+            />
             <div className="parcel-table-panel__header">
               <div>
                 <span className="eyebrow">{panelTitle}</span>

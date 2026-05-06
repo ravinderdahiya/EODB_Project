@@ -334,36 +334,97 @@
 
 .admin-table-wrap {
   margin-top: 0.65rem;
-  overflow: auto;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  border-radius: 0 0 8px 8px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(70, 96, 117, 0.3) transparent;
+}
+
+.admin-table-wrap::-webkit-scrollbar {
+  height: 8px;
+}
+
+.admin-table-wrap::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.admin-table-wrap::-webkit-scrollbar-thumb {
+  background: rgba(70, 96, 117, 0.3);
+  border-radius: 4px;
+}
+
+.admin-table-wrap::-webkit-scrollbar-thumb:hover {
+  background: rgba(70, 96, 117, 0.5);
 }
 
 .admin-table {
   width: 100%;
-  min-width: 720px;
+  min-width: 1200px;
   border-collapse: collapse;
 }
 
 .admin-table th,
 .admin-table td {
-  padding: 0.7rem 0.55rem;
+  padding: 0.65rem 0.5rem;
   text-align: left;
   border-bottom: 1px solid var(--line);
   color: var(--ink-soft);
-  font-size: 0.86rem;
+  font-size: 0.85rem;
   white-space: nowrap;
 }
 
 .admin-table th {
-  font-size: 0.74rem;
-  letter-spacing: 0.08em;
+  font-size: 0.72rem;
+  letter-spacing: 0.07em;
   text-transform: uppercase;
   color: var(--ink-muted);
+  padding: 0.6rem 0.5rem;
+  position: sticky;
+  top: 0;
+  background: var(--surface);
+  z-index: 2;
 }
 
 .admin-table td strong {
   display: block;
   color: var(--ink);
   margin-bottom: 0.2rem;
+}
+
+.admin-table-pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 0.5rem 0.25rem;
+  color: var(--ink-muted);
+  font-size: 0.9rem;
+}
+
+.admin-table-pagination__actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.admin-table-pagination__button {
+  padding: 0.55rem 0.9rem;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.admin-table-pagination__button:hover:not(:disabled) {
+  background: var(--surface-emphasis);
+}
+
+.admin-table-pagination__button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .admin-table td small {
@@ -397,6 +458,16 @@
 .admin-status--draft {
   background: var(--orange-soft);
   color: var(--orange);
+}
+
+.admin-status--success {
+  background: rgba(47, 141, 93, 0.12);
+  color: var(--green);
+}
+
+.admin-status--failed {
+  background: rgba(189, 44, 0, 0.12);
+  color: var(--red);
 }
 
 /* =========================
@@ -594,7 +665,28 @@
   }
 
   .admin-table {
-    min-width: 620px;
+    min-width: 900px;
+  }
+
+  .admin-table th,
+  .admin-table td {
+    padding: 0.6rem 0.4rem;
+    font-size: 0.8rem;
+  }
+
+  .admin-table th {
+    font-size: 0.68rem;
+  }
+
+  .admin-table-pagination {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+  }
+
+  .admin-table-pagination__actions {
+    width: 100%;
+    justify-content: space-between;
   }
 }
 
@@ -605,5 +697,39 @@
   .admin-activity-card,
   .admin-placeholder-card {
     padding: 0.9rem;
+  }
+
+  .admin-table {
+    min-width: 750px;
+    font-size: 0.75rem;
+  }
+
+  .admin-table th,
+  .admin-table td {
+    padding: 0.5rem 0.35rem;
+    font-size: 0.75rem;
+  }
+
+  .admin-table th {
+    font-size: 0.65rem;
+    letter-spacing: 0.05em;
+  }
+
+  .admin-table td strong {
+    font-size: 0.8rem;
+  }
+
+  .admin-table td small {
+    font-size: 0.65rem;
+  }
+
+  .admin-table-pagination {
+    font-size: 0.8rem;
+    padding: 0.6rem 0.3rem 0.2rem;
+  }
+
+  .admin-table-pagination__button {
+    padding: 0.4rem 0.6rem;
+    font-size: 0.75rem;
   }
 }

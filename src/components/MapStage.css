@@ -94,13 +94,37 @@
   display: flex;
   flex-direction: column;
   height: 30%;
-  min-height: 180px;
+  min-height: 140px;
   max-height: 320px;
   border: 1px solid rgba(255, 255, 255, 0.68);
   border-radius: 24px 24px 0 0;
   background: rgba(255, 255, 255, 0.94);
   box-shadow: 0 -18px 44px rgba(23, 50, 72, 0.16);
   overflow: hidden;
+}
+
+.parcel-table-panel__resize-handle {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 14px;
+  cursor: ns-resize;
+  user-select: none;
+  touch-action: none;
+}
+
+.parcel-table-panel__resize-handle::after {
+  content: "";
+  width: 40px;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(23, 50, 72, 0.18);
+  transition: background 150ms ease;
+}
+
+.parcel-table-panel__resize-handle:hover::after {
+  background: rgba(23, 50, 72, 0.38);
 }
 
 .parcel-table-panel__header {
@@ -214,7 +238,7 @@
 
 .map-stage__viewport--table-open .layer-panel,
 .map-stage__viewport--table-open .basemap-switcher {
-  max-height: calc(70% - 5.8rem);
+  max-height: calc(100% - var(--table-h, 30%) - 5.8rem);
   overflow-y: auto;
 }
 
@@ -505,9 +529,10 @@
 }
 
 /* When the parcel table is open, shrink the popup host's bottom to match
-   the table height so positionLandRecordMiniPopup clamps the popup above it. */
+   the table height so positionLandRecordMiniPopup clamps the popup above it.
+   --table-h is set via inline style when the user has dragged to a custom height. */
 .map-stage__viewport--table-open .map-click-popup-host {
-  bottom: clamp(180px, 30%, 320px);
+  bottom: var(--table-h, clamp(140px, 30%, 320px));
 }
 
 /* ── Map Click Popup Card ─────────────────────────────────── */
@@ -813,6 +838,14 @@
     linear-gradient(180deg, rgba(19, 35, 49, 0.94), rgba(12, 25, 36, 0.92)),
     rgba(11, 22, 31, 0.9);
   box-shadow: 0 22px 46px rgba(0, 0, 0, 0.28);
+}
+
+:root[data-theme="dark"] .parcel-table-panel__resize-handle::after {
+  background: rgba(171, 194, 208, 0.2);
+}
+
+:root[data-theme="dark"] .parcel-table-panel__resize-handle:hover::after {
+  background: rgba(171, 194, 208, 0.4);
 }
 
 :root[data-theme="dark"] .parcel-table-toggle,
