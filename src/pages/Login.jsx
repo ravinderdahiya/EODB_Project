@@ -35,6 +35,7 @@ export default function Login() {
 
       localStorage.setItem("token", res.data.token);
       localStorage.setItem("user", JSON.stringify(res.data.user));
+      localStorage.setItem("isAdmin", "false");
       navigate("/map");
     } catch (err) {
       setError(err.response?.data?.message || t("login.errOtpFailed"));
