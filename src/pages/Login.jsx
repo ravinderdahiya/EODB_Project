@@ -18,7 +18,6 @@ export default function Login() {
   const [error, setError] = useState("");
   const [showOtpInput, setShowOtpInput] = useState(false);
   const [otp, setOtp] = useState(["", "", "", ""]);
-  const [developerMode, setDeveloperMode] = useState(localStorage.getItem("developerMode") === 'true');
 
   const handleVerifyOtp = async () => {
     const enteredOtp = otp.join("");
@@ -34,7 +33,14 @@ export default function Login() {
         otp: enteredOtp,
       });
 
+<<<<<<< HEAD
       localStorage.setItem("token", encrypt(res.data.token));
+=======
+      // Token is in httpOnly cookie (set by backend) — not accessible to JS
+      // Only store non-sensitive user info for UI display
+      sessionStorage.setItem("isAuthenticated", "true");
+      localStorage.setItem("token", res.data.token);
+>>>>>>> ea0e7b53a46da875122954127b13b234b6c6c2f1
       localStorage.setItem("user", JSON.stringify(res.data.user));
       localStorage.setItem("isAdmin", "false");
       navigate("/map");
@@ -87,9 +93,15 @@ export default function Login() {
         password
       });
 
+
       localStorage.setItem("token", encrypt(res.data.token));
       localStorage.setItem("user", JSON.stringify(res.data.user));
       localStorage.setItem("isAdmin", "true");
+
+      // Token is in httpOnly cookie (set by backend) — not accessible to JS
+      sessionStorage.setItem("isAuthenticated", "true");
+      sessionStorage.setItem("isAdmin", "true");
+      sessionStorage.setItem("user", JSON.stringify(res.data.user));
       navigate("/admin");
     } catch (err) {
       setError(err.response?.data?.message || t("login.errBadAdmin"));
@@ -99,12 +111,6 @@ export default function Login() {
   const switchTab = (next) => {
     setTab(next);
     setError("");
-  };
-
-  const toggleDeveloperMode = () => {
-    const newMode = !developerMode;
-    setDeveloperMode(newMode);
-    localStorage.setItem("developerMode", newMode ? 'true' : 'false');
   };
 
   return (

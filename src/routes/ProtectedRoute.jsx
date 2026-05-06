@@ -1,9 +1,13 @@
 import { Navigate } from "react-router-dom";
 import { decrypt } from "../utils/crypto";
 
+
 function ProtectedRoute({ children, requireAdmin = false }) {
   // Developer mode bypass for development only
   // Check environment variable first, then localStorage for runtime toggle
+  const isAuthenticated = sessionStorage.getItem("isAuthenticated") === "true";
+  if (!isAuthenticated)
+     return <Navigate to="/login" replace />;
   const isDeveloperMode = import.meta.env.VITE_DEVELOPER_MODE === 'true' ||
                          localStorage.getItem("developerMode") === 'true';
 
