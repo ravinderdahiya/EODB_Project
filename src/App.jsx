@@ -395,6 +395,49 @@ export default function App() {
     return true;
   };
 
+  // Direct admin-boundary resolver for deterministic UI chips.
+  const runNamedAdminBoundaryFocus = async ({ command, transcript }) => {
+    const boundaryType = command?.boundaryType;
+    const boundaryName = `${command?.boundaryName || transcript || ""}`.trim();
+    if (!boundaryType || !boundaryName) {
+      return { ok: false };
+    }
+
+    try {
+      const matches = await searchAdministrativeAreas(boundaryName, { limit: 12 });
+      const normalizedTarget = normalizeSearchTerm(boundaryName);
+      const typedExact = matches.find(
+        (match) =>
+          match.type === boundaryType
+          && normalizeSearchTerm(match.name) === normalizedTarget,
+      );
+      const typedFallback = matches.find((match) => match.type === boundaryType);
+      const chosen = typedExact || typedFallback;
+
+      if (!chosen) {
+        setSystemMessage(`Could not find ${boundaryType} "${boundaryName}". Try again.`);
+        return { ok: false };
+      }
+
+      const handled = await highlightAdminBoundary(
+        {
+          type: chosen.type,
+          label: chosen.name,
+          codes: {
+            dCode: chosen.dCode,
+            ...(chosen.tCode ? { tCode: chosen.tCode } : {}),
+            ...(chosen.vCode ? { vCode: chosen.vCode } : {}),
+          },
+        },
+        { exactMatch: Boolean(typedExact) },
+      );
+      return { ok: Boolean(handled) };
+    } catch {
+      setSystemMessage("Could not resolve boundary right now. Try again.");
+      return { ok: false };
+    }
+  };
+
   // Voice district resolver: exact + fuzzy + phonetic against cached district list.
   const matchDistrictFromNormalizedTranscript = (normalizedText) =>
     pickBestVoiceNameMatch(
@@ -1120,6 +1163,8 @@ export default function App() {
       runTehsilVoiceFocus({ transcript, normalizedTranscript, strictIntent: true }),
     [VOICE_COMMAND_ACTIONS.GO_TO_VILLAGE_BOUNDARY]: ({ transcript, normalizedTranscript }) =>
       runVillageVoiceFocus({ transcript, normalizedTranscript, strictIntent: true }),
+    [VOICE_COMMAND_ACTIONS.GO_TO_ADMIN_BOUNDARY_BY_NAME]: ({ command, transcript }) =>
+      runNamedAdminBoundaryFocus({ command, transcript }),
     [VOICE_COMMAND_ACTIONS.HANDLE_FALLBACK_TRANSCRIPT]: ({ transcript, normalizedTranscript }) =>
       runAdministrativeVoiceFallback({ transcript, normalizedTranscript }),
   };

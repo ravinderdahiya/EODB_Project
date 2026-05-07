@@ -40,9 +40,48 @@ const CHIP_ICON = {
   "ganaur tehsil dikhao":      <MapPin size={11} />,
   "zoom to thanesar tehsil":   <ZoomIn size={11} />,
   "sisana village dikhao":     <MapPin size={11} />,
-  "zoom to jhajjar village":   <ZoomIn size={11} />,
+  "zoom to jhajjar district":  <ZoomIn size={11} />,
   "hindi to english karo":     <Languages size={11} />,
   "english to hindi karo":     <Languages size={11} />,
+};
+
+const CHIP_DIRECT_COMMANDS = {
+  "panipat district dikhao": {
+    id: "chip.admin.panipat.district",
+    actionId: VOICE_COMMAND_ACTIONS.GO_TO_ADMIN_BOUNDARY_BY_NAME,
+    boundaryType: "district",
+    boundaryName: "Panipat",
+  },
+  "zoom to gurugram district": {
+    id: "chip.admin.gurugram.district",
+    actionId: VOICE_COMMAND_ACTIONS.GO_TO_ADMIN_BOUNDARY_BY_NAME,
+    boundaryType: "district",
+    boundaryName: "Gurugram",
+  },
+  "ganaur tehsil dikhao": {
+    id: "chip.admin.ganaur.tehsil",
+    actionId: VOICE_COMMAND_ACTIONS.GO_TO_ADMIN_BOUNDARY_BY_NAME,
+    boundaryType: "tehsil",
+    boundaryName: "Ganaur",
+  },
+  "zoom to thanesar tehsil": {
+    id: "chip.admin.thanesar.tehsil",
+    actionId: VOICE_COMMAND_ACTIONS.GO_TO_ADMIN_BOUNDARY_BY_NAME,
+    boundaryType: "tehsil",
+    boundaryName: "Thanesar",
+  },
+  "sisana village dikhao": {
+    id: "chip.admin.sisana.village",
+    actionId: VOICE_COMMAND_ACTIONS.GO_TO_ADMIN_BOUNDARY_BY_NAME,
+    boundaryType: "village",
+    boundaryName: "Sisana",
+  },
+  "zoom to jhajjar district": {
+    id: "chip.admin.jhajjar.district",
+    actionId: VOICE_COMMAND_ACTIONS.GO_TO_ADMIN_BOUNDARY_BY_NAME,
+    boundaryType: "district",
+    boundaryName: "Jhajjar",
+  },
 };
 
 function getSpeechRecognitionConstructor() {
@@ -116,7 +155,7 @@ export default function VoiceAssistantPopup({
       ? {
           saySomething:    "कुछ बोलिए...",
           listening:       "वॉइस कमांड के लिए सुन रहा हूँ...",
-          noSpeechTimedOut:"6 सेकंड तक आवाज़ नहीं मिली। फिर से बोलें।",
+          noSpeechTimedOut:"Try again.",
           speakingNow:     "सुन रहा हूँ",
           waiting:         "माइक दबाएं",
           examples: [
@@ -125,14 +164,14 @@ export default function VoiceAssistantPopup({
             "village boundary on", "village boundary off", "all boundaries on",
             "all boundaries off", "panipat district dikhao", "zoom to gurugram district",
             "ganaur tehsil dikhao", "zoom to thanesar tehsil", "sisana village dikhao",
-            "zoom to jhajjar village", "hindi to english karo", "english to hindi karo",
+            "zoom to jhajjar district", "hindi to english karo", "english to hindi karo",
           ],
           buttons: { stop: "रोकें", speak: "बोलें" },
         }
       : {
           saySomething:    "Say something...",
           listening:       "Listening for voice command...",
-          noSpeechTimedOut:"No speech detected in 6 seconds. Try again.",
+          noSpeechTimedOut:"Try again.",
           speakingNow:     "Listening",
           waiting:         "Press mic to speak",
           examples: [
@@ -141,7 +180,7 @@ export default function VoiceAssistantPopup({
             "village boundary on", "village boundary off", "all boundaries on",
             "all boundaries off", "panipat district dikhao", "zoom to gurugram district",
             "ganaur tehsil dikhao", "zoom to thanesar tehsil", "sisana village dikhao",
-            "zoom to jhajjar village", "hindi to english karo", "english to hindi karo",
+            "zoom to jhajjar district", "hindi to english karo", "english to hindi karo",
           ],
           buttons: { stop: "Stop", speak: "Speak" },
         }
@@ -287,13 +326,13 @@ export default function VoiceAssistantPopup({
     closePanelLater(1800);
   };
 
-  const runCommandFromTranscript = async (sourceText) => {
+  const runCommandFromTranscript = async (sourceText, forcedCommand = null) => {
     const commandText = sourceText?.trim();
     if (!commandText) {
       setVoicePanelStatus("No command heard. Please try again.");
       return;
     }
-    const command = resolveVoiceCommand(commandText);
+    const command = forcedCommand || resolveVoiceCommand(commandText);
     if (!command) {
       const norm = normalizeVoiceTranscript(commandText);
       let fb = { ok: false };
@@ -329,7 +368,7 @@ export default function VoiceAssistantPopup({
     closePanelLater(1000);
   };
 
-  const animateTypingThenRunCommand = (sourceText) => {
+  const animateTypingThenRunCommand = (sourceText, forcedCommand = null) => {
     const txt = sourceText?.trim();
     if (!txt || isProcessingRef.current) return;
     clearTypingTimers();
@@ -354,7 +393,7 @@ export default function VoiceAssistantPopup({
           setTypedPreview("");
           setIsProcessingCmd(false);
           isProcessingRef.current = false;
-          runCommandFromTranscript(txt);
+          runCommandFromTranscript(txt, forcedCommand);
         }, 140);
       }
     }, ms);
@@ -610,7 +649,7 @@ export default function VoiceAssistantPopup({
     if (isProcessingRef.current) return;
     setInterimText("");
     try { recognitionRef.current?.stop(); } catch { /* ignore */ }
-    animateTypingThenRunCommand(phrase);
+    animateTypingThenRunCommand(phrase, CHIP_DIRECT_COMMANDS[phrase] || null);
   };
 
   // Shuffle examples once on mount so chips appear in a different order every page load
@@ -626,7 +665,16 @@ export default function VoiceAssistantPopup({
 
   // ── Portal content ────────────────────────────────────────────────
 
-  // Bar content: [badge] [waveform-left] [transcript] [waveform-right]
+  const visibleExamples = useMemo(
+    () =>
+      shuffledExamples.filter((phrase) => {
+        if (CHIP_DIRECT_COMMANDS[phrase]) return true;
+        return Boolean(resolveVoiceCommand(phrase));
+      }),
+    [shuffledExamples],
+  );
+
+  // Bar content: [badge] [waveform-left] [transcript]
   // Replaces the search input in the same flex row.
   const barContent = voicePanelOpen ? (
     <div className="voice-bar__inner">
@@ -634,7 +682,7 @@ export default function VoiceAssistantPopup({
       <span className="voice-bar__badge" aria-live="polite">
         <span className={`voice-bar__dot${isListening ? " voice-bar__dot--active" : ""}`} />
         <span className="voice-bar__badge-text">
-          {isListening ? `${promptText.speakingNow}...` : voicePanelStatus}
+          {isListening ? `Listening • ${listenCountdown}s` : voicePanelStatus}
         </span>
       </span>
 
@@ -665,14 +713,6 @@ export default function VoiceAssistantPopup({
         )}
       </div>
 
-      {/* Right waveform (mirrored) */}
-      <div
-        className={`voice-bar__meter voice-bar__meter--mirror${isListening ? " voice-bar__meter--active" : ""}${isProcessingCmd ? " voice-bar__meter--processing" : ""}`}
-        aria-hidden="true"
-      >
-        <span /><span /><span /><span /><span />
-      </div>
-
       {/* Speak button — only when mic permission not yet granted */}
       {micPermissionState !== "granted" && !isListening ? (
         <button
@@ -690,7 +730,7 @@ export default function VoiceAssistantPopup({
   // Chips row: full-width scrollable row of suggestion chips
   const chipsContent = voicePanelOpen ? (
     <div className="voice-chips__row" aria-label="Voice command suggestions">
-      {shuffledExamples.map((phrase) => (
+      {visibleExamples.map((phrase) => (
         <button
           key={phrase}
           type="button"

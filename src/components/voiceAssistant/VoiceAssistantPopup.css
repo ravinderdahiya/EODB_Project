@@ -82,12 +82,12 @@
   display: inline-flex;
   align-items: center;
   gap: 0.26rem;
-  padding: 0.18rem 0.5rem;
+  padding: 0.14rem 0.42rem;
   border-radius: 999px;
   background: rgba(0, 180, 120, 0.12);
   border: 1px solid rgba(0, 220, 160, 0.3);
   flex-shrink: 0;
-  max-width: 160px;
+  max-width: 138px;
   overflow: hidden;
 }
 
@@ -106,7 +106,7 @@
 }
 
 .voice-bar__badge-text {
-  font-size: 0.7rem;
+  font-size: 0.66rem;
   font-weight: 700;
   color: rgba(0, 220, 160, 0.9);
   white-space: nowrap;
@@ -375,8 +375,8 @@
 
 @media (max-width: 768px) {
   .voice-mic-btn { width: 38px; height: 38px; }
-  .voice-bar__badge { max-width: 110px; }
-  .voice-bar__badge-text { font-size: 0.64rem; }
+  .voice-bar__badge { max-width: 116px; padding: 0.13rem 0.38rem; }
+  .voice-bar__badge-text { font-size: 0.62rem; }
   .voice-bar__transcript-text { font-size: 0.82rem; }
   .voice-chips__chip { font-size: 0.62rem; padding: 0.18rem 0.42rem; }
 }
@@ -384,7 +384,7 @@
 @media (max-width: 480px) {
   /* Hide the meters on very small screens to save space */
   .voice-bar__meter { display: none; }
-  .voice-bar__badge { max-width: 90px; }
+  .voice-bar__badge { max-width: 104px; }
   .voice-bar__transcript-text { font-size: 0.76rem; }
 }
 
