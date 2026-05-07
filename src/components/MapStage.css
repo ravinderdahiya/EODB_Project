@@ -1246,9 +1246,7 @@
     grid-template-columns: 1fr;
   }
 
-  .layer-panel,
-  .record-panel,
-  .basemap-switcher {
+  .record-panel {
     left: 0.8rem;
     right: 0.8rem;
     width: auto;
