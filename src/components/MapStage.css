@@ -935,6 +935,92 @@
   -webkit-backdrop-filter: blur(4px);
 }
 
+/* ── Map Loading Overlay ──────────────────────────────────── */
+
+.map-loading-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(180deg, rgba(246, 249, 245, 0.97), rgba(237, 243, 238, 0.95));
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-radius: inherit;
+  animation: overlay-enter 280ms ease;
+  transition: opacity 480ms ease;
+}
+
+.map-loading-overlay--exiting {
+  opacity: 0;
+  pointer-events: none;
+}
+
+@keyframes overlay-enter {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+:root[data-theme="dark"] .map-loading-overlay {
+  background: linear-gradient(180deg, rgba(16, 28, 40, 0.97), rgba(11, 22, 31, 0.95));
+}
+
+.map-loading-overlay__card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.1rem;
+  padding: 2.4rem 2rem;
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  box-shadow: var(--shadow-strong);
+  max-width: 300px;
+  text-align: center;
+}
+
+:root[data-theme="dark"] .map-loading-overlay__card {
+  background: rgba(19, 35, 49, 0.92);
+  border-color: rgba(255, 255, 255, 0.06);
+}
+
+.map-loading-overlay__spinner {
+  width: 52px;
+  height: 52px;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.map-loading-overlay__spinner-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 3.5px solid rgba(47, 141, 93, 0.15);
+  border-top-color: var(--green, #2f8d5d);
+  animation: spinner-rotate 800ms linear infinite;
+}
+
+@keyframes spinner-rotate {
+  to { transform: rotate(360deg); }
+}
+
+.map-loading-overlay__title {
+  margin: 0;
+  font-family: "Merriweather Sans", sans-serif;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.map-loading-overlay__status {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--ink-muted);
+  line-height: 1.5;
+  max-width: 230px;
+}
+
 /* ── Print: parcel table + map view only ──────────────────── */
 
 @media print {
@@ -952,6 +1038,7 @@
   body.print-parcel-view .map-scale-badge,
   body.print-parcel-view .parcel-table-toggle,
   body.print-parcel-view .map-stage__status,
+  body.print-parcel-view .map-loading-overlay,
   body.print-parcel-view .map-click-popup-host,
   body.print-parcel-view .app-overlay,
   body.print-parcel-view .parcel-table-panel__print,

@@ -631,6 +631,7 @@ export function useArcGISMap({
   const onParcelSelectRef       = useLatestRef(onParcelSelect);
   const selectedParcelRef       = useLatestRef(selectedParcel);
   const onPreviewFullDetailsRef = useLatestRef(onPreviewFullDetails);
+  const layerVisibilityRef       = useLatestRef(layerVisibility);
 
   const [mapReady,     setMapReady]     = useState(false);
   const [mapStatus,    setMapStatus]    = useState("Initialising Haryana land-record map…");
@@ -665,6 +666,7 @@ export function useArcGISMap({
     let popupExtentHandle;
     let popupResizeHandle;
     let clickHandle;
+    let zoomWatchHandle;
     let view;
     let isDisposed = false;
 
@@ -825,8 +827,30 @@ export function useArcGISMap({
           { initial: true },
         );
 
-        // Map is considered ready only after view + first operational layer metadata pass.
-        // Failures are tolerated and reported through service health and console warnings.
+        // Zoom-based cadastral visibility — hide cadastral when zoomed out past village level.
+        // Parcels are invisible and the server renders nothing useful at low zoom anyway.
+        zoomWatchHandle = reactiveUtils.watch(
+          () => view.zoom,
+          (zoom) => {
+            if (isDisposed) return;
+            const lyr = layersRef.current;
+            const shouldShow = layerVisibilityRef.current.cadastral && zoom > CLICK_ZOOM.VILLAGE_MAX;
+            if (lyr.hsacCadastralLayer) lyr.hsacCadastralLayer.visible = shouldShow;
+            if (lyr.highlightLayer)     lyr.highlightLayer.visible     = shouldShow;
+          },
+          { initial: true },
+        );
+
+        // Map is interactive immediately — layer metadata loads continue in the background.
+        setMapReady(true);
+        setMapStatus("Haryana map ready. Verifying layer connectivity…");
+
+        // Fly to Haryana-wide extent right away, before waiting for layer loads.
+        await view.goTo(defaultExtent.clone(), {
+          duration: 900,
+          easing: "ease-in-out",
+        }).catch(() => undefined);
+
         const [boundariesLoad, cadastralLoad, assetsLoad] = await Promise.all([
           loadLayerWithRetry(hsacBoundariesLayer, { label: "Boundaries layer" }),
           loadLayerWithRetry(hsacCadastralLayer, { label: "Cadastral layer" }),
@@ -849,8 +873,6 @@ export function useArcGISMap({
           console.warn("[ArcGIS] Government Assets layer load failed:", assetsLoad.error);
         }
 
-        setMapReady(true);
-
         // Optional overlays should not block core tool readiness.
         void Promise.all([
           loadLayerWithRetry(nhaiLayer, { label: "NHAI layer", attempts: 1 }),
@@ -863,22 +885,6 @@ export function useArcGISMap({
             console.warn("[ArcGIS] Haryana Roads layer load failed:", roadsLoad.error);
           }
         });
-
-        if (layerPlan.usesFallback) {
-          const cadastralExtent = hsacCadastralLayer.fullExtent;
-          if (cadastralExtent) {
-            await view.goTo(cadastralExtent.expand(1.15), {
-              duration: 850,
-              easing: "ease-in-out",
-            }).catch(() => undefined);
-          }
-        }
-
-        // Always start from Haryana-wide extent on initial load.
-        await view.goTo(defaultExtent.clone(), {
-          duration: 900,
-          easing: "ease-in-out",
-        }).catch(() => undefined);
 
         const coreLayerHealthy = boundariesLoad.ok && cadastralLoad.ok;
         if (!coreLayerHealthy) {
@@ -978,24 +984,15 @@ export function useArcGISMap({
           (r) => r.graphic?.attributes?.n_khas_no || r.graphic?.attributes?.n_v_name,
         );
 
-        const queriedCadastralFeature = cadastralHit
-          ? null
-          : await queryCadastralParcelAtClick({ view, layers: currentLayers, event });
-
-        if (queriedCadastralFeature) {
-          cadastralHit = { graphic: queriedCadastralFeature };
-        }
-
-        const identifiedCadastralFeature = cadastralHit
-          ? null
-          : await identifyCadastralParcelAtPoint({
-              view,
-              layers: currentLayers,
-              mapPoint: event.mapPoint,
-            });
-
-        if (identifiedCadastralFeature) {
-          cadastralHit = { graphic: identifiedCadastralFeature };
+        if (!cadastralHit) {
+          const [queriedFeature, identifiedFeature] = await Promise.all([
+            queryCadastralParcelAtClick({ view, layers: currentLayers, event }),
+            identifyCadastralParcelAtPoint({ view, layers: currentLayers, mapPoint: event.mapPoint }),
+          ]);
+          const resolvedFeature = queriedFeature ?? identifiedFeature;
+          if (resolvedFeature) {
+            cadastralHit = { graphic: resolvedFeature };
+          }
         }
 
         if (hit && selectedParcelRef.current) {
@@ -1066,6 +1063,7 @@ export function useArcGISMap({
       popupExtentHandle?.remove?.();
       popupResizeHandle?.remove?.();
       clickHandle?.remove?.();
+      zoomWatchHandle?.remove?.();
       popupStateRef.current.host?.remove();
       popupStateRef.current.host = null;
       view?.destroy?.();
@@ -1096,9 +1094,11 @@ export function useArcGISMap({
       if (sublayer) sublayer.visible = visible;
     });
 
-    // Cadastral + parcel highlight
-    if (layers.hsacCadastralLayer) layers.hsacCadastralLayer.visible = layerVisibility.cadastral;
-    if (layers.highlightLayer)     layers.highlightLayer.visible     = layerVisibility.cadastral;
+    // Cadastral + parcel highlight — respect the zoom threshold (same rule as click handler)
+    const currentZoom = viewRef.current?.zoom;
+    const cadastralVisible = layerVisibility.cadastral && (currentZoom == null || currentZoom > CLICK_ZOOM.VILLAGE_MAX);
+    if (layers.hsacCadastralLayer) layers.hsacCadastralLayer.visible = cadastralVisible;
+    if (layers.highlightLayer)     layers.highlightLayer.visible     = cadastralVisible;
 
     // Operational overlays
     if (layers.governmentAssetsLayer) layers.governmentAssetsLayer.visible = layerVisibility.assets ?? false;

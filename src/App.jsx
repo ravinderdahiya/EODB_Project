@@ -1209,6 +1209,7 @@ export default function App() {
         <main className="workspace">
           <MapStage
             mapStatus={isPending ? "Updating selection..." : systemMessage}
+            mapReady={mapReady}
             mapRef={containerRef}
             parcel={selectedParcel}
             tableOpen={parcelTableOpen}

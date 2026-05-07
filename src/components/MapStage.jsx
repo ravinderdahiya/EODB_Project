@@ -1,6 +1,6 @@
 import "./MapStage.css";
 import { ChevronDown, ChevronUp, Printer, X } from "lucide-react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLanguage } from "@/context/LanguageContext";
 import { normalizeParcel } from "@/utils/parcelUtils";
 import { triggerPrint, PRINT_DISCLAIMER } from "@/utils/printUtils";
@@ -11,6 +11,7 @@ function formatScale(scale) {
 
 export default function MapStage({
   mapStatus,
+  mapReady,
   children,
   mapRef,
   parcel,
@@ -28,6 +29,17 @@ export default function MapStage({
   const [tableHeight, setTableHeight] = useState(null);
   const panelRef = useRef(null);
   const viewportRef = useRef(null);
+
+  const [overlayVisible, setOverlayVisible] = useState(true);
+  const [overlayExiting, setOverlayExiting] = useState(false);
+
+  useEffect(() => {
+    if (mapReady && overlayVisible) {
+      setOverlayExiting(true);
+      const timer = setTimeout(() => setOverlayVisible(false), 500);
+      return () => clearTimeout(timer);
+    }
+  }, [mapReady, overlayVisible]);
 
   const startDrag = (e) => {
     e.preventDefault();
@@ -106,6 +118,23 @@ export default function MapStage({
       >
         <div className="map-stage__canvas" ref={mapRef} />
         {children}
+
+        {overlayVisible && (
+          <div
+            className={`map-loading-overlay${overlayExiting ? " map-loading-overlay--exiting" : ""}`}
+            role="status"
+            aria-live="polite"
+            aria-label="Map loading"
+          >
+            <div className="map-loading-overlay__card">
+              <div className="map-loading-overlay__spinner" aria-hidden="true">
+                <div className="map-loading-overlay__spinner-ring" />
+              </div>
+              <p className="map-loading-overlay__title">Loading Map</p>
+              <p className="map-loading-overlay__status">{mapStatus}</p>
+            </div>
+          </div>
+        )}
 
         {scaleLabel && (
           <div className="map-scale-badge" aria-label={`Map scale ${scaleLabel}`}>
