@@ -18,6 +18,23 @@ function normalizeBaseUrl(baseUrl) {
   return baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`;
 }
 
+function normalizeRouterBase(baseName) {
+  if (!baseName) return "/";
+  return baseName.endsWith("/") ? baseName.slice(0, -1) : baseName;
+}
+
+function resolveRouterBase() {
+  const envBase = normalizeRouterBase(import.meta.env.VITE_BASENAME || "/");
+  const knownBases = ["/eodb_test", "/eodb"];
+  const pathname = window.location.pathname;
+
+  const matchedBase = knownBases.find((base) =>
+    pathname === base || pathname.startsWith(`${base}/`)
+  );
+
+  return matchedBase || envBase || "/";
+}
+
 function getArcgisAssetsPath() {
   const normalizedBase = normalizeBaseUrl(import.meta.env.BASE_URL || "/");
   const relativeAssetsPath = `${normalizedBase}arcgis/assets/`;
@@ -52,7 +69,7 @@ HSAC_PROXY_URL_PREFIXES.forEach((urlPrefix) => {
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <LanguageProvider>
-      <BrowserRouter basename={(import.meta.env.VITE_BASENAME || "").replace(/\/$/, "") || "/"}>
+      <BrowserRouter basename={resolveRouterBase()}>
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/" element={<Navigate to="/login" replace />} />
