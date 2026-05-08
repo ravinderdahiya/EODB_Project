@@ -468,26 +468,16 @@
    AppHeader — Responsive
 ========================= */
 
-/* ── Tablet (≤1024px): compact 3-column, sidebar is now a drawer ─ */
+/* ── Tablet and below (≤1024px): two-row layout ─────────────────── */
+/* Row 1: [hamburger + brand]  [actions]                              */
+/* Row 2: [full-width search bar]                                     */
+
 @media (max-width: 1024px) {
-  .app-header {
-    grid-template-columns: minmax(0, 1fr) minmax(280px, 560px) minmax(0, 1fr);
-    gap: 0.65rem;
-    padding: 0.45rem 0.8rem;
-  }
-}
-
-/* ── Mobile (≤768px): two-row layout ────────────────────────────── */
-/* Row 1: [hamburger + brand]  [actions]                             */
-/* Row 2: [full-width search bar]                                    */
-
-@media (max-width: 768px) {
   .app-header {
     grid-template-columns: 1fr auto;
     grid-template-rows: auto auto;
-    gap: 0.45rem 0.6rem;
-    padding: 0.6rem 0.75rem;
-    min-height: var(--header-height);
+    gap: 0.5rem 0.65rem;
+    padding: 0.6rem 0.9rem;
     align-items: center;
   }
 
@@ -515,12 +505,14 @@
   .search-shell.search-shell--voice-open {
     border-radius: 14px;
     padding: 0.28rem 0.34rem 0.28rem 0.62rem;
+    min-width: 0;
+    width: 100%;
   }
 
   .app-header__actions {
     grid-column: 2;
     grid-row: 1;
-    gap: 0.35rem;
+    gap: 0.45rem;
     flex-wrap: nowrap;
     justify-content: flex-end;
     align-items: center;
@@ -529,7 +521,7 @@
 
   .app-header__brand {
     align-items: center;
-    gap: 0.55rem;
+    gap: 0.65rem;
   }
 
   /* hide subtitle to save vertical space */
@@ -537,7 +529,7 @@
     display: none;
   }
 
-  /* logout: icon-only on mobile */
+  /* logout: icon-only on tablet */
   .header-action-button--logout span {
     display: none;
   }
@@ -550,6 +542,18 @@
     min-height: 36px;
     padding: 0 0.72rem;
     font-size: 0.9rem;
+  }
+}
+
+/* ── Mobile (≤768px): tighter padding ───────────────────────────── */
+@media (max-width: 768px) {
+  .app-header {
+    padding: 0.55rem 0.75rem;
+    gap: 0.42rem 0.55rem;
+  }
+
+  .app-header__actions {
+    gap: 0.35rem;
   }
 }
 

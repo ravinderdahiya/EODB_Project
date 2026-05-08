@@ -18,8 +18,13 @@ function ProtectedRoute({ children, requireAdmin = false }) {
   const encryptedToken = localStorage.getItem("token");
   const token = encryptedToken ? decrypt(encryptedToken) : null;
   const isAdmin = localStorage.getItem("isAdmin") === "true";
+  const hasValidToken = Boolean(token && token.trim());
 
-  if (!token) return <Navigate to="/login" />;
+  // Support both auth styles:
+  // 1) JWT in localStorage
+  // 2) HttpOnly cookie with sessionStorage auth marker
+  // If session is authenticated, allow navigation even when token is absent.
+  if (!hasValidToken && !isAuthenticated) return <Navigate to="/login" />;
   if (requireAdmin && !isAdmin) return <Navigate to="/login" />;
 
   return children;

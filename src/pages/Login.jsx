@@ -201,10 +201,21 @@ export default function Login() {
                     id="lp-phone"
                     className="lp-phone-input"
                     type="tel"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
                     maxLength={10}
                     placeholder={t("login.phonePlaceholder")}
                     value={phone}
                     onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
+                    onKeyDown={(e) => {
+                      const allowed = ["Backspace","Delete","Tab","Escape","Enter","ArrowLeft","ArrowRight","Home","End"];
+                      if (!allowed.includes(e.key) && !/^\d$/.test(e.key)) e.preventDefault();
+                    }}
+                    onPaste={(e) => {
+                      e.preventDefault();
+                      const digits = e.clipboardData.getData("text").replace(/\D/g, "");
+                      setPhone(digits.slice(0, 10));
+                    }}
                   />
                 </div>
 
@@ -221,10 +232,13 @@ export default function Login() {
                         <input
                           key={index}
                           id={`otp-${index}`}
-                          type="text"
+                          type="tel"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
                           maxLength="1"
                           className="otp-input"
                           value={digit}
+                          autoComplete={index === 0 ? "one-time-code" : "off"}
                           onChange={(e) => {
                             const value = e.target.value.replace(/\D/, "");
                             const newOtp = [...otp];
@@ -234,6 +248,17 @@ export default function Login() {
                               document.getElementById(`otp-${index + 1}`).focus();
                             }
                           }}
+                          onKeyDown={(e) => {
+                            const allowed = ["Tab","Escape","Enter","ArrowLeft","ArrowRight"];
+                            if (!allowed.includes(e.key) && !/^\d$/.test(e.key) && e.key !== "Backspace" && e.key !== "Delete") {
+                              e.preventDefault();
+                              return;
+                            }
+                            if (e.key === "Backspace" && !otp[index] && index > 0) {
+                              document.getElementById(`otp-${index - 1}`).focus();
+                            }
+                          }}
+                          onPaste={(e) => e.preventDefault()}
                         />
                       ))}
                     </div>
