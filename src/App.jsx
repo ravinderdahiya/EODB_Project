@@ -77,7 +77,7 @@ export default function App() {
   const [isPending, startTransition] = useTransition();
   const { theme, setTheme } = useDashboardPreferences();
 
-  const { t, setLang } = useLanguage();
+  const { lang, t, setLang } = useLanguage();
   const [activeNav, setActiveNav] = useState(navigationItems[0]?.id ?? "");
   const [sidebarOpen, setSidebarOpen] = useState(!isTablet);
   // single active-panel state — only one floating panel open at a time
@@ -1332,7 +1332,11 @@ export default function App() {
         parcel={selectedParcel}
         onClose={() => setDetailsOpen(false)}
       />
-      <SaarthiChatbotWidget blurred={detailsOpen} />
+      <SaarthiChatbotWidget
+        lang={lang}
+        blurred={detailsOpen}
+        hidden={isTablet && sidebarOpen}
+      />
     </div>
   );
 }

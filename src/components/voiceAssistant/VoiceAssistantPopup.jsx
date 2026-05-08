@@ -137,7 +137,7 @@ export default function VoiceAssistantPopup({
   const [isListening,        setIsListening]        = useState(false);
   const [isProcessingCmd,    setIsProcessingCmd]    = useState(false);
   const [voicePanelOpen,     setVoicePanelOpen]     = useState(false);
-  const [voicePanelStatus,   setVoicePanelStatus]   = useState("Click microphone and say something...");
+  const [voicePanelStatus,   setVoicePanelStatus]   = useState("Tap microphone and say something...");
   const [transcriptText,     setTranscriptText]     = useState("");
   const [interimText,        setInterimText]        = useState("");
   const [typedPreview,       setTypedPreview]       = useState("");
@@ -271,7 +271,7 @@ export default function VoiceAssistantPopup({
   const requestMicPermission = async () => {
     if (!navigator?.mediaDevices?.getUserMedia) {
       setMicPermissionState("unsupported");
-      setVoicePanelStatus("Microphone needs HTTPS/localhost and browser support.");
+      setVoicePanelStatus("Microphone needs HTTPS (or localhost) and browser support.");
       return false;
     }
     try {
@@ -450,7 +450,7 @@ export default function VoiceAssistantPopup({
         setVoicePanelStatus(
           heardSpeechRef.current
             ? "Listening ended."
-            : "Listening ended without speech. Click Speak and allow microphone if prompted.",
+            : "Listening ended without speech. Tap mic and allow microphone if prompted.",
         );
       }
     };
@@ -609,7 +609,7 @@ export default function VoiceAssistantPopup({
     setTypedPreview("");
     if (micPermissionState === "granted") setVoicePanelStatus(promptText.saySomething);
     else if (micPermissionState === "denied") setVoicePanelStatus("Microphone blocked. Allow mic in browser settings.");
-    else setVoicePanelStatus("Click Speak to allow microphone and start listening.");
+    else setVoicePanelStatus("Tap mic to allow microphone and start listening.");
     void refreshPermission();
   };
 
@@ -626,7 +626,7 @@ export default function VoiceAssistantPopup({
     handleOpenVoicePanel();
     if (isListening) { recognitionRef.current.stop(); return; }
     if (micPermissionState === "denied") { setVoicePanelStatus("Microphone blocked. Allow mic in browser settings."); return; }
-    if (micPermissionState !== "granted") { setVoicePanelStatus("Click Speak to allow microphone."); return; }
+    if (micPermissionState !== "granted") { void handleSpeakAction(); return; }
     recognitionRef.current.lang = resetSpeechLangCycle(lang);
     onStatusChange(promptText.listening);
     startRecognition();
@@ -642,6 +642,25 @@ export default function VoiceAssistantPopup({
     recognitionRef.current.lang = resetSpeechLangCycle(lang);
     onStatusChange(promptText.listening);
     startRecognition();
+  };
+
+  const isMicPermissionActionable = !isListening && micPermissionState !== "granted";
+  const handleMicPermissionHintClick = async () => {
+    if (!isMicPermissionActionable) return;
+
+    if (micPermissionState === "prompt" || micPermissionState === "unknown") {
+      await handleSpeakAction();
+      return;
+    }
+
+    const isSecure =
+      typeof window !== "undefined"
+      && (window.isSecureContext || window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1");
+    if (!isSecure) {
+      setVoicePanelStatus("Microphone blocked on HTTP. Open app on HTTPS URL, then tap mic again.");
+      return;
+    }
+    setVoicePanelStatus("Microphone blocked. Enable mic in browser site settings and tap mic again.");
   };
 
   // Chip click → run the phrase as if spoken
@@ -679,12 +698,17 @@ export default function VoiceAssistantPopup({
   const barContent = voicePanelOpen ? (
     <div className="voice-bar__inner">
       {/* Listening / status badge */}
-      <span className="voice-bar__badge" aria-live="polite">
+      <button
+        type="button"
+        className={`voice-bar__badge${isMicPermissionActionable ? " voice-bar__badge--actionable" : ""}`}
+        aria-live="polite"
+        onClick={() => { void handleMicPermissionHintClick(); }}
+      >
         <span className={`voice-bar__dot${isListening ? " voice-bar__dot--active" : ""}`} />
         <span className="voice-bar__badge-text">
           {isListening ? `Listening • ${listenCountdown}s` : voicePanelStatus}
         </span>
-      </span>
+      </button>
 
       {/* Left waveform */}
       <div
@@ -713,17 +737,6 @@ export default function VoiceAssistantPopup({
         )}
       </div>
 
-      {/* Speak button — only when mic permission not yet granted */}
-      {micPermissionState !== "granted" && !isListening ? (
-        <button
-          type="button"
-          className="voice-bar__speak-btn"
-          onClick={() => { void handleSpeakAction(); }}
-          disabled={isProcessingCmd}
-        >
-          {promptText.buttons.speak}
-        </button>
-      ) : null}
     </div>
   ) : null;
 

@@ -1,6 +1,89 @@
 import { useEffect, useRef, useState } from "react";
 import "./SaarthiChatbotWidget.css";
 
+const CHATBOT_LOCALE = {
+  en: {
+    subtitle: "Assistant + FAQ",
+    welcomeMessage: "Welcome! I am EODB Saarthi.\nAsk your question in English or Hinglish.",
+    faqTitle: "FAQ Questions (Click to Ask)",
+    inputPlaceholder: "Ask in English or Hinglish...",
+    questions: [
+      "How to search land records?",
+      "What fields are required to search?",
+      "Khasra number nahi pata, ab kya kare?",
+      "Why am I getting no records?",
+      "Spelling mismatch kaise thik kare?",
+      "Too many results aa rahe hain, refine kaise kare?",
+      "Filters reset/clear kaise kare?",
+      "Can I search by owner name?",
+      "Record details download ya print kaise kare?",
+      "Login nahi ho raha, kya kare?",
+      "Password bhool gaya, reset kaise kare?",
+      "Session expire ho gaya, ab kya kare?",
+      "Website ke liye best browser kaunsa hai?",
+      "Support se contact kaise kare?",
+      "Complaint ke time kaunse details share kare?",
+      "Is chatbot me kya-kya puch sakte hain?",
+      "Kya main English ya Hinglish me puch sakta hoon?",
+      "The map is not loading. What should I do?",
+      "I cannot find my village in the dropdown. Why?",
+      "Owner name is incorrect. Can I dispute here?",
+      "Can I download or save Khasra details?",
+      "I am not receiving OTP. What should I do?",
+      "Maximum parcels I can select at once?",
+      "Can I switch portal language to Hindi?",
+      "Is portal data legally valid for transactions?",
+      "Which browsers are officially supported?",
+      "What is Khasra number?",
+      "What is Muraba/Murabba?",
+      "District, Tehsil, Village me kya difference hai?",
+      "What is Murabba and how is it different from Khasra?",
+    ],
+  },
+  hi: {
+    subtitle: "सहायक + FAQ",
+    welcomeMessage: "स्वागत है! मैं EODB Saarthi हूँ।\nअपना सवाल English या Hinglish में पूछें।",
+    faqTitle: "FAQ सवाल (पूछने के लिए क्लिक करें)",
+    inputPlaceholder: "English या Hinglish में पूछें...",
+    questions: [
+      "भूमि रिकॉर्ड कैसे खोजें?",
+      "खोज के लिए कौन-कौन से फ़ील्ड जरूरी हैं?",
+      "अगर खसरा नंबर नहीं पता हो तो क्या करें?",
+      "रिकॉर्ड नहीं मिल रहे, क्यों?",
+      "स्पेलिंग mismatch कैसे ठीक करें?",
+      "बहुत ज़्यादा results आ रहे हैं, refine कैसे करें?",
+      "Filters reset/clear कैसे करें?",
+      "क्या मैं owner name से search कर सकता/सकती हूँ?",
+      "रिकॉर्ड details download या print कैसे करें?",
+      "लॉगिन नहीं हो रहा, क्या करें?",
+      "पासवर्ड भूल गया/गई, reset कैसे करें?",
+      "Session expire हो गया, अब क्या करें?",
+      "वेबसाइट के लिए best browser कौन सा है?",
+      "Support से contact कैसे करें?",
+      "Complaint के समय कौन-सी details share करें?",
+      "इस chatbot में क्या-क्या पूछ सकते हैं?",
+      "क्या मैं English या Hinglish में पूछ सकता/सकती हूँ?",
+      "Map load नहीं हो रहा, क्या करें?",
+      "Dropdown में village नहीं मिल रहा, क्यों?",
+      "Owner name गलत है, क्या यहाँ dispute कर सकते हैं?",
+      "क्या मैं Khasra details download या save कर सकता/सकती हूँ?",
+      "OTP नहीं मिल रहा, क्या करें?",
+      "एक बार में maximum कितने parcels select कर सकते हैं?",
+      "क्या portal language Hindi में switch कर सकते हैं?",
+      "क्या portal data transactions के लिए legally valid है?",
+      "Officially supported browsers कौन-से हैं?",
+      "खसरा नंबर क्या होता है?",
+      "मुरब्बा क्या होता है?",
+      "District, Tehsil, Village में क्या अंतर है?",
+      "Murabba और Khasra में क्या फर्क है?",
+    ],
+  },
+};
+
+function normalizeText(value) {
+  return String(value || "").toLowerCase().replace(/\s+/g, " ").trim();
+}
+
 function readToken(styles, name, fallback) {
   const value = styles.getPropertyValue(name).trim();
   return value || fallback;
@@ -49,8 +132,8 @@ body {
   --header-gradient: ${gradient} !important;
 }
 .floating-wrapper {
-  right: 10px !important;
-  bottom: 10px !important;
+  right: 14px !important;
+  bottom: 8px !important;
   gap: 6px !important;
   background: transparent !important;
   background-color: transparent !important;
@@ -101,22 +184,23 @@ body {
 .floating-btn::before {
   content: "" !important;
   position: absolute !important;
-  inset: -4px !important;
+  inset: -6px !important;
   border-radius: 50% !important;
-  border: 2px solid currentColor !important;
+  border: 3px solid currentColor !important;
   background: transparent !important;
-  opacity: 0.36 !important;
-  animation: saarthiPulse 2.2s ease-out infinite !important;
+  opacity: 0.64 !important;
+  animation: saarthiPulse 1.95s ease-out infinite !important;
   pointer-events: none !important;
 }
 .floating-btn::after {
   content: "" !important;
   position: absolute !important;
-  inset: -1px !important;
+  inset: -2px !important;
   border-radius: 50% !important;
-  border: 1px solid currentColor !important;
+  border: 2px solid currentColor !important;
   background: transparent !important;
-  opacity: 0.22 !important;
+  opacity: 0.42 !important;
+  box-shadow: 0 0 0 2px rgba(47, 141, 93, 0.16) !important;
   pointer-events: none !important;
 }
 .floating-btn:hover,
@@ -160,45 +244,45 @@ body {
   border-radius: 14px !important;
 }
 .chat-container {
-  padding: 9px !important;
+  padding: 8px !important;
 }
 .message-bubble {
-  font-size: 12px !important;
+  font-size: 11.5px !important;
 }
 .header-text p {
   display: block !important;
   opacity: 1 !important;
 }
 .faq-suggestions-list {
-  max-height: 74px !important;
+  max-height: 68px !important;
 }
 @keyframes saarthiPulse {
   0% {
     transform: scale(0.92);
-    opacity: 0.42;
+    opacity: 0.66;
   }
-  75% {
-    transform: scale(1.22);
+  70% {
+    transform: scale(1.27);
     opacity: 0;
   }
   100% {
-    transform: scale(1.22);
+    transform: scale(1.27);
     opacity: 0;
   }
 }
 @media (max-width: 640px) {
   .floating-btn {
-    width: 48px !important;
-    height: 48px !important;
+    width: 46px !important;
+    height: 46px !important;
   }
   .chat-box {
-    border-radius: 12px !important;
+    border-radius: 11px !important;
   }
 }
 `;
 }
 
-export default function SaarthiChatbotWidget({ blurred = false }) {
+export default function SaarthiChatbotWidget({ lang = "en", blurred = false, hidden = false }) {
   const iframeRef = useRef(null);
   const observerRef = useRef(null);
   const layoutObserverRef = useRef(null);
@@ -208,12 +292,29 @@ export default function SaarthiChatbotWidget({ blurred = false }) {
   const chatbotCssPath = `${import.meta.env.BASE_URL}chatbot/assets/index-CleebXl6.css`;
   const chatbotJsPath = `${import.meta.env.BASE_URL}chatbot/assets/index-h95SWGsY.js`;
   const chatbotIconPath = `${import.meta.env.BASE_URL}chatbot/assets/eodb-saarthi-_EV4f2aO.png`;
+  const activeLocale = CHATBOT_LOCALE[lang] || CHATBOT_LOCALE.en;
+
+  const closeBottomPanelIfOpen = () => {
+    const tableOpen = Boolean(document.querySelector(".map-stage__viewport--table-open"));
+    if (!tableOpen) return false;
+    const toggleButton = document.querySelector(".parcel-table-toggle");
+    if (toggleButton && typeof toggleButton.click === "function") {
+      toggleButton.click();
+      return true;
+    }
+    return false;
+  };
+
   const openChatFromHost = () => {
+    const panelWasOpen = closeBottomPanelIfOpen();
     const frameDoc = iframeRef.current?.contentDocument;
     const floatingButton = frameDoc?.querySelector(".floating-btn");
-    if (floatingButton && typeof floatingButton.click === "function") {
-      floatingButton.click();
+    if (!(floatingButton && typeof floatingButton.click === "function")) return;
+    if (panelWasOpen) {
+      window.setTimeout(() => floatingButton.click(), 100);
+      return;
     }
+    floatingButton.click();
   };
 
   useEffect(() => {
@@ -283,6 +384,7 @@ export default function SaarthiChatbotWidget({ blurred = false }) {
     const syncWidget = () => {
       const frameDoc = iframe.contentDocument;
       if (!frameDoc) return;
+      frameDoc.documentElement.lang = lang === "hi" ? "hi" : "en";
 
       const appNode = frameDoc.querySelector(".app");
       const isDark = document.documentElement.dataset.theme === "dark";
@@ -297,8 +399,48 @@ export default function SaarthiChatbotWidget({ blurred = false }) {
       });
 
       const subtitleNode = frameDoc.querySelector(".header-text p");
-      if (subtitleNode && subtitleNode.textContent?.trim() !== "Assistant + FAQ") {
-        subtitleNode.textContent = "Assistant + FAQ";
+      if (subtitleNode && subtitleNode.textContent?.trim() !== activeLocale.subtitle) {
+        subtitleNode.textContent = activeLocale.subtitle;
+      }
+
+      const faqTitleNode = frameDoc.querySelector(".faq-suggestions-title");
+      if (faqTitleNode && faqTitleNode.textContent?.trim() !== activeLocale.faqTitle) {
+        faqTitleNode.textContent = activeLocale.faqTitle;
+      }
+
+      const inputNode = frameDoc.querySelector(".input-area input");
+      if (inputNode && inputNode.getAttribute("placeholder") !== activeLocale.inputPlaceholder) {
+        inputNode.setAttribute("placeholder", activeLocale.inputPlaceholder);
+      }
+
+      frameDoc.querySelectorAll(".faq-suggestion-item").forEach((node, index) => {
+        if (!(node instanceof HTMLElement)) return;
+        const nextText = activeLocale.questions[index];
+        if (!nextText) return;
+        if (node.textContent?.trim() !== nextText) {
+          node.textContent = nextText;
+        }
+      });
+
+      const welcomeNode = frameDoc.querySelector(".message-row.bot-row .message-bubble.bot");
+      if (welcomeNode) {
+        const current = normalizeText(welcomeNode.textContent);
+        const englishWelcome = normalizeText(CHATBOT_LOCALE.en.welcomeMessage);
+        const hindiWelcome = normalizeText(CHATBOT_LOCALE.hi.welcomeMessage);
+        const looksLikeWelcome =
+          current === englishWelcome
+          || current === hindiWelcome
+          || (
+            current.includes("welcome! i am eodb saarthi")
+            && current.includes("ask your question in english or hinglish")
+          )
+          || (
+            current.includes("स्वागत है")
+            && current.includes("eodb saarthi")
+          );
+        if (looksLikeWelcome && welcomeNode.textContent?.trim() !== activeLocale.welcomeMessage) {
+          welcomeNode.textContent = activeLocale.welcomeMessage;
+        }
       }
 
       const hostStyles = getComputedStyle(document.documentElement);
@@ -399,12 +541,14 @@ export default function SaarthiChatbotWidget({ blurred = false }) {
       document.removeEventListener("click", onHostClickCapture, true);
       document.removeEventListener("pointerdown", onHostPointerDownCapture, true);
     };
-  }, []);
+  }, [activeLocale, chatbotIconPath, chatbotCssPath, chatbotJsPath, lang]);
 
   return (
     <div
-      className={`saarthi-chatbot-widget ${isOpen ? "saarthi-chatbot-widget--open" : ""} ${blurred ? "saarthi-chatbot-widget--blurred" : ""}`}
-      style={{ "--chatbot-bottom-offset": `${bottomOffset}px` }}
+      className={`saarthi-chatbot-widget ${isOpen ? "saarthi-chatbot-widget--open" : ""} ${blurred ? "saarthi-chatbot-widget--blurred" : ""} ${hidden ? "saarthi-chatbot-widget--hidden" : ""}`}
+      style={{
+        "--chatbot-bottom-offset": `${bottomOffset}px`,
+      }}
     >
       {!isOpen ? (
         <button

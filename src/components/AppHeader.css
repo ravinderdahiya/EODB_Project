@@ -507,6 +507,14 @@
   .search-shell {
     grid-column: 1 / -1;
     grid-row: 2;
+    gap: 0.52rem;
+    min-height: 44px;
+    padding: 0.34rem 0.42rem 0.34rem 0.72rem;
+  }
+
+  .search-shell.search-shell--voice-open {
+    border-radius: 14px;
+    padding: 0.28rem 0.34rem 0.28rem 0.62rem;
   }
 
   .app-header__actions {
@@ -536,6 +544,12 @@
 
   .header-action-button--logout {
     padding: 0 0.7rem;
+  }
+
+  .search-shell__submit {
+    min-height: 36px;
+    padding: 0 0.72rem;
+    font-size: 0.9rem;
   }
 }
 
@@ -577,8 +591,14 @@
     padding: 0.38rem 0.42rem 0.38rem 0.8rem;
   }
 
+  .search-shell.search-shell--voice-open {
+    padding: 0.24rem 0.3rem 0.24rem 0.56rem;
+    border-radius: 12px;
+  }
+
   .search-shell__submit {
-    min-height: 38px;
-    padding: 0 0.65rem;
+    min-height: 34px;
+    padding: 0 0.58rem;
+    font-size: 0.84rem;
   }
 }
