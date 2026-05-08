@@ -176,6 +176,11 @@ const en = {
     errBadPhone:       "Enter valid 10 digit number",
     errOtpFailed:      "OTP verification failed",
     errSendFailed:     "Failed to send OTP",
+    errOtpExpired:     "OTP expired. Please resend OTP.",
+    otpExpiresIn:      "OTP expires in",
+    otpExpiredNow:     "OTP expired",
+    resendOtp:         "Resend OTP",
+    resendOtpIn:       "Resend OTP in",
     errBadAdmin:       "Invalid admin credentials",
   },
 };

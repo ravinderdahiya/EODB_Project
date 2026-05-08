@@ -1,7 +1,6 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Login.css";
-import axios from "axios";
 import { useLanguage } from "@/context/LanguageContext";
 import axiosInstance from "../utils/axiosInstance";
 import LanguageToggle from "@/components/LanguageToggle";
@@ -18,9 +17,39 @@ export default function Login() {
   const [error, setError] = useState("");
   const [showOtpInput, setShowOtpInput] = useState(false);
   const [otp, setOtp] = useState(["", "", "", ""]);
+  const [otpTimer, setOtpTimer] = useState(0);
+  const [isSendingOtp, setIsSendingOtp] = useState(false);
+  const [isResendingOtp, setIsResendingOtp] = useState(false);
+  const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
+
+  const isOtpExpired = showOtpInput && otpTimer === 0;
+  const canResendOtp = showOtpInput && otpTimer === 0 && !isResendingOtp && !isSendingOtp;
+  const canVerifyOtp = !isOtpExpired && !isVerifyingOtp;
+
+  const formatTimer = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+  };
+
+  const timerText = useMemo(() => formatTimer(otpTimer), [otpTimer]);
+
+  useEffect(() => {
+    if (!showOtpInput || otpTimer <= 0) return undefined;
+    const intervalId = setInterval(() => {
+      setOtpTimer((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+
+    return () => clearInterval(intervalId);
+  }, [showOtpInput, otpTimer]);
 
   const handleVerifyOtp = async () => {
     const enteredOtp = otp.join("");
+
+    if (isOtpExpired) {
+      setError(t("login.errOtpExpired"));
+      return;
+    }
 
     if (enteredOtp.length !== 4) {
       setError(t("login.errInvalidOtp"));
@@ -28,6 +57,7 @@ export default function Login() {
     }
 
     try {
+      setIsVerifyingOtp(true);
       const res = await axiosInstance.post("/otp/verify-otp", {
         phone,
         otp: enteredOtp,
@@ -40,6 +70,26 @@ export default function Login() {
       navigate("/map");
     } catch (err) {
       setError(err.response?.data?.message || t("login.errOtpFailed"));
+    } finally {
+      setIsVerifyingOtp(false);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    if (!canResendOtp) return;
+    setError("");
+
+    try {
+      setIsResendingOtp(true);
+      const res = await axiosInstance.post("/otp/resend-otp", { phone });
+      if (res.data.message) {
+        setOtp(["", "", "", ""]);
+        setOtpTimer(120);
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || t("login.errSendFailed"));
+    } finally {
+      setIsResendingOtp(false);
     }
   };
 
@@ -64,12 +114,17 @@ export default function Login() {
       }
 
       try {
+        setIsSendingOtp(true);
         const res = await axiosInstance.post("/otp/send-otp", { phone });
         if (res.data.message) {
           setShowOtpInput(true);
+          setOtp(["", "", "", ""]);
+          setOtpTimer(120);
         }
       } catch (err) {
         setError(err.response?.data?.message || t("login.errSendFailed"));
+      } finally {
+        setIsSendingOtp(false);
       }
 
       return;
@@ -101,6 +156,11 @@ export default function Login() {
   const switchTab = (next) => {
     setTab(next);
     setError("");
+    if (next !== "otp") {
+      setShowOtpInput(false);
+      setOtp(["", "", "", ""]);
+      setOtpTimer(0);
+    }
   };
 
   return (
@@ -220,7 +280,7 @@ export default function Login() {
                 </div>
 
                 {!showOtpInput ? (
-                  <button type="submit" className="lp-btn-green">
+                  <button type="submit" className="lp-btn-green" disabled={isSendingOtp}>
                     {t("login.sendOtp")}
                   </button>
                 ) : (
@@ -263,7 +323,25 @@ export default function Login() {
                       ))}
                     </div>
 
-                    <button type="submit" className="lp-btn-green">
+                    <div className="lp-otp-meta">
+                      <p className={`lp-otp-timer${isOtpExpired ? " is-expired" : ""}`}>
+                        {isOtpExpired
+                          ? t("login.otpExpiredNow")
+                          : `${t("login.otpExpiresIn")} ${timerText}`}
+                      </p>
+                      <button
+                        type="button"
+                        className="lp-resend-btn"
+                        disabled={!canResendOtp}
+                        onClick={handleResendOtp}
+                      >
+                        {canResendOtp
+                          ? t("login.resendOtp")
+                          : `${t("login.resendOtpIn")} ${timerText}`}
+                      </button>
+                    </div>
+
+                    <button type="submit" className="lp-btn-green" disabled={!canVerifyOtp}>
                       {t("login.verifyOtp")}
                     </button>
                   </>

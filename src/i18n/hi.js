@@ -176,6 +176,11 @@ const hi = {
     errBadPhone:    "10 अंकों का वैध नंबर दर्ज करें",
     errOtpFailed:   "OTP सत्यापन विफल",
     errSendFailed:  "OTP भेजने में विफल",
+    errOtpExpired:  "OTP की समय सीमा समाप्त हो गई। कृपया OTP फिर से भेजें।",
+    otpExpiresIn:   "OTP समाप्त होगा",
+    otpExpiredNow:  "OTP समाप्त हो गया",
+    resendOtp:      "OTP फिर से भेजें",
+    resendOtpIn:    "OTP फिर से भेजें",
     errBadAdmin:    "अमान्य एडमिन क्रेडेंशियल",
   },
 };

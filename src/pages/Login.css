@@ -594,6 +594,13 @@
 
 .lp-btn-green:active { transform: translateY(0); }
 
+.lp-btn-green:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+  transform: none;
+  box-shadow: none;
+}
+
 /* ── Divider ── */
 .lp-divider {
   display: flex;
@@ -847,4 +854,41 @@
   border-color: #00ff88;
   background: rgba(0, 255, 136, 0.08);
   box-shadow: 0 0 0 2px rgba(0, 255, 136, 0.2);
+}
+
+.lp-otp-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: -2px 0 10px;
+}
+
+.lp-otp-timer {
+  margin: 0;
+  font-size: 11.5px;
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.lp-otp-timer.is-expired {
+  color: #ff8585;
+}
+
+.lp-resend-btn {
+  border: none;
+  background: transparent;
+  color: #00ff88;
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 0;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.lp-resend-btn:disabled {
+  color: rgba(255, 255, 255, 0.55);
+  cursor: not-allowed;
+  text-decoration: none;
 }
