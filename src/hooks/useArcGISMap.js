@@ -282,28 +282,32 @@ function createLandRecordPopupContent({
       </div>
 
       <div class="map-click-popup__scroll">
+        <div class="map-click-popup__loading ${/fetching|loading/i.test(preview.verificationStatus || "") ? "is-active" : ""}" data-role="popup-loading">
+          <span class="map-click-popup__loading-spinner" aria-hidden="true"></span>
+          <span>Loading land record details...</span>
+        </div>
         <div class="map-click-popup__selectors">
           <div class="map-click-popup__selector">
             <span>District</span>
             <div class="map-click-popup__select">
-              <strong>${preview.district}</strong>
-              <small>${preview.districtCode || "--"}</small>
+              <strong data-field="district">${preview.district}</strong>
+              <small data-field="districtCode">${preview.districtCode || "--"}</small>
             </div>
           </div>
 
           <div class="map-click-popup__selector">
             <span>Tehsil</span>
             <div class="map-click-popup__select">
-              <strong>${preview.tehsil}</strong>
-              <small>${preview.tehsilCode || "--"}</small>
+              <strong data-field="tehsil">${preview.tehsil}</strong>
+              <small data-field="tehsilCode">${preview.tehsilCode || "--"}</small>
             </div>
           </div>
 
           <div class="map-click-popup__selector map-click-popup__selector--wide">
             <span>Village</span>
             <div class="map-click-popup__select">
-              <strong>${preview.village}</strong>
-              <small>${preview.villageCode || "--"}</small>
+              <strong data-field="village">${preview.village}</strong>
+              <small data-field="villageCode">${preview.villageCode || "--"}</small>
             </div>
           </div>
         </div>
@@ -311,11 +315,11 @@ function createLandRecordPopupContent({
         <div class="map-click-popup__metrics">
           <article class="map-click-popup__metric">
             <span>Murabba</span>
-            <strong>${preview.murabbaNo}</strong>
+            <strong data-field="murabbaNo">${preview.murabbaNo}</strong>
           </article>
           <article class="map-click-popup__metric">
             <span>Khasra</span>
-            <strong>${preview.khasraNo}</strong>
+            <strong data-field="khasraNo">${preview.khasraNo}</strong>
           </article>
           
 
@@ -324,29 +328,29 @@ function createLandRecordPopupContent({
         <div class="record-panel__details map-click-popup__details">
           <div class="info-row">
             <span>Owner Name</span>
-            <strong>${preview.ownerName}</strong>
+            <strong data-field="ownerName">${preview.ownerName}</strong>
           </div>
           <div class="info-row">
             <span>Khewat</span>
-            <strong>${preview.khewatNo}</strong>
+            <strong data-field="khewatNo">${preview.khewatNo}</strong>
           </div>
           <div class="info-row">
             <span>Khatoni</span>
-            <strong>${preview.khatoniNo}</strong>
+            <strong data-field="khatoniNo">${preview.khatoniNo}</strong>
           </div>
           <div class="info-row">
             <span>Jamabandi</span>
-            <strong>${preview.jamabandiYear}</strong>
+            <strong data-field="jamabandiYear">${preview.jamabandiYear}</strong>
           </div>
           <div class="info-row">
             <span>Area(K-M)</span>
-            <strong>${preview.area}</strong>
+            <strong data-field="area">${preview.area}</strong>
           </div>
         </div>
 
         <div class="record-panel__status map-click-popup__status">
-          <span class="badge badge--${verificationTone}">${preview.verificationStatus}</span>
-          <small>Updated ${preview.lastUpdated}</small>
+          <span class="badge badge--${verificationTone}" data-field="verificationStatus">${preview.verificationStatus}</span>
+          <small data-field="lastUpdated">Updated ${preview.lastUpdated}</small>
         </div>
 
         
@@ -388,6 +392,38 @@ function createLandRecordPopupContent({
     content: container,
     preview,
   };
+}
+
+function hydrateLandRecordPopupDetails(popupContainer, preview, options = {}) {
+  if (!popupContainer || !preview) return;
+  const keepLoading = Boolean(options.keepLoading);
+
+  const applyText = (field, value, prefix = "") => {
+    const node = popupContainer.querySelector(`[data-field="${field}"]`);
+    if (!node) return;
+    node.textContent = `${prefix}${value ?? "--"}`;
+  };
+
+  applyText("district", preview.district);
+  applyText("districtCode", preview.districtCode);
+  applyText("tehsil", preview.tehsil);
+  applyText("tehsilCode", preview.tehsilCode);
+  applyText("village", preview.village);
+  applyText("villageCode", preview.villageCode);
+  applyText("murabbaNo", preview.murabbaNo);
+  applyText("khasraNo", preview.khasraNo);
+  applyText("ownerName", preview.ownerName);
+  applyText("khewatNo", preview.khewatNo);
+  applyText("khatoniNo", preview.khatoniNo);
+  applyText("jamabandiYear", preview.jamabandiYear);
+  applyText("area", preview.area);
+  applyText("verificationStatus", preview.verificationStatus);
+  applyText("lastUpdated", preview.lastUpdated, "Updated ");
+
+  const loadingNode = popupContainer.querySelector('[data-role="popup-loading"]');
+  if (loadingNode) {
+    loadingNode.classList.toggle("is-active", keepLoading);
+  }
 }
 
 /** Minimal fallback popup for cadastral sublayers. */
@@ -490,6 +526,34 @@ function createInstantParcelPreview({ attributes = {}, geometry = null, fallback
     overview: "Parcel preview opened quickly. Additional details are loading.",
     breadcrumb,
     geometry,
+  };
+}
+
+function createPopupLoadingPreview(fallbackParcel, mapPoint) {
+  const fallback = fallbackParcel ?? {};
+  return {
+    district: fallback.district || "--",
+    districtCode: fallback.districtCode || "",
+    tehsil: fallback.tehsil || "--",
+    tehsilCode: fallback.tehsilCode || "",
+    village: fallback.village || "--",
+    villageCode: fallback.villageCode || "",
+    murabbaNo: "--",
+    khasraNo: "--",
+    ownerName: "Loading...",
+    khewatNo: "--",
+    khatoniNo: "--",
+    jamabandiYear: "Loading...",
+    area: "--",
+    landUse: "--",
+    verificationStatus: "Loading details",
+    recordType: "Khasra",
+    mutationStatus: "--",
+    registryRef: "DLR-UNAVAILABLE",
+    lastUpdated: "Please wait...",
+    overview: "Fetching cadastral parcel details from live services.",
+    breadcrumb: "Resolving clicked parcel",
+    geometry: mapPoint ?? null,
   };
 }
 
@@ -1025,6 +1089,24 @@ export function useArcGISMap({
         if (!currentLayers.hsacCadastralLayer?.visible) return;
         const popupRequestId = ++cadastralPopupRequestCounter;
 
+        const loadingPopup = createLandRecordPopupContent({
+          parcel: createPopupLoadingPreview(selectedParcelRef.current, event.mapPoint),
+          onClose: () => closeLandRecordMiniPopup(popupStateRef),
+          onZoomToParcel: async () => {
+            if (!event.mapPoint) return;
+            await view
+              .goTo({ target: event.mapPoint, zoom: Math.max(view.zoom ?? 13, 15) })
+              .catch(() => undefined);
+          },
+          onViewFullDetails: () => onPreviewFullDetailsRef.current?.(selectedParcelRef.current),
+        });
+        showLandRecordMiniPopup({
+          popupStateRef,
+          popupElement: loadingPopup.content,
+          anchorPoint: event.mapPoint,
+          screenPoint: { x: event.x, y: event.y },
+        });
+
         const response = await view.hitTest(event).catch(() => null);
 
         const hit = response?.results?.find((r) => r.graphic?.layer === highlightLayer);
@@ -1047,7 +1129,10 @@ export function useArcGISMap({
           onParcelSelectRef.current?.(selectedParcelRef.current, { openTable: false });
         }
 
-        if (!cadastralHit && !hit) return;
+        if (!cadastralHit && !hit) {
+          closeLandRecordMiniPopup(popupStateRef);
+          return;
+        }
 
         const targetGeometry =
           cadastralHit?.graphic?.geometry ??
@@ -1066,39 +1151,8 @@ export function useArcGISMap({
         }
 
         onParcelSelectRef.current?.(quickPreviewRecord, { openTable: false });
-
-        const popup = createLandRecordPopupContent({
-          parcel: quickPreviewRecord,
-          onClose: () => closeLandRecordMiniPopup(popupStateRef),
-          onZoomToParcel: async () => {
-            const targetGeometry =
-              quickPreviewRecord?.geometry ??
-              cadastralHit?.graphic?.geometry ??
-              hit?.graphic?.geometry ??
-              event.mapPoint;
-
-            if (!targetGeometry) return;
-
-            if (targetGeometry.extent?.expand) {
-              await view.goTo(targetGeometry.extent.expand(1.5)).catch(() => undefined);
-              return;
-            }
-
-            await view
-              .goTo({ target: targetGeometry, zoom: Math.max(view.zoom ?? 13, 15) })
-              .catch(() => undefined);
-          },
-          onViewFullDetails: (preview) => onPreviewFullDetailsRef.current?.(preview),
-        });
-
-        showLandRecordMiniPopup({
-          popupStateRef,
-          popupElement: popup.content,
-          anchorPoint: event.mapPoint,
-          screenPoint: { x: event.x, y: event.y },
-        });
-
-        setMapStatus(`Land record popup opened for Khasra ${popup.preview.khasraNo}. Loading full details...`);
+        hydrateLandRecordPopupDetails(popupStateRef.current?.popupElement, quickPreviewRecord, { keepLoading: true });
+        setMapStatus(`Land record popup opened for Khasra ${quickPreviewRecord.khasraNo}. Loading full details...`);
 
         createParcelRecordFromMapFeature({
           attributes: cadastralHit?.graphic?.attributes,
@@ -1109,6 +1163,7 @@ export function useArcGISMap({
             if (!fullPreviewRecord || popupRequestId !== cadastralPopupRequestCounter) return;
 
             onParcelSelectRef.current?.(fullPreviewRecord, { openTable: false });
+            hydrateLandRecordPopupDetails(popupStateRef.current?.popupElement, fullPreviewRecord);
             setMapStatus(`Land record popup opened for Khasra ${fullPreviewRecord.khasraNo}.`);
           })
           .catch(() => undefined);

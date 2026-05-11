@@ -687,6 +687,33 @@
   padding-bottom: 0.85rem;
 }
 
+.map-click-popup__loading {
+  display: none;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.72rem 0.72rem 0;
+  padding: 0.52rem 0.65rem;
+  border: 1px solid rgba(23, 50, 72, 0.12);
+  border-radius: 12px;
+  background: rgba(28, 112, 189, 0.08);
+  color: var(--ink-muted);
+  font-size: 0.74rem;
+  font-weight: 600;
+}
+
+.map-click-popup__loading.is-active {
+  display: inline-flex;
+}
+
+.map-click-popup__loading-spinner {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid rgba(47, 141, 93, 0.25);
+  border-top-color: var(--green);
+  animation: spinner-rotate 800ms linear infinite;
+}
+
 .map-click-popup__scroll::-webkit-scrollbar {
   width: 8px;
 }
