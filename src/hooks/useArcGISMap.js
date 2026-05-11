@@ -35,6 +35,12 @@ import { getHsacLayerPlan } from "@/services/hsacLayerResolver";
 import { getBoundaryGeometry } from "@/services/mapQueryService";
 import { createParcelRecordFromMapFeature } from "@/services/parcelRecordService";
 import { PARCEL_FILL_SYMBOL, BOUNDARY_FILL_SYMBOL } from "@/config/mapSymbols";
+import { getRuntimeConfigValue } from "@/config/runtimeConfig";
+
+const ARCGIS_API_KEY = getRuntimeConfigValue(
+  "VITE_ARCGIS_API_KEY",
+  import.meta.env.VITE_ARCGIS_API_KEY,
+);
 
 function downloadLandRecordPreview(preview) {
   const blob = new Blob([JSON.stringify(preview, null, 2)], {
@@ -282,28 +288,32 @@ function createLandRecordPopupContent({
       </div>
 
       <div class="map-click-popup__scroll">
+        <div class="map-click-popup__loading ${/fetching|loading/i.test(preview.verificationStatus || "") ? "is-active" : ""}" data-role="popup-loading">
+          <span class="map-click-popup__loading-spinner" aria-hidden="true"></span>
+          <span>Loading land record details...</span>
+        </div>
         <div class="map-click-popup__selectors">
           <div class="map-click-popup__selector">
             <span>District</span>
             <div class="map-click-popup__select">
-              <strong>${preview.district}</strong>
-              <small>${preview.districtCode || "--"}</small>
+              <strong data-field="district">${preview.district}</strong>
+              <small data-field="districtCode">${preview.districtCode || "--"}</small>
             </div>
           </div>
 
           <div class="map-click-popup__selector">
             <span>Tehsil</span>
             <div class="map-click-popup__select">
-              <strong>${preview.tehsil}</strong>
-              <small>${preview.tehsilCode || "--"}</small>
+              <strong data-field="tehsil">${preview.tehsil}</strong>
+              <small data-field="tehsilCode">${preview.tehsilCode || "--"}</small>
             </div>
           </div>
 
           <div class="map-click-popup__selector map-click-popup__selector--wide">
             <span>Village</span>
             <div class="map-click-popup__select">
-              <strong>${preview.village}</strong>
-              <small>${preview.villageCode || "--"}</small>
+              <strong data-field="village">${preview.village}</strong>
+              <small data-field="villageCode">${preview.villageCode || "--"}</small>
             </div>
           </div>
         </div>
@@ -311,11 +321,11 @@ function createLandRecordPopupContent({
         <div class="map-click-popup__metrics">
           <article class="map-click-popup__metric">
             <span>Murabba</span>
-            <strong>${preview.murabbaNo}</strong>
+            <strong data-field="murabbaNo">${preview.murabbaNo}</strong>
           </article>
           <article class="map-click-popup__metric">
             <span>Khasra</span>
-            <strong>${preview.khasraNo}</strong>
+            <strong data-field="khasraNo">${preview.khasraNo}</strong>
           </article>
           
 
@@ -324,29 +334,29 @@ function createLandRecordPopupContent({
         <div class="record-panel__details map-click-popup__details">
           <div class="info-row">
             <span>Owner Name</span>
-            <strong>${preview.ownerName}</strong>
+            <strong data-field="ownerName">${preview.ownerName}</strong>
           </div>
           <div class="info-row">
             <span>Khewat</span>
-            <strong>${preview.khewatNo}</strong>
+            <strong data-field="khewatNo">${preview.khewatNo}</strong>
           </div>
           <div class="info-row">
             <span>Khatoni</span>
-            <strong>${preview.khatoniNo}</strong>
+            <strong data-field="khatoniNo">${preview.khatoniNo}</strong>
           </div>
           <div class="info-row">
             <span>Jamabandi</span>
-            <strong>${preview.jamabandiYear}</strong>
+            <strong data-field="jamabandiYear">${preview.jamabandiYear}</strong>
           </div>
           <div class="info-row">
             <span>Area(K-M)</span>
-            <strong>${preview.area}</strong>
+            <strong data-field="area">${preview.area}</strong>
           </div>
         </div>
 
         <div class="record-panel__status map-click-popup__status">
-          <span class="badge badge--${verificationTone}">${preview.verificationStatus}</span>
-          <small>Updated ${preview.lastUpdated}</small>
+          <span class="badge badge--${verificationTone}" data-field="verificationStatus">${preview.verificationStatus}</span>
+          <small data-field="lastUpdated">Updated ${preview.lastUpdated}</small>
         </div>
 
         
@@ -388,6 +398,38 @@ function createLandRecordPopupContent({
     content: container,
     preview,
   };
+}
+
+function hydrateLandRecordPopupDetails(popupContainer, preview, options = {}) {
+  if (!popupContainer || !preview) return;
+  const keepLoading = Boolean(options.keepLoading);
+
+  const applyText = (field, value, prefix = "") => {
+    const node = popupContainer.querySelector(`[data-field="${field}"]`);
+    if (!node) return;
+    node.textContent = `${prefix}${value ?? "--"}`;
+  };
+
+  applyText("district", preview.district);
+  applyText("districtCode", preview.districtCode);
+  applyText("tehsil", preview.tehsil);
+  applyText("tehsilCode", preview.tehsilCode);
+  applyText("village", preview.village);
+  applyText("villageCode", preview.villageCode);
+  applyText("murabbaNo", preview.murabbaNo);
+  applyText("khasraNo", preview.khasraNo);
+  applyText("ownerName", preview.ownerName);
+  applyText("khewatNo", preview.khewatNo);
+  applyText("khatoniNo", preview.khatoniNo);
+  applyText("jamabandiYear", preview.jamabandiYear);
+  applyText("area", preview.area);
+  applyText("verificationStatus", preview.verificationStatus);
+  applyText("lastUpdated", preview.lastUpdated, "Updated ");
+
+  const loadingNode = popupContainer.querySelector('[data-role="popup-loading"]');
+  if (loadingNode) {
+    loadingNode.classList.toggle("is-active", keepLoading);
+  }
 }
 
 /** Minimal fallback popup for cadastral sublayers. */
@@ -443,6 +485,84 @@ function createParcelGraphic(parcel) {
   });
 }
 
+function createInstantParcelPreview({ attributes = {}, geometry = null, fallbackParcel }) {
+  const fallback = fallbackParcel ?? {};
+  const pick = (value, fb = "--") => {
+    if (value === undefined || value === null) return fb;
+    const text = `${value}`.trim();
+    return text || fb;
+  };
+
+  const districtCode = pick(attributes.n_d_code, fallback.districtCode ?? "");
+  const tehsilCode = pick(attributes.n_t_code, fallback.tehsilCode ?? "");
+  const villageCode = pick(attributes.n_v_code, fallback.villageCode ?? "");
+  const murabbaNo = pick(attributes.n_murr_no, fallback.murabbaNo ?? "--");
+  const khasraNo = pick(attributes.n_khas_no, fallback.khasraNo ?? "--");
+  const district = pick(attributes.n_d_name, fallback.district ?? "--");
+  const tehsil = pick(attributes.n_t_name, fallback.tehsil ?? "--");
+  const village = pick(attributes.n_v_name, fallback.village ?? "--");
+  const breadcrumb = [district, tehsil, village]
+    .filter((value) => value && value !== "--")
+    .map((value, index) => (index === 0 ? `${value} District` : index === 1 ? `${value} Tehsil` : `Village ${value}`))
+    .join(" > ") || "Haryana land record selection";
+
+  return {
+    district,
+    districtCode,
+    tehsil,
+    tehsilCode,
+    village,
+    villageCode,
+    murabbaNo,
+    khasraNo,
+    ownerName: pick(fallback.ownerName, "Loading..."),
+    khewatNo: pick(fallback.khewatNo, "--"),
+    khatoniNo: pick(fallback.khatoniNo, "--"),
+    jamabandiYear: pick(fallback.jamabandiYear, "Loading..."),
+    area: pick(fallback.area, "--"),
+    landUse: pick(fallback.landUse, "--"),
+    verificationStatus: "Fetching live details",
+    recordType: pick(fallback.recordType, "Khasra"),
+    mutationStatus: pick(fallback.mutationStatus, "--"),
+    registryRef:
+      districtCode && tehsilCode && villageCode
+        ? `DLR-${[districtCode, tehsilCode, villageCode, murabbaNo, khasraNo].filter(Boolean).join("-")}`
+        : "DLR-UNAVAILABLE",
+    lastUpdated: "Loading live HSAC service details...",
+    overview: "Parcel preview opened quickly. Additional details are loading.",
+    breadcrumb,
+    geometry,
+  };
+}
+
+function createPopupLoadingPreview(fallbackParcel, mapPoint) {
+  const fallback = fallbackParcel ?? {};
+  return {
+    district: fallback.district || "--",
+    districtCode: fallback.districtCode || "",
+    tehsil: fallback.tehsil || "--",
+    tehsilCode: fallback.tehsilCode || "",
+    village: fallback.village || "--",
+    villageCode: fallback.villageCode || "",
+    murabbaNo: "--",
+    khasraNo: "--",
+    ownerName: "Loading...",
+    khewatNo: "--",
+    khatoniNo: "--",
+    jamabandiYear: "Loading...",
+    area: "--",
+    landUse: "--",
+    verificationStatus: "Loading details",
+    recordType: "Khasra",
+    mutationStatus: "--",
+    registryRef: "DLR-UNAVAILABLE",
+    lastUpdated: "Please wait...",
+    overview: "Fetching cadastral parcel details from live services.",
+    breadcrumb: "Resolving clicked parcel",
+    geometry: mapPoint ?? null,
+  };
+}
+
 function createLocationGraphic(point, title) {
   return new Graphic({
     geometry: point,
@@ -466,10 +586,22 @@ function createLocationGraphic(point, title) {
 // cdn.arcgis.com VectorTile CDN items that fail without an API key, so we build
 // explicit Basemap instances from these authenticated-free tile endpoints instead.
 const _TILE = {
-  imagery:   "https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer",
-  reference: "https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer",
-  topo:      "https://services.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer",
-  streets:   "https://services.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer",
+  imagery: getRuntimeConfigValue(
+    "VITE_ARCGIS_IMAGERY_URL",
+    "/mapserver/service/imagery",
+  ),
+  reference: getRuntimeConfigValue(
+    "VITE_ARCGIS_REFERENCE_URL",
+    "/mapserver/service/reference",
+  ),
+  topo: getRuntimeConfigValue(
+    "VITE_ARCGIS_TOPO_URL",
+    "/mapserver/service/topo",
+  ),
+  streets: getRuntimeConfigValue(
+    "VITE_ARCGIS_STREETS_URL",
+    "/mapserver/service/streets",
+  ),
 };
 
 const _basemapInstanceCache = {};
@@ -645,18 +777,20 @@ export function useArcGISMap({
   useEffect(() => {
     if (!containerRef.current) return undefined;
 
-    if (import.meta.env.VITE_ARCGIS_API_KEY) {
-      esriConfig.apiKey = import.meta.env.VITE_ARCGIS_API_KEY;
+    if (ARCGIS_API_KEY) {
+      esriConfig.apiKey = ARCGIS_API_KEY;
     }
-    HSAC_PROXY_URL_PREFIXES.forEach((urlPrefix) => {
-      const existingRule = urlUtils.getProxyRule(urlPrefix);
-      if (existingRule?.urlPrefix === urlPrefix) return;
+    if (HSAC_PROXY_URL) {
+      HSAC_PROXY_URL_PREFIXES.forEach((urlPrefix) => {
+        const existingRule = urlUtils.getProxyRule(urlPrefix);
+        if (existingRule?.urlPrefix === urlPrefix) return;
 
-      urlUtils.addProxyRule({
-        urlPrefix,
-        proxyUrl: HSAC_PROXY_URL,
+        urlUtils.addProxyRule({
+          urlPrefix,
+          proxyUrl: HSAC_PROXY_URL,
+        });
       });
-    });
+    }
 
     const defaultExtent = new Extent(arcgisPortalConfig.defaultExtent);
     defaultExtentRef.current = defaultExtent;
@@ -758,10 +892,7 @@ export function useArcGISMap({
       });
 
       map.addMany([
-        roadsLayer,
-        nhaiLayer,
         hsacCadastralLayer,
-        governmentAssetsLayer,
         hsacBoundariesLayer,
         locationLayer,
         boundaryLayer,
@@ -845,11 +976,10 @@ export function useArcGISMap({
         setMapReady(true);
         setMapStatus("Haryana map ready. Verifying layer connectivity…");
 
-        // Fly to Haryana-wide extent right away, before waiting for layer loads.
-        await view.goTo(defaultExtent.clone(), {
-          duration: 900,
-          easing: "ease-in-out",
-        }).catch(() => undefined);
+        void Promise.resolve().then(() => {
+          if (isDisposed) return;
+          map.addMany([governmentAssetsLayer, nhaiLayer, roadsLayer]);
+        });
 
         const [boundariesLoad, cadastralLoad, assetsLoad] = await Promise.all([
           loadLayerWithRetry(hsacBoundariesLayer, { label: "Boundaries layer" }),
@@ -913,6 +1043,7 @@ export function useArcGISMap({
       });
 
       let boundaryQueryCounter = 0;
+      let cadastralPopupRequestCounter = 0;
 
       clickHandle = view.on("click", async (event) => {
         const currentLayers = layersRef.current;
@@ -976,6 +1107,25 @@ export function useArcGISMap({
 
         // Cadastral zone (zoom > VILLAGE_MAX): show popup only when Cadastral layer is visible
         if (!currentLayers.hsacCadastralLayer?.visible) return;
+        const popupRequestId = ++cadastralPopupRequestCounter;
+
+        const loadingPopup = createLandRecordPopupContent({
+          parcel: createPopupLoadingPreview(selectedParcelRef.current, event.mapPoint),
+          onClose: () => closeLandRecordMiniPopup(popupStateRef),
+          onZoomToParcel: async () => {
+            if (!event.mapPoint) return;
+            await view
+              .goTo({ target: event.mapPoint, zoom: Math.max(view.zoom ?? 13, 15) })
+              .catch(() => undefined);
+          },
+          onViewFullDetails: () => onPreviewFullDetailsRef.current?.(selectedParcelRef.current),
+        });
+        showLandRecordMiniPopup({
+          popupStateRef,
+          popupElement: loadingPopup.content,
+          anchorPoint: event.mapPoint,
+          screenPoint: { x: event.x, y: event.y },
+        });
 
         const response = await view.hitTest(event).catch(() => null);
 
@@ -999,56 +1149,44 @@ export function useArcGISMap({
           onParcelSelectRef.current?.(selectedParcelRef.current, { openTable: false });
         }
 
-        if (!cadastralHit && !hit) return;
+        if (!cadastralHit && !hit) {
+          closeLandRecordMiniPopup(popupStateRef);
+          return;
+        }
 
-        const previewRecord = await createParcelRecordFromMapFeature({
+        const targetGeometry =
+          cadastralHit?.graphic?.geometry ??
+          hit?.graphic?.geometry ??
+          normalizeParcelGeometry(selectedParcelRef.current?.geometry);
+
+        const quickPreviewRecord = createInstantParcelPreview({
           attributes: cadastralHit?.graphic?.attributes,
-          geometry:
-            cadastralHit?.graphic?.geometry ??
-            hit?.graphic?.geometry ??
-            normalizeParcelGeometry(selectedParcelRef.current?.geometry),
+          geometry: targetGeometry,
           fallbackParcel: selectedParcelRef.current,
-        }).catch(() => selectedParcelRef.current);
+        });
 
-        if (!previewRecord) {
+        if (!quickPreviewRecord) {
           setMapStatus("No land record preview is available for this map click.");
           return;
         }
 
-        onParcelSelectRef.current?.(previewRecord, { openTable: false });
+        onParcelSelectRef.current?.(quickPreviewRecord, { openTable: false });
+        hydrateLandRecordPopupDetails(popupStateRef.current?.popupElement, quickPreviewRecord, { keepLoading: true });
+        setMapStatus(`Land record popup opened for Khasra ${quickPreviewRecord.khasraNo}. Loading full details...`);
 
-        const popup = createLandRecordPopupContent({
-          parcel: previewRecord,
-          onClose: () => closeLandRecordMiniPopup(popupStateRef),
-          onZoomToParcel: async () => {
-            const targetGeometry =
-              previewRecord?.geometry ??
-              cadastralHit?.graphic?.geometry ??
-              hit?.graphic?.geometry ??
-              event.mapPoint;
+        createParcelRecordFromMapFeature({
+          attributes: cadastralHit?.graphic?.attributes,
+          geometry: targetGeometry,
+          fallbackParcel: quickPreviewRecord,
+        })
+          .then((fullPreviewRecord) => {
+            if (!fullPreviewRecord || popupRequestId !== cadastralPopupRequestCounter) return;
 
-            if (!targetGeometry) return;
-
-            if (targetGeometry.extent?.expand) {
-              await view.goTo(targetGeometry.extent.expand(1.5)).catch(() => undefined);
-              return;
-            }
-
-            await view
-              .goTo({ target: targetGeometry, zoom: Math.max(view.zoom ?? 13, 15) })
-              .catch(() => undefined);
-          },
-          onViewFullDetails: (preview) => onPreviewFullDetailsRef.current?.(preview),
-        });
-
-        showLandRecordMiniPopup({
-          popupStateRef,
-          popupElement: popup.content,
-          anchorPoint: event.mapPoint,
-          screenPoint: { x: event.x, y: event.y },
-        });
-
-        setMapStatus(`Land record popup opened for Khasra ${popup.preview.khasraNo}.`);
+            onParcelSelectRef.current?.(fullPreviewRecord, { openTable: false });
+            hydrateLandRecordPopupDetails(popupStateRef.current?.popupElement, fullPreviewRecord);
+            setMapStatus(`Land record popup opened for Khasra ${fullPreviewRecord.khasraNo}.`);
+          })
+          .catch(() => undefined);
       });
     };
 
@@ -1224,7 +1362,7 @@ export function useArcGISMap({
   const searchPlace = async (term) => {
     if (!viewRef.current) return { ok: false, message: "Map is still loading." };
 
-    if (!import.meta.env.VITE_ARCGIS_API_KEY) {
+    if (!ARCGIS_API_KEY) {
       return {
         ok: false,
         requiresKey: true,
@@ -1285,9 +1423,15 @@ export function useArcGISMap({
     }
 
     try {
+      const defaultExpandByType = {
+        district: 1.12,
+        tehsil: 1.2,
+        village: 1.28,
+      };
+      const fallbackExpandFactor = defaultExpandByType[type] ?? 1.2;
       const expandFactor = Number.isFinite(options?.expandFactor)
         ? Math.max(options.expandFactor, 1.02)
-        : 5;
+        : fallbackExpandFactor;
       const { features } = await getBoundaryGeometry(type, codes);
 
       if (!features.length) {
