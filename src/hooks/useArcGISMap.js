@@ -808,10 +808,7 @@ export function useArcGISMap({
       });
 
       map.addMany([
-        roadsLayer,
-        nhaiLayer,
         hsacCadastralLayer,
-        governmentAssetsLayer,
         hsacBoundariesLayer,
         locationLayer,
         boundaryLayer,
@@ -895,11 +892,10 @@ export function useArcGISMap({
         setMapReady(true);
         setMapStatus("Haryana map ready. Verifying layer connectivity…");
 
-        // Fly to Haryana-wide extent right away, before waiting for layer loads.
-        await view.goTo(defaultExtent.clone(), {
-          duration: 900,
-          easing: "ease-in-out",
-        }).catch(() => undefined);
+        void Promise.resolve().then(() => {
+          if (isDisposed) return;
+          map.addMany([governmentAssetsLayer, nhaiLayer, roadsLayer]);
+        });
 
         const [boundariesLoad, cadastralLoad, assetsLoad] = await Promise.all([
           loadLayerWithRetry(hsacBoundariesLayer, { label: "Boundaries layer" }),
