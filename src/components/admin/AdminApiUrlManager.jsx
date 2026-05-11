@@ -196,7 +196,7 @@ export default function AdminApiUrlManager() {
                   type="text"
                   value={formData.url}
                   onChange={(e) => setFormData({ ...formData, url: e.target.value })}
-                  placeholder="https://api.example.com/v1/resource"
+                  placeholder="Enter backend or upstream API URL"
                   required
                 />
               </label>

@@ -2,7 +2,7 @@ import axios from "axios";
 import { decrypt } from "./crypto";
 
 const axiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_SERVER_BASE_URL || "http://localhost:8080",
+  baseURL: "",
   withCredentials: true, // Send httpOnly auth_token cookie automatically
 });
 

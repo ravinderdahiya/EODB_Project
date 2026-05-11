@@ -35,6 +35,12 @@ import { getHsacLayerPlan } from "@/services/hsacLayerResolver";
 import { getBoundaryGeometry } from "@/services/mapQueryService";
 import { createParcelRecordFromMapFeature } from "@/services/parcelRecordService";
 import { PARCEL_FILL_SYMBOL, BOUNDARY_FILL_SYMBOL } from "@/config/mapSymbols";
+import { getRuntimeConfigValue } from "@/config/runtimeConfig";
+
+const ARCGIS_API_KEY = getRuntimeConfigValue(
+  "VITE_ARCGIS_API_KEY",
+  import.meta.env.VITE_ARCGIS_API_KEY,
+);
 
 function downloadLandRecordPreview(preview) {
   const blob = new Blob([JSON.stringify(preview, null, 2)], {
@@ -580,10 +586,22 @@ function createLocationGraphic(point, title) {
 // cdn.arcgis.com VectorTile CDN items that fail without an API key, so we build
 // explicit Basemap instances from these authenticated-free tile endpoints instead.
 const _TILE = {
-  imagery:   "https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer",
-  reference: "https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer",
-  topo:      "https://services.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer",
-  streets:   "https://services.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer",
+  imagery: getRuntimeConfigValue(
+    "VITE_ARCGIS_IMAGERY_URL",
+    "/mapserver/service/imagery",
+  ),
+  reference: getRuntimeConfigValue(
+    "VITE_ARCGIS_REFERENCE_URL",
+    "/mapserver/service/reference",
+  ),
+  topo: getRuntimeConfigValue(
+    "VITE_ARCGIS_TOPO_URL",
+    "/mapserver/service/topo",
+  ),
+  streets: getRuntimeConfigValue(
+    "VITE_ARCGIS_STREETS_URL",
+    "/mapserver/service/streets",
+  ),
 };
 
 const _basemapInstanceCache = {};
@@ -759,18 +777,20 @@ export function useArcGISMap({
   useEffect(() => {
     if (!containerRef.current) return undefined;
 
-    if (import.meta.env.VITE_ARCGIS_API_KEY) {
-      esriConfig.apiKey = import.meta.env.VITE_ARCGIS_API_KEY;
+    if (ARCGIS_API_KEY) {
+      esriConfig.apiKey = ARCGIS_API_KEY;
     }
-    HSAC_PROXY_URL_PREFIXES.forEach((urlPrefix) => {
-      const existingRule = urlUtils.getProxyRule(urlPrefix);
-      if (existingRule?.urlPrefix === urlPrefix) return;
+    if (HSAC_PROXY_URL) {
+      HSAC_PROXY_URL_PREFIXES.forEach((urlPrefix) => {
+        const existingRule = urlUtils.getProxyRule(urlPrefix);
+        if (existingRule?.urlPrefix === urlPrefix) return;
 
-      urlUtils.addProxyRule({
-        urlPrefix,
-        proxyUrl: HSAC_PROXY_URL,
+        urlUtils.addProxyRule({
+          urlPrefix,
+          proxyUrl: HSAC_PROXY_URL,
+        });
       });
-    });
+    }
 
     const defaultExtent = new Extent(arcgisPortalConfig.defaultExtent);
     defaultExtentRef.current = defaultExtent;
@@ -1342,7 +1362,7 @@ export function useArcGISMap({
   const searchPlace = async (term) => {
     if (!viewRef.current) return { ok: false, message: "Map is still loading." };
 
-    if (!import.meta.env.VITE_ARCGIS_API_KEY) {
+    if (!ARCGIS_API_KEY) {
       return {
         ok: false,
         requiresKey: true,

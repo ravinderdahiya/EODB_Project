@@ -2,28 +2,14 @@
 // HSAC Production MapServer — authoritative source for all Haryana land-record
 // spatial data. Migrated from the old project's js/demo/url.js.
 //
-// All URL values are driven by VITE_* environment variables defined in .env.
-// Hardcoded strings here act only as safe fallbacks — configure .env for real
-// deployments.
+// All URL values are driven by backend runtime config (api_url table).
+// Frontend fallbacks point only to backend proxy routes.
 // ─────────────────────────────────────────────────────────────────────────────
 
-// Always use the official HSAC origin for MapServer calls. Proxy routing is
-// handled by ArcGIS proxy rules (proxy.ashx) configured at app startup.
-const _hsacOrigin =
-    import.meta.env.VITE_HSAC_ORIGIN ?? "https://hsac.org.in";
+import { getRuntimeConfigValue } from "@/config/runtimeConfig";
 
-// Security: VITE_HSAC_MAP_SERVICE_PATH MUST be set in production .env.
-// The empty fallback ensures staging service names never leak into production bundles.
-// If this is missing, map queries will fail visibly rather than silently use a staging service.
-const _mapServicePath =
-    import.meta.env.VITE_HSAC_MAP_SERVICE_PATH ?? "";
-
-const _normalizedOrigin = `${_hsacOrigin}`.replace(/\/+$/, "");
-const _normalizedServicePath = `${_mapServicePath}`.trim()
-    ? (`${_mapServicePath}`.startsWith("/") ? `${_mapServicePath}` : `/${_mapServicePath}`)
-    : "";
-
-export const HSAC_MAIN_URL = `${_normalizedOrigin}${_normalizedServicePath}`;
+const _hsacMainUrl = getRuntimeConfigValue("VITE_HSAC_MAIN_URL", "/mapserver/service/hsacMain");
+export const HSAC_MAIN_URL = `${_hsacMainUrl}`.replace(/\/+$/, "");
 
 // Sub-layer index constants within the HSAC MapServer.
 // TODO (ArcGIS Server admin): Enforce layer-level security on the MapServer so that
@@ -77,25 +63,35 @@ export const arcgisPortalConfig = {
     },
 
     serviceUrls: {
-        // ArcGIS geocoding — set VITE_ARCGIS_API_KEY in .env for premium usage.
-        geocoder: import.meta.env.VITE_ARCGIS_GEOCODER_URL ??
-            "https://geocode-api.arcgis.com/arcgis/rest/services/World/GeocodeServer",
+        // ArcGIS geocoding through backend proxy.
+        geocoder: getRuntimeConfigValue(
+            "VITE_ARCGIS_GEOCODER_URL",
+            "/mapserver/service/geocoder",
+        ),
 
         // Haryana state outline — thick green border around all of Haryana.
-        haryanaBoundary: import.meta.env.VITE_HARYANA_BOUNDARY_URL ??
-            "https://services1.arcgis.com/qN3V93cYGMKQCOxL/arcgis/rest/services/HARYANA_BOUNDARY/FeatureServer/0",
+        haryanaBoundary: getRuntimeConfigValue(
+            "VITE_HARYANA_BOUNDARY_URL",
+            "/mapserver/service/haryanaBoundary",
+        ),
 
         // ── HSAC / HSACGGM servers (migrated from old project url.js) ────────────
         hsacMain: HSAC_MAIN_URL,
 
-        governmentAssets: import.meta.env.VITE_HSACGGM_ASSETS_URL ??
-            "https://hsacggm.in/server/rest/services/Onemap_Haryana/Government_Assets/MapServer",
+        governmentAssets: getRuntimeConfigValue(
+            "VITE_HSACGGM_ASSETS_URL",
+            "/mapserver/service/governmentAssets",
+        ),
 
-        nhaiRoads: import.meta.env.VITE_NHAI_ROADS_URL ??
-            "https://onemapggm.gmda.gov.in/server/rest/services/NHAI_All/MapServer",
+        nhaiRoads: getRuntimeConfigValue(
+            "VITE_NHAI_ROADS_URL",
+            "/mapserver/service/nhaiRoads",
+        ),
 
-        haryanaRoads: import.meta.env.VITE_HARYANA_ROADS_URL ??
-            "https://hsacggm.in/server/rest/services/Onemap_Haryana/Haryana_Roads/MapServer",
+        haryanaRoads: getRuntimeConfigValue(
+            "VITE_HARYANA_ROADS_URL",
+            "/mapserver/service/haryanaRoads",
+        ),
     },
 
     // Boundary sub-layers shown in LayerPanel toggles

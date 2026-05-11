@@ -6,8 +6,7 @@
  *   demo/districtNew.js · demo/tehsilNew.js · demo/villageNew.js
  *   demo/murrabaNew.js  · demo/khasraNew.js · demo/drawBoundary.js
  *
- * All queries go against:
- *   https://hsac.org.in/server/rest/services/EODB/EODB_HR21/MapServer
+ * All queries go against backend-provided HSAC MapServer proxy URL.
  */
 
 import * as restQuery from "@arcgis/core/rest/query.js";
