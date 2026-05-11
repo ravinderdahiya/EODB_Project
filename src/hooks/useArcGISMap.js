@@ -443,6 +443,56 @@ function createParcelGraphic(parcel) {
   });
 }
 
+function createInstantParcelPreview({ attributes = {}, geometry = null, fallbackParcel }) {
+  const fallback = fallbackParcel ?? {};
+  const pick = (value, fb = "--") => {
+    if (value === undefined || value === null) return fb;
+    const text = `${value}`.trim();
+    return text || fb;
+  };
+
+  const districtCode = pick(attributes.n_d_code, fallback.districtCode ?? "");
+  const tehsilCode = pick(attributes.n_t_code, fallback.tehsilCode ?? "");
+  const villageCode = pick(attributes.n_v_code, fallback.villageCode ?? "");
+  const murabbaNo = pick(attributes.n_murr_no, fallback.murabbaNo ?? "--");
+  const khasraNo = pick(attributes.n_khas_no, fallback.khasraNo ?? "--");
+  const district = pick(attributes.n_d_name, fallback.district ?? "--");
+  const tehsil = pick(attributes.n_t_name, fallback.tehsil ?? "--");
+  const village = pick(attributes.n_v_name, fallback.village ?? "--");
+  const breadcrumb = [district, tehsil, village]
+    .filter((value) => value && value !== "--")
+    .map((value, index) => (index === 0 ? `${value} District` : index === 1 ? `${value} Tehsil` : `Village ${value}`))
+    .join(" > ") || "Haryana land record selection";
+
+  return {
+    district,
+    districtCode,
+    tehsil,
+    tehsilCode,
+    village,
+    villageCode,
+    murabbaNo,
+    khasraNo,
+    ownerName: pick(fallback.ownerName, "Loading..."),
+    khewatNo: pick(fallback.khewatNo, "--"),
+    khatoniNo: pick(fallback.khatoniNo, "--"),
+    jamabandiYear: pick(fallback.jamabandiYear, "Loading..."),
+    area: pick(fallback.area, "--"),
+    landUse: pick(fallback.landUse, "--"),
+    verificationStatus: "Fetching live details",
+    recordType: pick(fallback.recordType, "Khasra"),
+    mutationStatus: pick(fallback.mutationStatus, "--"),
+    registryRef:
+      districtCode && tehsilCode && villageCode
+        ? `DLR-${[districtCode, tehsilCode, villageCode, murabbaNo, khasraNo].filter(Boolean).join("-")}`
+        : "DLR-UNAVAILABLE",
+    lastUpdated: "Loading live HSAC service details...",
+    overview: "Parcel preview opened quickly. Additional details are loading.",
+    breadcrumb,
+    geometry,
+  };
+}
+
 function createLocationGraphic(point, title) {
   return new Graphic({
     geometry: point,
@@ -913,6 +963,7 @@ export function useArcGISMap({
       });
 
       let boundaryQueryCounter = 0;
+      let cadastralPopupRequestCounter = 0;
 
       clickHandle = view.on("click", async (event) => {
         const currentLayers = layersRef.current;
@@ -976,6 +1027,7 @@ export function useArcGISMap({
 
         // Cadastral zone (zoom > VILLAGE_MAX): show popup only when Cadastral layer is visible
         if (!currentLayers.hsacCadastralLayer?.visible) return;
+        const popupRequestId = ++cadastralPopupRequestCounter;
 
         const response = await view.hitTest(event).catch(() => null);
 
@@ -1001,28 +1053,30 @@ export function useArcGISMap({
 
         if (!cadastralHit && !hit) return;
 
-        const previewRecord = await createParcelRecordFromMapFeature({
-          attributes: cadastralHit?.graphic?.attributes,
-          geometry:
-            cadastralHit?.graphic?.geometry ??
-            hit?.graphic?.geometry ??
-            normalizeParcelGeometry(selectedParcelRef.current?.geometry),
-          fallbackParcel: selectedParcelRef.current,
-        }).catch(() => selectedParcelRef.current);
+        const targetGeometry =
+          cadastralHit?.graphic?.geometry ??
+          hit?.graphic?.geometry ??
+          normalizeParcelGeometry(selectedParcelRef.current?.geometry);
 
-        if (!previewRecord) {
+        const quickPreviewRecord = createInstantParcelPreview({
+          attributes: cadastralHit?.graphic?.attributes,
+          geometry: targetGeometry,
+          fallbackParcel: selectedParcelRef.current,
+        });
+
+        if (!quickPreviewRecord) {
           setMapStatus("No land record preview is available for this map click.");
           return;
         }
 
-        onParcelSelectRef.current?.(previewRecord, { openTable: false });
+        onParcelSelectRef.current?.(quickPreviewRecord, { openTable: false });
 
         const popup = createLandRecordPopupContent({
-          parcel: previewRecord,
+          parcel: quickPreviewRecord,
           onClose: () => closeLandRecordMiniPopup(popupStateRef),
           onZoomToParcel: async () => {
             const targetGeometry =
-              previewRecord?.geometry ??
+              quickPreviewRecord?.geometry ??
               cadastralHit?.graphic?.geometry ??
               hit?.graphic?.geometry ??
               event.mapPoint;
@@ -1048,7 +1102,20 @@ export function useArcGISMap({
           screenPoint: { x: event.x, y: event.y },
         });
 
-        setMapStatus(`Land record popup opened for Khasra ${popup.preview.khasraNo}.`);
+        setMapStatus(`Land record popup opened for Khasra ${popup.preview.khasraNo}. Loading full details...`);
+
+        createParcelRecordFromMapFeature({
+          attributes: cadastralHit?.graphic?.attributes,
+          geometry: targetGeometry,
+          fallbackParcel: quickPreviewRecord,
+        })
+          .then((fullPreviewRecord) => {
+            if (!fullPreviewRecord || popupRequestId !== cadastralPopupRequestCounter) return;
+
+            onParcelSelectRef.current?.(fullPreviewRecord, { openTable: false });
+            setMapStatus(`Land record popup opened for Khasra ${fullPreviewRecord.khasraNo}.`);
+          })
+          .catch(() => undefined);
       });
     };
 
@@ -1285,9 +1352,15 @@ export function useArcGISMap({
     }
 
     try {
+      const defaultExpandByType = {
+        district: 1.12,
+        tehsil: 1.2,
+        village: 1.28,
+      };
+      const fallbackExpandFactor = defaultExpandByType[type] ?? 1.2;
       const expandFactor = Number.isFinite(options?.expandFactor)
         ? Math.max(options.expandFactor, 1.02)
-        : 5;
+        : fallbackExpandFactor;
       const { features } = await getBoundaryGeometry(type, codes);
 
       if (!features.length) {

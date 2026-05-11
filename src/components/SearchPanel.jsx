@@ -228,7 +228,7 @@ function SearchSection({
       <div className="search-section__body">
         {resolvingRecord ? (
           <div className="search-section__loading-hint">
-            <Loader2 size={13} className="search-section__select-arrow--spin" />
+            <Loader2 size={13} className="search-section__loading-icon" />
             <span>{t("searchPanel.loadingDetails")}</span>
           </div>
         ) : null}
@@ -318,7 +318,7 @@ export default function SearchPanel({
     <div className="sidebar-search">
       {loadingDist && (
         <div className="search-section__loading-hint">
-          <Loader2 size={13} className="search-section__select-arrow--spin" />
+          <Loader2 size={13} className="search-section__loading-icon" />
           <span>{t("searchPanel.loadingDistricts")}</span>
         </div>
       )}
