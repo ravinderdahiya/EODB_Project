@@ -1071,6 +1071,7 @@
   body.print-parcel-view .parcel-table-panel__print,
   body.print-parcel-view .parcel-table-panel__close,
   body.print-parcel-view .parcel-table-panel__status,
+  body.print-parcel-view .saarthi-chatbot-widget,
   body.print-parcel-view .sf-fetching-badge {
     display: none !important;
   }
