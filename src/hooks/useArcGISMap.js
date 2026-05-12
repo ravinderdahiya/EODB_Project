@@ -837,6 +837,8 @@ export function useArcGISMap({
           id,
           title: district?.name || `Layer ${id}`,
           visible: true,
+          minScale: 0,
+          maxScale: 0,
           popupTemplate: CADASTRAL_POPUP_TEMPLATE,
         };
       });
@@ -852,6 +854,8 @@ export function useArcGISMap({
         url: arcgisPortalConfig.serviceUrls.hsacMain,
         title: "Cadastral",
         visible: layerVisibility.cadastral,
+        minScale: 0,
+        maxScale: 0,
         sublayers: cadastralSublayers,
       });
 
