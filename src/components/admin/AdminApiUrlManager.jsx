@@ -44,7 +44,6 @@ export default function AdminApiUrlManager() {
         setSelectedUrl(res.data[0]);
       }
     } catch (err) {
-      console.error("API URLs fetch error:", err);
       setError(err?.response?.data?.error || "Failed to fetch API URLs.");
     } finally {
       setLoading(false);
@@ -55,8 +54,8 @@ export default function AdminApiUrlManager() {
     try {
       const res = await fetchApiUrlCategories();
       setCategories(res.data || []);
-    } catch (err) {
-      console.warn("Failed to load API URL categories", err);
+    } catch {
+      // Ignore categories fetch errors and keep manual input available.
     }
   };
 
@@ -103,7 +102,6 @@ export default function AdminApiUrlManager() {
         setSelectedUrl(null);
       }
     } catch (err) {
-      console.error("Delete API URL error:", err);
       setError(err?.response?.data?.error || "Failed to delete API URL.");
     } finally {
       setLoading(false);
@@ -116,7 +114,6 @@ export default function AdminApiUrlManager() {
       await toggleApiUrlStatus(id);
       await loadApiUrls();
     } catch (err) {
-      console.error("Toggle API URL status error:", err);
       setError(err?.response?.data?.error || "Failed to toggle API URL status.");
     } finally {
       setLoading(false);
@@ -151,7 +148,6 @@ export default function AdminApiUrlManager() {
       resetForm();
       await loadApiUrls();
     } catch (err) {
-      console.error("Save API URL error:", err);
       setFormError(err?.response?.data?.error || "Failed to save API URL.");
     } finally {
       setSaving(false);

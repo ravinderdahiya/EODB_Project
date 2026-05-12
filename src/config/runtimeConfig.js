@@ -52,10 +52,6 @@ export function getRuntimeConfigValue(key, fallback = "") {
   return value;
 }
 
-export function getRuntimeConfig() {
-  return { ...runtimeConfig };
-}
-
 export async function loadRuntimeConfig() {
   if (loadRuntimeConfigPromise) {
     return loadRuntimeConfigPromise;
@@ -80,8 +76,7 @@ export async function loadRuntimeConfig() {
 
       const payload = await response.json();
       return mergeRuntimeConfig(payload?.data);
-    } catch (error) {
-      console.warn("Failed to load runtime config from backend:", error);
+    } catch {
       return runtimeConfig;
     }
   })();

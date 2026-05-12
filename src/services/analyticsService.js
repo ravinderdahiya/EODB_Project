@@ -4,9 +4,6 @@ import ReactGA from 'react-ga4';
 export const initGA = (measurementId) => {
   if (measurementId && measurementId !== 'GA_MEASUREMENT_ID') {
     ReactGA.initialize(measurementId);
-    console.log('Google Analytics initialized with ID:', measurementId);
-  } else {
-    console.warn('Google Analytics not initialized - measurement ID not provided');
   }
 };
 

@@ -15,8 +15,8 @@ axiosInstance.interceptors.request.use((config) => {
       const token = decrypt(encryptedToken);
       config.headers = config.headers || {};
       config.headers.Authorization = `Bearer ${token}`;
-    } catch (err) {
-      console.error("Token decrypt error:", err);
+    } catch {
+      // Ignore malformed local token and continue with cookie auth fallback.
     }
   }
 
