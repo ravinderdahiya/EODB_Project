@@ -1038,6 +1038,9 @@ export default function App() {
     if (actionId === "locate") {
       const result = await goToCurrentLocation();
       setSystemMessage(result.message);
+      if (!result.ok) {
+        window.alert(result.message);
+      }
       return;
     }
 

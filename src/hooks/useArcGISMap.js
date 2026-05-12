@@ -923,9 +923,11 @@ export function useArcGISMap({
             includeDefaultActions: false,
           },
         },
+        ui: {
+          components: [],
+        },
+        attributionEnabled: false,
       });
-
-      view.ui.components = [];
       view.popupEnabled = false;
 
       const popupHost = document.createElement("div");
@@ -1339,10 +1341,38 @@ export function useArcGISMap({
   };
 
   const goToCurrentLocation = () =>
-    new Promise((resolve) => {
+    new Promise(async (resolve) => {
       if (!navigator.geolocation || !viewRef.current) {
         resolve({ ok: false, message: "Geolocation is not available in this environment." });
         return;
+      }
+
+      const isSecureLocation =
+        window.isSecureContext ||
+        window.location.hostname === "localhost" ||
+        window.location.hostname === "127.0.0.1";
+
+      if (!isSecureLocation) {
+        resolve({
+          ok: false,
+          message:
+            "Browser location access requires HTTPS or localhost. Run the app on localhost or an HTTPS server to see the location permission prompt.",
+        });
+        return;
+      }
+
+      try {
+        const permissionStatus = await navigator.permissions?.query?.({ name: "geolocation" }).catch(() => null);
+        if (permissionStatus?.state === "denied") {
+          resolve({
+            ok: false,
+            message:
+              "Location permission is denied. Please enable location access in your browser settings and try again.",
+          });
+          return;
+        }
+      } catch {
+        // Ignore permission query errors and continue to request geolocation.
       }
 
       navigator.geolocation.getCurrentPosition(
@@ -1355,7 +1385,18 @@ export function useArcGISMap({
           await viewRef.current.goTo({ target: point, zoom: 14 }, { duration: 950, easing: "ease-in-out" });
           resolve({ ok: true, message: "Current location loaded and centred on the map." });
         },
-        () => resolve({ ok: false, message: "Location permission denied." }),
+        (err) => {
+          let message = "Unable to access current location.";
+          if (err?.code === 1) {
+            message = "Location permission denied. Please allow location access in your browser.";
+          } else if (err?.code === 2) {
+            message = "Unable to determine location. Please try again.";
+          } else if (err?.code === 3) {
+            message = "Location request timed out. Please try again.";
+          }
+          resolve({ ok: false, message });
+        },
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 },
       );
     });
 

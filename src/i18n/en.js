@@ -182,6 +182,9 @@ const en = {
     resendOtp:         "Resend OTP",
     resendOtpIn:       "Resend OTP in",
     errBadAdmin:       "Invalid admin credentials",
+    errGoogleFailed:   "Google login failed. Try again.",
+    errGoogleNotReady: "Google login is not ready yet. Reload the page.",
+    errGooglePrompt:   "Google prompt could not display. Try again in a moment.",
   },
 };
 
