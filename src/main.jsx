@@ -96,13 +96,15 @@ async function bootstrap() {
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/" element={<Navigate to="/login" replace />} />
-            {/* <Route
+            <Route
               path="/map"
               element={(
+                <ProtectedRoute>
                   <App />
+                </ProtectedRoute>
               )}
-            /> */}
-
+            />
+            
             <Route
               path="/map"
               element={(
