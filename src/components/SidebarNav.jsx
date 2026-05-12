@@ -3,7 +3,6 @@ import { Fragment, useState } from "react";
 import { BoxSelect, Hexagon, Spline, Trash2 } from "lucide-react";
 import SearchPanel from "./SearchPanel";
 import { useLanguage } from "@/context/LanguageContext";
-import { triggerPrint } from "@/utils/printUtils";
 
 const SF_TOOL_IDS = ["rectangle", "polygon", "polyline"];
 const SF_TOOL_ICONS = { rectangle: BoxSelect, polygon: Hexagon, polyline: Spline };
@@ -17,13 +16,10 @@ export default function SidebarNav({
   onSelectionStart,
   onRecordSelect,
   onStatusChange,
-  theme,
-  onToggleTheme,
   mapReady,
   sfActiveTool,
   sfIsActive,
   sfProgress,
-  sfRows,
   sfStatusMessage,
   onSfStart,
   onSfClear,
@@ -96,7 +92,6 @@ export default function SidebarNav({
                   {item.id === "search" && (
                     <div className={`sidebar__search-drawer ${searchExpanded ? "sidebar__search-drawer--open" : ""}`}>
                       <SearchPanel
-                        onPrint={() => triggerPrint()}
                         onBoundaryDraw={onBoundaryDraw}
                         onSelectionStart={onSelectionStart}
                         onRecordSelect={onRecordSelect}

@@ -1235,13 +1235,10 @@ export default function App() {
             if (id === "layers") toggleMapPanel("layers");
             if (id === "measurement") handleToolbarAction("measurement");
           }}
-          theme={theme}
-          onToggleTheme={() => setTheme((current) => (current === "light" ? "dark" : "light"))}
           mapReady={mapReady}
           sfActiveTool={sf.activeTool}
           sfIsActive={sf.isActive}
           sfProgress={sf.progress}
-          sfRows={sf.rows}
           sfStatusMessage={sf.statusMessage}
           onSfStart={(tool) => {
             if (measurementMode !== null) {
@@ -1343,4 +1340,3 @@ export default function App() {
     </div>
   );
 }
-

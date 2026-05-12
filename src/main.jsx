@@ -104,6 +104,15 @@ async function bootstrap() {
                 </ProtectedRoute>
               )}
             />
+            
+            <Route
+              path="/map"
+              element={(
+                <ProtectedRoute>
+                  <App />
+                </ProtectedRoute>
+              )}
+            />
             <Route
               path="/admin"
               element={(
@@ -121,8 +130,7 @@ async function bootstrap() {
   );
 }
 
-bootstrap().catch((error) => {
-  console.error("Failed to bootstrap app:", error);
+bootstrap().catch(() => {
   ReactDOM.createRoot(document.getElementById("root")).render(
     <div style={{ padding: "1rem", fontFamily: "sans-serif" }}>
       Failed to initialize the application.

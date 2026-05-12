@@ -93,7 +93,6 @@ export function useMeasurement({ viewRef, layersRef }) {
   const startMeasure = useCallback((type) => {
     const vm = getOrCreateSketchVm();
     if (!vm) {
-      console.warn("[Measurement] SketchViewModel is not ready. Map view/assets may still be loading.");
       return;
     }
 

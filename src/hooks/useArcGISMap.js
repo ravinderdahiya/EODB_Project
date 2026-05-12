@@ -146,11 +146,6 @@ function clampNumber(value, min, max) {
   return Math.min(Math.max(value, min), max);
 }
 
-function formatScaleDenominator(scale) {
-  if (!Number.isFinite(scale) || scale <= 0) return null;
-  return `1:${Math.round(scale).toLocaleString("en-IN")}`;
-}
-
 function closeLandRecordMiniPopup(popupStateRef) {
   const popupState = popupStateRef.current;
   if (!popupState) return;
@@ -995,28 +990,11 @@ export function useArcGISMap({
         updateHealth("cadastral", cadastralLoad.ok ? "connected" : "degraded");
         updateHealth("assets", assetsLoad.ok ? "connected" : "degraded");
 
-        if (!boundariesLoad.ok) {
-          console.error("[ArcGIS] Boundaries layer load failed:", boundariesLoad.error);
-        }
-        if (!cadastralLoad.ok) {
-          console.error("[ArcGIS] Cadastral layer load failed:", cadastralLoad.error);
-        }
-        if (!assetsLoad.ok) {
-          console.warn("[ArcGIS] Government Assets layer load failed:", assetsLoad.error);
-        }
-
         // Optional overlays should not block core tool readiness.
         void Promise.all([
           loadLayerWithRetry(nhaiLayer, { label: "NHAI layer", attempts: 1 }),
           loadLayerWithRetry(roadsLayer, { label: "Haryana Roads layer", attempts: 1 }),
-        ]).then(([nhaiLoad, roadsLoad]) => {
-          if (!nhaiLoad.ok) {
-            console.warn("[ArcGIS] NHAI layer load failed:", nhaiLoad.error);
-          }
-          if (!roadsLoad.ok) {
-            console.warn("[ArcGIS] Haryana Roads layer load failed:", roadsLoad.error);
-          }
-        });
+        ]);
 
         const coreLayerHealthy = boundariesLoad.ok && cadastralLoad.ok;
         if (!coreLayerHealthy) {
@@ -1030,9 +1008,8 @@ export function useArcGISMap({
               : "HSAC Haryana map is live with district / tehsil / village boundaries.",
           );
         }
-      }).catch((error) => {
+      }).catch(() => {
         if (isDisposed) return;
-        console.error("[ArcGIS] View initialization failed:", error);
         setMapReady(false);
         setMapStatus("ArcGIS map initialization failed. Please refresh and try again.");
       });
