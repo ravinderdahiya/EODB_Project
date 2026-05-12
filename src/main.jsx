@@ -104,15 +104,6 @@ async function bootstrap() {
                 </ProtectedRoute>
               )}
             />
-            
-            <Route
-              path="/map"
-              element={(
-                <ProtectedRoute>
-                  <App />
-                </ProtectedRoute>
-              )}
-            />
             <Route
               path="/admin"
               element={(
