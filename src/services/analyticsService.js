@@ -1,9 +1,37 @@
 import ReactGA from 'react-ga4';
 
+const GTAG_SCRIPT_ID = "ga-gtag-script";
+
+const loadGtagScript = (measurementId) => new Promise((resolve, reject) => {
+  if (!measurementId) {
+    resolve();
+    return;
+  }
+
+  if (document.getElementById(GTAG_SCRIPT_ID)) {
+    resolve();
+    return;
+  }
+
+  const script = document.createElement("script");
+  script.id = GTAG_SCRIPT_ID;
+  script.async = true;
+  script.src = `https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(measurementId)}`;
+  script.onload = () => resolve();
+  script.onerror = () => reject(new Error("Failed to load Google Analytics script"));
+  document.head.appendChild(script);
+});
+
 // Initialize Google Analytics
 export const initGA = (measurementId) => {
   if (measurementId && measurementId !== 'GA_MEASUREMENT_ID') {
-    ReactGA.initialize(measurementId);
+    loadGtagScript(measurementId)
+      .then(() => {
+        ReactGA.initialize(measurementId);
+      })
+      .catch(() => {
+        // Keep app functional even if GA script is blocked.
+      });
   }
 };
 
