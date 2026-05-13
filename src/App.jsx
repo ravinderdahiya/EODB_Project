@@ -10,6 +10,7 @@ import ParcelDetailsModal from "@/components/ParcelDetailsModal";
 import SidebarNav from "@/components/SidebarNav";
 import SaarthiChatbotWidget from "@/components/chatbot/SaarthiChatbotWidget";
 import VoiceAssistantPopup from "@/components/voiceAssistant/VoiceAssistantPopup";
+import ZoomWheelSlider from "@/components/map/ZoomWheelSlider";
 import { navigationItems } from "@/data/portalData";
 import { useArcGISMap } from "@/hooks/useArcGISMap";
 import { useDashboardPreferences } from "@/hooks/useDashboardPreferences";
@@ -1265,6 +1266,8 @@ export default function App() {
             mapScale={mapScale}
             onPrint={handleMapPrint}
           >
+            <ZoomWheelSlider viewRef={viewRef} layersRef={layersRef} />
+
             <MapToolbar
               activeLayerPanel={activeMapPanel === "layers"}
               activeBasemapPanel={activeMapPanel === "basemap"}

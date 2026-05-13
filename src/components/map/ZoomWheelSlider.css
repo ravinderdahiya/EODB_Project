@@ -1,0 +1,317 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   ZoomWheelSlider  —  theme-aware glassmorphism zoom wheel
+   Light / dark tokens follow :root[data-theme="dark"] set by useDashboardPreferences.
+═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Outer container ─────────────────────────────────────────────────────── */
+
+.zws {
+  position: absolute;
+  top: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 20;
+
+  display: flex;
+  align-items: center;
+
+  width: 680px;
+  max-width: 92vw;
+  height: 52px;
+  padding: 0 10px;
+
+  border-radius: 30px;
+
+  /* Light theme — very transparent frosted glass */
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(18px) saturate(1.4);
+  -webkit-backdrop-filter: blur(18px) saturate(1.4);
+  box-shadow:
+    0 0 0 1px rgba(23, 50, 72, 0.10),
+    0 6px 24px rgba(23, 50, 72, 0.10);
+
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+
+  /* Fade both ends of the bar into the map */
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent      0%,
+    rgba(0,0,0,0.5)  5%,
+    black            13%,
+    black            87%,
+    rgba(0,0,0,0.5)  95%,
+    transparent      100%
+  );
+  mask-image: linear-gradient(
+    to right,
+    transparent      0%,
+    rgba(0,0,0,0.5)  5%,
+    black            13%,
+    black            87%,
+    rgba(0,0,0,0.5)  95%,
+    transparent      100%
+  );
+}
+
+/* Dark theme override */
+:root[data-theme="dark"] .zws {
+  background: rgba(10, 14, 12, 0.30);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.06),
+    0 6px 24px rgba(0, 0, 0, 0.45);
+}
+
+/* ── Centre column (fills full width now that buttons are removed) ────────── */
+
+.zws__mid {
+  flex: 1;
+  min-width: 0;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+/* ── Yellow ▼ pointer (marks current zoom position on the ruler) ─────────── */
+
+.zws__pointer {
+  position: absolute;
+  top: 5px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 5;
+  pointer-events: none;
+
+  width: 0;
+  height: 0;
+  border-left:  4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top:   6px solid #ffd700;
+
+  filter: drop-shadow(0 0 5px rgba(255, 215, 0, 0.70));
+}
+
+/* ── Tick zone ───────────────────────────────────────────────────────────── */
+
+.zws__tick-zone {
+  position: relative;
+  width: 100%;
+  height: 22px;
+  margin-top: 13px;
+  overflow: hidden;
+  cursor: ew-resize;
+
+  /*
+   * Inner fade reinforces the wheel-depth illusion.
+   * The outer .zws mask-image already fades the bar ends completely,
+   * so this only needs a short inner fade zone.
+   */
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent       0%,
+    rgba(0,0,0, 0.45) 6%,
+    rgba(0,0,0, 0.88) 16%,
+    black             32%,
+    black             68%,
+    rgba(0,0,0, 0.88) 84%,
+    rgba(0,0,0, 0.45) 94%,
+    transparent       100%
+  );
+  mask-image: linear-gradient(
+    to right,
+    transparent       0%,
+    rgba(0,0,0, 0.45) 6%,
+    rgba(0,0,0, 0.88) 16%,
+    black             32%,
+    black             68%,
+    rgba(0,0,0, 0.88) 84%,
+    rgba(0,0,0, 0.45) 94%,
+    transparent       100%
+  );
+}
+
+/* ── Scrolling tick ruler ─────────────────────────────────────────────────── */
+
+.zws__track {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  align-items: flex-end;
+  padding-bottom: 3px;
+
+  transition: transform 0.16s ease-out;
+  will-change: transform;
+}
+
+.zws__track.is-dragging {
+  transition: none;
+}
+
+/* ── Tick marks — solid white (no transparency on real ticks) ────────────── */
+
+.zws__tick {
+  width: 9px;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  flex-shrink: 0;
+}
+
+.zws__tick::after {
+  content: '';
+  display: block;
+  border-radius: 1px;
+  width: 1.5px;
+}
+
+/* Major ticks — solid opaque white */
+.zws__tick.major::after {
+  height: 15px;
+  width: 2px;
+  background: #ffffff;
+}
+
+/* Half-zoom ticks — nearly opaque white */
+.zws__tick.mid::after {
+  height: 9px;
+  background: rgba(255, 255, 255, 0.90);
+}
+
+/* Fine ticks — solid white, slightly shorter */
+.zws__tick.minor::after {
+  height: 6px;
+  background: rgba(255, 255, 255, 0.85);
+}
+
+/* Padding ticks — just enough to show continuity at extremes */
+.zws__tick.pad::after {
+  height: 4px;
+  background: rgba(255, 255, 255, 0.20);
+}
+
+/* Light theme: use the site's ink colour for ticks so they're visible on a light basemap */
+:root:not([data-theme="dark"]) .zws__tick.major::after  { background: rgba(23, 50, 72, 0.90); }
+:root:not([data-theme="dark"]) .zws__tick.mid::after    { background: rgba(23, 50, 72, 0.75); }
+:root:not([data-theme="dark"]) .zws__tick.minor::after  { background: rgba(23, 50, 72, 0.65); }
+:root:not([data-theme="dark"]) .zws__tick.pad::after    { background: rgba(23, 50, 72, 0.15); }
+
+/* ── Layer name labels ────────────────────────────────────────────────────── */
+
+.zws__labels {
+  position: absolute;
+  bottom: 4px;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 6;
+  pointer-events: auto;
+}
+
+.zws__label-cell {
+  display: flex;
+  align-items: center;
+}
+
+.zws__sep {
+  display: inline-block;
+  width: 1px;
+  height: 10px;
+  /* Light theme */
+  background: rgba(23, 50, 72, 0.25);
+  margin: 0 5px;
+}
+
+:root[data-theme="dark"] .zws__sep {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+.zws__label {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  padding: 2px 5px;
+  border-radius: 3px;
+  font-family: inherit;
+  white-space: nowrap;
+  transition: color 0.18s ease, background 0.18s ease, text-shadow 0.18s ease;
+
+  /* Light theme — use muted ink */
+  color: rgba(23, 50, 72, 0.45);
+}
+
+:root[data-theme="dark"] .zws__label {
+  /* Raised from 0.40 so inactive labels are readable and contrast with active */
+  color: rgba(255, 255, 255, 0.62);
+}
+
+/* Active label — light theme */
+.zws__label.is-active {
+  color: #ffd700;
+  text-shadow: 0 0 10px rgba(255, 215, 0, 0.55);
+}
+
+/* Active label — dark theme: bright yellow + layered glow + background pill */
+:root[data-theme="dark"] .zws__label.is-active {
+  color: #ffe040;
+  background: rgba(255, 215, 0, 0.14);
+  border-radius: 4px;
+  text-shadow:
+    0 0 6px  rgba(255, 224, 64, 1),
+    0 0 14px rgba(255, 210, 0, 0.80),
+    0 0 28px rgba(255, 200, 0, 0.45);
+}
+
+.zws__label:hover:not(.is-active) {
+  /* Light theme */
+  color: rgba(23, 50, 72, 0.82);
+}
+
+:root[data-theme="dark"] .zws__label:hover:not(.is-active) {
+  color: rgba(255, 255, 255, 0.90);
+}
+
+/* ── Responsive ─────────────────────────────────────────────────────────── */
+
+@media (max-width: 640px) {
+  .zws {
+    height: 46px;
+    padding: 0 6px;
+  }
+
+  .zws__pointer {
+    top: 4px;
+    border-left-width:  3px;
+    border-right-width: 3px;
+    border-top-width:   5px;
+  }
+
+  .zws__tick-zone {
+    height: 18px;
+    margin-top: 11px;
+  }
+
+  .zws__tick.major::after { height: 11px; }
+  .zws__tick.mid::after   { height: 7px;  }
+  .zws__tick.minor::after { height: 5px;  }
+  .zws__tick.pad::after   { height: 3px;  }
+
+  .zws__label  { font-size: 7.5px; padding: 2px 3px; letter-spacing: 0.06em; }
+  .zws__sep    { margin: 0 3px; height: 8px; }
+  .zws__labels { bottom: 3px; }
+}
+
+@media (max-width: 400px) {
+  .zws__label { font-size: 7px; padding: 2px 2px; }
+  .zws__sep   { margin: 0 2px; }
+}
