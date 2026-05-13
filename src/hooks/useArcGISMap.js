@@ -903,7 +903,7 @@ export function useArcGISMap({
         container: containerRef.current,
         map,
         extent: defaultExtent.clone(),
-        constraints: { minZoom: 7 },
+        constraints: { minZoom: 7, snapToZoom: false },
         navigation: { mouseWheelZoomEnabled: true, browserTouchPanEnabled: true },
         popup: {
           dockEnabled: false,
