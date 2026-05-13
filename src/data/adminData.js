@@ -39,22 +39,10 @@ export const adminNavigationItems = [
     icon: Clock3,
   },
   {
-    id: "bookings",
-    label: "Bookings",
-    description: "Reservation and attendance operations",
-    icon: TicketCheck,
-  },
-  {
     id: "payments",
     label: "Payments",
     description: "Collection, settlement and refunds",
     icon: Wallet,
-  },
-  {
-    id: "venues",
-    label: "Venues",
-    description: "Venue allocation and availability",
-    icon: Building2,
   },
   {
     id: "categories",
@@ -70,8 +58,8 @@ export const adminNavigationItems = [
   },
   {
     id: "reports",
-    label: "Reports",
-    description: "Insights, exports and analytics",
+    label: "Analytics Reports",
+    description: "Insights, tracked events and analytics",
     icon: BarChart3,
   },
   {
