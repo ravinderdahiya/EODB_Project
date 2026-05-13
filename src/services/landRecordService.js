@@ -8,12 +8,9 @@
  *   demo/khatoni.js       → getKhatonis()
  *   demo/ownersInPopup.js → getOwnerNames()
  *
- * All endpoints are XML-based ASMX services hosted at:
- *   https://hsac.org.in/LandOwnerAPI/getownername.asmx/
- *
- * CORS: In development the Vite proxy rewrites /LandOwnerAPI → https://hsac.org.in/LandOwnerAPI
- *       so these relative URLs work. In production configure your web-server (Nginx etc.)
- *       to proxy the same path prefix.
+ * All calls are routed through backend proxy:
+ *   /mapserver/land-record/:method
+ * Backend then forwards to HSAC ASMX endpoints.
  *
  * ASMX response format (double-wrapped XML):
  *   Outer:  <string xmlns="...">INNER_XML_AS_TEXT</string>
@@ -24,10 +21,11 @@
  *   new DOMParser().parseFromString(inner, "text/xml")  →  final document
  */
 
-// ─── Base URL (relative — proxied by Vite in dev, Nginx in prod) ─────────────
-// Configured via VITE_ASMX_BASE_PATH in .env.
+import { getRuntimeConfigValue } from "@/config/runtimeConfig";
+
+// ─── Backend proxy base URL ───────────────────────────────────────────────────
 const ASMX_BASE =
-  import.meta.env.VITE_ASMX_BASE_PATH ?? "/LandOwnerAPI/getownername.asmx";
+  getRuntimeConfigValue("VITE_ASMX_BASE_PATH", "/mapserver/land-record");
 
 // ─── Internal helpers ─────────────────────────────────────────────────────────
 /**
@@ -96,9 +94,8 @@ async function asmxGet(method, params) {
  * Fetch Khewat numbers for a village.
  * Migrated from: demo/khewat.js → Khewatoption()
  *
- * Old endpoint:
- *   https://hsac.org.in/LandOwnerAPI/getownername.asmx/GetKhewats
- *   ?Dcode1=XX&Tcode1=XX&Nvcode1=XX
+ * Backend endpoint:
+ *   /mapserver/land-record/GetKhewats?Dcode1=XX&Tcode1=XX&Nvcode1=XX
  *
  * Old XML tag read: a.getElementsByTagName('khewat')[i].childNodes[0].nodeValue
  *
@@ -123,9 +120,8 @@ export async function getKhewats(dCode, tCode, vCode) {
  * Fetch the current Jamabandi period string for a village.
  * Migrated from: demo/timePeriod.js → TimePeriodOption()
  *
- * Old endpoint:
- *   https://hsac.org.in/LandOwnerAPI/getownername.asmx/GetJamabandiPeriod
- *   ?Dcode1=XX&Tcode1=XX&Nvcode1=XX
+ * Backend endpoint:
+ *   /mapserver/land-record/GetJamabandiPeriod?Dcode1=XX&Tcode1=XX&Nvcode1=XX
  *
  * Old code extracted with: xmlText.slice(52, -51)
  * New: reads textContent of root element after double-parse.
@@ -152,9 +148,8 @@ export async function getJamabandiPeriod(dCode, tCode, vCode) {
  * Fetch Khatoni numbers for a Khewat + period combination.
  * Migrated from: demo/khatoni.js → getkhatoni()
  *
- * Old endpoint:
- *   https://hsac.org.in/LandOwnerAPI/getownername.asmx/GetKhatonis
- *   ?Dcode1=XX&Tcode1=XX&Nvcode1=XX&period1=XX&khewat1=XX
+ * Backend endpoint:
+ *   /mapserver/land-record/GetKhatonis?...query params...
  *
  * Old XML tag read: a.getElementsByTagName('khatoni')[i].childNodes[0].nodeValue
  *
@@ -183,9 +178,8 @@ export async function getKhatonis(dCode, tCode, vCode, period, khewat) {
  * Fetch owner names for a Khasra parcel.
  * Migrated from: demo/ownersInPopup.js → Owners_name()
  *
- * Old endpoint:
- *   https://hsac.org.in/LandOwnerAPI/getownername.asmx/Owner_name
- *   ?Dcode1=XX&Tcode1=XX&Nvcode1=XX&Mustno1=XX&Khasra1=XX
+ * Backend endpoint:
+ *   /mapserver/land-record/Owner_name?...query params...
  *
  * Old XML tag read:
  *   a.getElementsByTagName('OWNER')[i].childNodes[0].nodeValue.split(",")

@@ -35,6 +35,12 @@ import { getHsacLayerPlan } from "@/services/hsacLayerResolver";
 import { getBoundaryGeometry } from "@/services/mapQueryService";
 import { createParcelRecordFromMapFeature } from "@/services/parcelRecordService";
 import { PARCEL_FILL_SYMBOL, BOUNDARY_FILL_SYMBOL } from "@/config/mapSymbols";
+import { getRuntimeConfigValue } from "@/config/runtimeConfig";
+
+const ARCGIS_API_KEY = getRuntimeConfigValue(
+  "VITE_ARCGIS_API_KEY",
+  import.meta.env.VITE_ARCGIS_API_KEY,
+);
 
 function downloadLandRecordPreview(preview) {
   const blob = new Blob([JSON.stringify(preview, null, 2)], {
@@ -138,11 +144,6 @@ async function loadLayerWithRetry(layer, {
 
 function clampNumber(value, min, max) {
   return Math.min(Math.max(value, min), max);
-}
-
-function formatScaleDenominator(scale) {
-  if (!Number.isFinite(scale) || scale <= 0) return null;
-  return `1:${Math.round(scale).toLocaleString("en-IN")}`;
 }
 
 function closeLandRecordMiniPopup(popupStateRef) {
@@ -580,10 +581,22 @@ function createLocationGraphic(point, title) {
 // cdn.arcgis.com VectorTile CDN items that fail without an API key, so we build
 // explicit Basemap instances from these authenticated-free tile endpoints instead.
 const _TILE = {
-  imagery:   "https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer",
-  reference: "https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer",
-  topo:      "https://services.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer",
-  streets:   "https://services.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer",
+  imagery: getRuntimeConfigValue(
+    "VITE_ARCGIS_IMAGERY_URL",
+    "/mapserver/service/imagery",
+  ),
+  reference: getRuntimeConfigValue(
+    "VITE_ARCGIS_REFERENCE_URL",
+    "/mapserver/service/reference",
+  ),
+  topo: getRuntimeConfigValue(
+    "VITE_ARCGIS_TOPO_URL",
+    "/mapserver/service/topo",
+  ),
+  streets: getRuntimeConfigValue(
+    "VITE_ARCGIS_STREETS_URL",
+    "/mapserver/service/streets",
+  ),
 };
 
 const _basemapInstanceCache = {};
@@ -759,18 +772,20 @@ export function useArcGISMap({
   useEffect(() => {
     if (!containerRef.current) return undefined;
 
-    if (import.meta.env.VITE_ARCGIS_API_KEY) {
-      esriConfig.apiKey = import.meta.env.VITE_ARCGIS_API_KEY;
+    if (ARCGIS_API_KEY) {
+      esriConfig.apiKey = ARCGIS_API_KEY;
     }
-    HSAC_PROXY_URL_PREFIXES.forEach((urlPrefix) => {
-      const existingRule = urlUtils.getProxyRule(urlPrefix);
-      if (existingRule?.urlPrefix === urlPrefix) return;
+    if (HSAC_PROXY_URL) {
+      HSAC_PROXY_URL_PREFIXES.forEach((urlPrefix) => {
+        const existingRule = urlUtils.getProxyRule(urlPrefix);
+        if (existingRule?.urlPrefix === urlPrefix) return;
 
-      urlUtils.addProxyRule({
-        urlPrefix,
-        proxyUrl: HSAC_PROXY_URL,
+        urlUtils.addProxyRule({
+          urlPrefix,
+          proxyUrl: HSAC_PROXY_URL,
+        });
       });
-    });
+    }
 
     const defaultExtent = new Extent(arcgisPortalConfig.defaultExtent);
     defaultExtentRef.current = defaultExtent;
@@ -822,6 +837,8 @@ export function useArcGISMap({
           id,
           title: district?.name || `Layer ${id}`,
           visible: true,
+          minScale: 0,
+          maxScale: 0,
           popupTemplate: CADASTRAL_POPUP_TEMPLATE,
         };
       });
@@ -837,6 +854,8 @@ export function useArcGISMap({
         url: arcgisPortalConfig.serviceUrls.hsacMain,
         title: "Cadastral",
         visible: layerVisibility.cadastral,
+        minScale: 0,
+        maxScale: 0,
         sublayers: cadastralSublayers,
       });
 
@@ -884,7 +903,7 @@ export function useArcGISMap({
         container: containerRef.current,
         map,
         extent: defaultExtent.clone(),
-        constraints: { minZoom: 7 },
+        constraints: { minZoom: 7, snapToZoom: false },
         navigation: { mouseWheelZoomEnabled: true, browserTouchPanEnabled: true },
         popup: {
           dockEnabled: false,
@@ -903,9 +922,11 @@ export function useArcGISMap({
             includeDefaultActions: false,
           },
         },
+        ui: {
+          components: [],
+        },
+        attributionEnabled: false,
       });
-
-      view.ui.components = [];
       view.popupEnabled = false;
 
       const popupHost = document.createElement("div");
@@ -973,28 +994,11 @@ export function useArcGISMap({
         updateHealth("cadastral", cadastralLoad.ok ? "connected" : "degraded");
         updateHealth("assets", assetsLoad.ok ? "connected" : "degraded");
 
-        if (!boundariesLoad.ok) {
-          console.error("[ArcGIS] Boundaries layer load failed:", boundariesLoad.error);
-        }
-        if (!cadastralLoad.ok) {
-          console.error("[ArcGIS] Cadastral layer load failed:", cadastralLoad.error);
-        }
-        if (!assetsLoad.ok) {
-          console.warn("[ArcGIS] Government Assets layer load failed:", assetsLoad.error);
-        }
-
         // Optional overlays should not block core tool readiness.
         void Promise.all([
           loadLayerWithRetry(nhaiLayer, { label: "NHAI layer", attempts: 1 }),
           loadLayerWithRetry(roadsLayer, { label: "Haryana Roads layer", attempts: 1 }),
-        ]).then(([nhaiLoad, roadsLoad]) => {
-          if (!nhaiLoad.ok) {
-            console.warn("[ArcGIS] NHAI layer load failed:", nhaiLoad.error);
-          }
-          if (!roadsLoad.ok) {
-            console.warn("[ArcGIS] Haryana Roads layer load failed:", roadsLoad.error);
-          }
-        });
+        ]);
 
         const coreLayerHealthy = boundariesLoad.ok && cadastralLoad.ok;
         if (!coreLayerHealthy) {
@@ -1008,9 +1012,8 @@ export function useArcGISMap({
               : "HSAC Haryana map is live with district / tehsil / village boundaries.",
           );
         }
-      }).catch((error) => {
+      }).catch(() => {
         if (isDisposed) return;
-        console.error("[ArcGIS] View initialization failed:", error);
         setMapReady(false);
         setMapStatus("ArcGIS map initialization failed. Please refresh and try again.");
       });
@@ -1319,10 +1322,38 @@ export function useArcGISMap({
   };
 
   const goToCurrentLocation = () =>
-    new Promise((resolve) => {
+    new Promise(async (resolve) => {
       if (!navigator.geolocation || !viewRef.current) {
         resolve({ ok: false, message: "Geolocation is not available in this environment." });
         return;
+      }
+
+      const isSecureLocation =
+        window.isSecureContext ||
+        window.location.hostname === "localhost" ||
+        window.location.hostname === "127.0.0.1";
+
+      if (!isSecureLocation) {
+        resolve({
+          ok: false,
+          message:
+            "Browser location access requires HTTPS or localhost. Run the app on localhost or an HTTPS server to see the location permission prompt.",
+        });
+        return;
+      }
+
+      try {
+        const permissionStatus = await navigator.permissions?.query?.({ name: "geolocation" }).catch(() => null);
+        if (permissionStatus?.state === "denied") {
+          resolve({
+            ok: false,
+            message:
+              "Location permission is denied. Please enable location access in your browser settings and try again.",
+          });
+          return;
+        }
+      } catch {
+        // Ignore permission query errors and continue to request geolocation.
       }
 
       navigator.geolocation.getCurrentPosition(
@@ -1335,14 +1366,25 @@ export function useArcGISMap({
           await viewRef.current.goTo({ target: point, zoom: 14 }, { duration: 950, easing: "ease-in-out" });
           resolve({ ok: true, message: "Current location loaded and centred on the map." });
         },
-        () => resolve({ ok: false, message: "Location permission denied." }),
+        (err) => {
+          let message = "Unable to access current location.";
+          if (err?.code === 1) {
+            message = "Location permission denied. Please allow location access in your browser.";
+          } else if (err?.code === 2) {
+            message = "Unable to determine location. Please try again.";
+          } else if (err?.code === 3) {
+            message = "Location request timed out. Please try again.";
+          }
+          resolve({ ok: false, message });
+        },
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 },
       );
     });
 
   const searchPlace = async (term) => {
     if (!viewRef.current) return { ok: false, message: "Map is still loading." };
 
-    if (!import.meta.env.VITE_ARCGIS_API_KEY) {
+    if (!ARCGIS_API_KEY) {
       return {
         ok: false,
         requiresKey: true,

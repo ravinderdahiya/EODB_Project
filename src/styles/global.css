@@ -222,6 +222,22 @@ select:focus-visible {
   color: var(--ink);
 }
 
+:root[data-theme="dark"] .map-toolbar__button.map-toolbar__button--active {
+  background: linear-gradient(135deg, rgba(65, 174, 121, 0.96), rgba(72, 140, 214, 0.92));
+  color: #ffffff;
+  box-shadow: 0 10px 24px rgba(40, 109, 171, 0.32);
+}
+
+:root[data-theme="dark"] .basemap-switcher__option.basemap-switcher__option--active {
+  background: linear-gradient(135deg, rgba(65, 174, 121, 0.96), rgba(72, 140, 214, 0.92));
+  color: #ffffff;
+  box-shadow: 0 10px 24px rgba(40, 109, 171, 0.32);
+}
+
+:root[data-theme="dark"] .basemap-switcher__option.basemap-switcher__option--active .basemap-switcher__option-text small {
+  color: rgba(255, 255, 255, 0.9);
+}
+
 :root[data-theme="dark"] .field select {
   border-color: rgba(171, 194, 208, 0.1);
 }

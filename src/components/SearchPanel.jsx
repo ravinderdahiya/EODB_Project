@@ -1,6 +1,6 @@
 import "./SearchPanel.css";
 import { useEffect, useRef, useState } from "react";
-import { ChevronDown, Loader2, Printer } from "lucide-react";
+import { ChevronDown, Loader2 } from "lucide-react";
 import {
   getDistricts,
   getTehsils,
@@ -31,7 +31,6 @@ function SearchSection({
   districts,
   onBoundaryDraw,
   onSelectionStart,
-  onPrint,
   onRecordSelect,
   onStatusChange,
   isOpen,
@@ -278,15 +277,6 @@ function SearchSection({
             );
           })}
         </div>
-
-        {/* <button
-          type="button"
-          className="search-section__print-btn"
-          onClick={() => onPrint?.({ section: sectionId, codes, names })}
-        >
-          <Printer size={13} />
-          <span>{t("searchPanel.print")}</span>
-        </button> */}
       </div>
     </div>
   );
@@ -295,7 +285,6 @@ function SearchSection({
 // ─── SearchPanel ──────────────────────────────────────────────────────────────
 
 export default function SearchPanel({
-  onPrint,
   onBoundaryDraw,
   onSelectionStart,
   onRecordSelect,
@@ -331,7 +320,6 @@ export default function SearchPanel({
             districts={districts}
             onBoundaryDraw={onBoundaryDraw}
             onSelectionStart={onSelectionStart}
-            onPrint={onPrint}
             onRecordSelect={onRecordSelect}
             onStatusChange={onStatusChange}
             isOpen={activeSection === sectionId}

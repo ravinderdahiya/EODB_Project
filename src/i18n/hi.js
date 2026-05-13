@@ -182,6 +182,9 @@ const hi = {
     resendOtp:      "OTP फिर से भेजें",
     resendOtpIn:    "OTP फिर से भेजें",
     errBadAdmin:    "अमान्य एडमिन क्रेडेंशियल",
+    errGoogleFailed:   "Google लॉगिन विफल। फिर से प्रयास करें।",
+    errGoogleNotReady: "Google लॉगिन अभी तैयार नहीं है। पृष्ठ को पुनः लोड करें।",
+    errGooglePrompt:   "Google प्रम्प्ट नहीं दिखाई दे रहा है। कुछ क्षण में पुन: प्रयास करें।",
   },
 };
 

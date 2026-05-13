@@ -1,10 +1,13 @@
 import path from "node:path";
 import https from "node:https";
 import os from "node:os";
+import { fileURLToPath } from "node:url";
 import { execFile } from "node:child_process";
 import { readFile, unlink, writeFile } from "node:fs/promises";
 import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const HSAC_PROXY_ALLOWED_HOSTS = new Set([
   "hsac.org.in",
@@ -252,6 +255,16 @@ export default defineConfig(({ mode }) => {
           changeOrigin: true,
           secure: false,
         },
+        "/api-url": {
+          target: baseURL,
+          changeOrigin: true,
+          secure: false,
+        },
+        "/mapserver": {
+          target: baseURL,
+          changeOrigin: true,
+          secure: false,
+        },
         // ArcGIS REST proxy (dev only): VITE_HSAC_DEV_PROXY/... -> VITE_HSAC_ORIGIN/...
         [hsacProxy]: {
           target: hsacTarget,
@@ -290,6 +303,16 @@ export default defineConfig(({ mode }) => {
         },
         // Backend API proxy for OTP routes
         "/otp": {
+          target: baseURL,
+          changeOrigin: true,
+          secure: false,
+        },
+        "/api-url": {
+          target: baseURL,
+          changeOrigin: true,
+          secure: false,
+        },
+        "/mapserver": {
           target: baseURL,
           changeOrigin: true,
           secure: false,

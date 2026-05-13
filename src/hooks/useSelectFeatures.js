@@ -278,7 +278,6 @@ export function useSelectFeatures({ viewRef, layersRef }) {
   const startSelect = useCallback((tool) => {
     const vm = getOrCreateSketchVm();
     if (!vm) {
-      console.warn("[Select Features] SketchViewModel is not ready. Map view/assets may still be loading.");
       return;
     }
 

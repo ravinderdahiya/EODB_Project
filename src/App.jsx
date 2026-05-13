@@ -10,6 +10,7 @@ import ParcelDetailsModal from "@/components/ParcelDetailsModal";
 import SidebarNav from "@/components/SidebarNav";
 import SaarthiChatbotWidget from "@/components/chatbot/SaarthiChatbotWidget";
 import VoiceAssistantPopup from "@/components/voiceAssistant/VoiceAssistantPopup";
+import ZoomWheelSlider from "@/components/map/ZoomWheelSlider";
 import { navigationItems } from "@/data/portalData";
 import { useArcGISMap } from "@/hooks/useArcGISMap";
 import { useDashboardPreferences } from "@/hooks/useDashboardPreferences";
@@ -1038,6 +1039,9 @@ export default function App() {
     if (actionId === "locate") {
       const result = await goToCurrentLocation();
       setSystemMessage(result.message);
+      if (!result.ok) {
+        window.alert(result.message);
+      }
       return;
     }
 
@@ -1232,13 +1236,10 @@ export default function App() {
             if (id === "layers") toggleMapPanel("layers");
             if (id === "measurement") handleToolbarAction("measurement");
           }}
-          theme={theme}
-          onToggleTheme={() => setTheme((current) => (current === "light" ? "dark" : "light"))}
           mapReady={mapReady}
           sfActiveTool={sf.activeTool}
           sfIsActive={sf.isActive}
           sfProgress={sf.progress}
-          sfRows={sf.rows}
           sfStatusMessage={sf.statusMessage}
           onSfStart={(tool) => {
             if (measurementMode !== null) {
@@ -1265,6 +1266,8 @@ export default function App() {
             mapScale={mapScale}
             onPrint={handleMapPrint}
           >
+            <ZoomWheelSlider viewRef={viewRef} layersRef={layersRef} />
+
             <MapToolbar
               activeLayerPanel={activeMapPanel === "layers"}
               activeBasemapPanel={activeMapPanel === "basemap"}
@@ -1340,4 +1343,3 @@ export default function App() {
     </div>
   );
 }
-

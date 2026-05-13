@@ -2,7 +2,7 @@ import axios from "axios";
 import { decrypt } from "./crypto";
 
 const axiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_SERVER_BASE_URL || "http://localhost:8080",
+  baseURL: "",
   withCredentials: true, // Send httpOnly auth_token cookie automatically
 });
 
@@ -15,8 +15,8 @@ axiosInstance.interceptors.request.use((config) => {
       const token = decrypt(encryptedToken);
       config.headers = config.headers || {};
       config.headers.Authorization = `Bearer ${token}`;
-    } catch (err) {
-      console.error("Token decrypt error:", err);
+    } catch {
+      // Ignore malformed local token and continue with cookie auth fallback.
     }
   }
 

@@ -163,6 +163,89 @@ export default function Login() {
     }
   };
 
+  const handleGoogleSignIn = async (response) => {
+    if (!response?.credential) {
+      setError(t("login.errGoogleFailed"));
+      return;
+    }
+
+    try {
+      const res = await axiosInstance.post("/user/google-login", {
+        credential: response.credential,
+      });
+
+      const token = res.data?.token;
+      const user = res.data?.user;
+
+      if (!token || !user) {
+        throw new Error("Google login failed");
+      }
+
+      localStorage.setItem("token", encrypt(token));
+      localStorage.setItem("user", JSON.stringify(user));
+      localStorage.setItem("isAdmin", user.role === "admin" || user.role === "superadmin" ? "true" : "false");
+      sessionStorage.setItem("isAuthenticated", "true");
+      navigate("/map");
+    } catch (err) {
+      console.error(err);
+      setError(err.response?.data?.message || t("login.errGoogleFailed"));
+    }
+  };
+
+  const initializeGoogle = () => {
+    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+    if (!clientId || !window.google?.accounts?.id) return;
+
+    window.google.accounts.id.initialize({
+      client_id: clientId,
+      callback: handleGoogleSignIn,
+      ux_mode: "popup",
+    });
+  };
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    let intervalId = null;
+    const tryInitialize = () => {
+      if (window.google?.accounts?.id) {
+        initializeGoogle();
+        if (intervalId) {
+          window.clearInterval(intervalId);
+          intervalId = null;
+        }
+      }
+    };
+
+    tryInitialize();
+    intervalId = window.setInterval(tryInitialize, 100);
+
+    return () => {
+      if (intervalId) {
+        window.clearInterval(intervalId);
+      }
+    };
+  }, []);
+
+  const handleGoogleLoginClick = () => {
+    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+    if (!clientId) {
+      setError("Google client ID is not configured. Add VITE_GOOGLE_CLIENT_ID.");
+      return;
+    }
+
+    if (!window.google?.accounts?.id) {
+      setError(t("login.errGoogleNotReady"));
+      return;
+    }
+
+    window.google.accounts.id.prompt((notification) => {
+      if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+        setError(t("login.errGooglePrompt"));
+      }
+    });
+  };
+
   return (
     <div className="lp-root">
 
@@ -170,7 +253,7 @@ export default function Login() {
       <header className="lp-navbar">
         <div className="lp-nav-left">
           <div className="lp-logo-flip" aria-hidden="true">
-            <img src={import.meta.env.BASE_URL + "branding/logo-hry.png"} alt="Haryana Logo" />
+            <img src={import.meta.env.BASE_URL + "branding/Emblem_of_Haryana.svg"} alt="Haryana Logo" />
             <img src={import.meta.env.BASE_URL + "branding/harsac.png"}   alt="HARSAC Logo" />
           </div>
           <div className="lp-logo-text-group">
@@ -218,7 +301,7 @@ export default function Login() {
         {/* RIGHT — Login Card */}
         <aside className="lp-card">
           <div className="lp-logo-flip lp-lock-circle" aria-hidden="true">
-            <img src={import.meta.env.BASE_URL + "branding/logo-hry.png"} alt="Haryana Logo" />
+            <img src={import.meta.env.BASE_URL + "branding/Emblem_of_Haryana.svg"} alt="Haryana Logo" />
             <img src={import.meta.env.BASE_URL + "branding/harsac.png"}   alt="HARSAC Logo" />
           </div>
 
@@ -380,7 +463,13 @@ export default function Login() {
             <span /><span>{t("login.or")}</span><span />
           </div>
 
-          <button type="button" className="lp-btn-outline">{t("login.loginGoogle")}</button>
+          <button
+            type="button"
+            className="lp-btn-outline"
+            onClick={handleGoogleLoginClick}
+          >
+            {t("login.loginGoogle")}
+          </button>
 
           <p className="lp-terms">
             {t("login.termsText")}{" "}

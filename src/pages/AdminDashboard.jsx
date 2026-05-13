@@ -46,7 +46,6 @@ export default function AdminDashboard() {
         setLoginLogs(res.data.logs || []);
         setLoginLogsTotal(res.data.totalCount || 0);
       } catch (err) {
-        console.error("Login logs fetch error:", err);
         setLogsError(err.response?.data?.message || "Failed to load login logs.");
       } finally {
         setLogsLoading(false);
@@ -72,8 +71,6 @@ export default function AdminDashboard() {
   const handleLogout = async () => {
     try {
       await axiosInstance.post("/user/logout");
-    } catch (err) {
-      console.error("Logout API error:", err);
     } finally {
       // Clear localStorage
       localStorage.removeItem("token");
