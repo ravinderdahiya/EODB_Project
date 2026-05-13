@@ -5,6 +5,7 @@ import { useLanguage } from "@/context/LanguageContext";
 import axiosInstance from "../utils/axiosInstance";
 import LanguageToggle from "@/components/LanguageToggle";
 import { encrypt } from "../utils/crypto";
+import { reloadRuntimeConfig } from "@/config/runtimeConfig";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -67,6 +68,7 @@ export default function Login() {
       localStorage.setItem("user", JSON.stringify(res.data.user));
       localStorage.setItem("isAdmin", "false");
       sessionStorage.setItem("isAuthenticated", "true");
+      await reloadRuntimeConfig();
       navigate("/map");
     } catch (err) {
       setError(err.response?.data?.message || t("login.errOtpFailed"));
@@ -147,6 +149,7 @@ export default function Login() {
       localStorage.setItem("user", JSON.stringify(res.data.user));
       localStorage.setItem("isAdmin", "true");
       sessionStorage.setItem("isAuthenticated", "true");
+      await reloadRuntimeConfig();
       navigate("/admin");
     } catch (err) {
       setError(err.response?.data?.message || t("login.errBadAdmin"));
@@ -185,6 +188,7 @@ export default function Login() {
       localStorage.setItem("user", JSON.stringify(user));
       localStorage.setItem("isAdmin", user.role === "admin" || user.role === "superadmin" ? "true" : "false");
       sessionStorage.setItem("isAuthenticated", "true");
+      await reloadRuntimeConfig();
       navigate("/map");
     } catch (err) {
       console.error(err);

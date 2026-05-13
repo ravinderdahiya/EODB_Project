@@ -1,3 +1,5 @@
+import { decrypt } from "@/utils/crypto";
+
 const DEFAULT_RUNTIME_CONFIG = {
   VITE_HSAC_MAIN_URL: "/mapserver/service/hsacMain",
   VITE_ASMX_BASE_PATH: "/mapserver/land-record",
@@ -25,6 +27,18 @@ function setWindowRuntimeConfig(config) {
 
 function resolveFrontendConfigEndpoint() {
   return "/api-url/frontend-config";
+}
+
+function getAuthorizationHeaderFromLocalToken() {
+  const encryptedToken = localStorage.getItem("token");
+  if (!encryptedToken) return null;
+
+  try {
+    const token = decrypt(encryptedToken);
+    return token ? `Bearer ${token}` : null;
+  } catch {
+    return null;
+  }
 }
 
 function mergeRuntimeConfig(incomingConfig) {
@@ -62,15 +76,18 @@ export async function loadRuntimeConfig() {
   loadRuntimeConfigPromise = (async () => {
     try {
       const endpoint = resolveFrontendConfigEndpoint();
+      const authHeader = getAuthorizationHeaderFromLocalToken();
       const response = await fetch(endpoint, {
         method: "GET",
         credentials: "include",
         headers: {
           Accept: "application/json",
+          ...(authHeader ? { Authorization: authHeader } : {}),
         },
       });
 
       if (!response.ok) {
+        loadRuntimeConfigPromise = null;
         return runtimeConfig;
       }
 
@@ -82,4 +99,9 @@ export async function loadRuntimeConfig() {
   })();
 
   return loadRuntimeConfigPromise;
+}
+
+export async function reloadRuntimeConfig() {
+  loadRuntimeConfigPromise = null;
+  return loadRuntimeConfig();
 }

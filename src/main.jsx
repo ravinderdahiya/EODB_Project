@@ -6,6 +6,7 @@ import * as urlUtils from "@arcgis/core/core/urlUtils.js";
 import "@arcgis/core/assets/esri/themes/light/main.css";
 import { initGA } from "./services/analyticsService";
 import { getRuntimeConfigValue, loadRuntimeConfig } from "./config/runtimeConfig";
+import { decrypt } from "./utils/crypto";
 import "./styles/global.css";
 
 function normalizeBaseUrl(baseUrl) {
@@ -36,6 +37,34 @@ function getArcgisAssetsPath() {
   return new URL(relativeAssetsPath, window.location.origin).toString();
 }
 
+function getAuthorizationHeaderFromLocalToken() {
+  const encryptedToken = localStorage.getItem("token");
+  if (!encryptedToken) return null;
+
+  try {
+    const token = decrypt(encryptedToken);
+    return token ? `Bearer ${token}` : null;
+  } catch {
+    return null;
+  }
+}
+
+function attachArcgisAuthInterceptor() {
+  esriConfig.request.interceptors.push({
+    before: (params) => {
+      const authHeader = getAuthorizationHeaderFromLocalToken();
+      if (!authHeader) return;
+
+      params.requestOptions = params.requestOptions || {};
+      params.requestOptions.headers = {
+        ...(params.requestOptions.headers || {}),
+        Authorization: authHeader,
+      };
+      params.requestOptions.credentials = "include";
+    },
+  });
+}
+
 async function bootstrap() {
   await loadRuntimeConfig();
 
@@ -60,6 +89,7 @@ async function bootstrap() {
   // ArcGIS local assets (workers/wasm/i18n/images) are served from /public/arcgis/assets.
   esriConfig.assetsPath = arcgisAssetsPath;
   esriConfig.workers.workerPath = `${arcgisAssetsPath}esri/core/workers/RemoteClient.js`;
+  attachArcgisAuthInterceptor();
 
   // Initialize Google Analytics
   const gaMeasurementId = getRuntimeConfigValue(

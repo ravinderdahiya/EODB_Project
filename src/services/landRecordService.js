@@ -22,10 +22,23 @@
  */
 
 import { getRuntimeConfigValue } from "@/config/runtimeConfig";
+import { decrypt } from "@/utils/crypto";
 
 // ─── Backend proxy base URL ───────────────────────────────────────────────────
 const ASMX_BASE =
   getRuntimeConfigValue("VITE_ASMX_BASE_PATH", "/mapserver/land-record");
+
+function getAuthorizationHeaderFromLocalToken() {
+  const encryptedToken = localStorage.getItem("token");
+  if (!encryptedToken) return null;
+
+  try {
+    const token = decrypt(encryptedToken);
+    return token ? `Bearer ${token}` : null;
+  } catch {
+    return null;
+  }
+}
 
 // ─── Internal helpers ─────────────────────────────────────────────────────────
 /**
@@ -76,9 +89,14 @@ function parseAsmxXml(rawText) {
 async function asmxGet(method, params) {
   const qs  = new URLSearchParams(params).toString();
   const url = `${ASMX_BASE}/${method}?${qs}`;
+  const authHeader = getAuthorizationHeaderFromLocalToken();
 
   const res = await fetch(url, {
-    headers: { Accept: "text/xml, application/xml" },
+    credentials: "include",
+    headers: {
+      Accept: "text/xml, application/xml",
+      ...(authHeader ? { Authorization: authHeader } : {}),
+    },
   });
 
   if (!res.ok) {
