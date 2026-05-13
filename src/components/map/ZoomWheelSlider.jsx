@@ -12,10 +12,10 @@ const REAL_TICKS     = (MAX_ZOOM - MIN_ZOOM) * TICKS_PER_ZOOM + 1; // 97
 const ALL_TICKS      = PADDING * 2 + REAL_TICKS;                    // 161
 
 const LAYERS = [
-  { key: 'district',  label: 'District',  min: 7,  max: 9  },
-  { key: 'tehsil',    label: 'Tehsil',    min: 10, max: 12 },
-  { key: 'village',   label: 'Village',   min: 13, max: 15 },
-  { key: 'cadastral', label: 'Cadastral', min: 16, max: 19 },
+  { key: 'district',  label: 'District',  min: 7,  max: 9.9  },
+  { key: 'tehsil',    label: 'Tehsil',    min: 10, max: 12.9 },
+  { key: 'village',   label: 'Village',   min: 13, max: 16.9 },
+  { key: 'cadastral', label: 'Cadastral', min: 17, max: 19 },
 ];
 
 function getActiveKey(zoom) {

@@ -285,8 +285,15 @@
 
 @media (max-width: 640px) {
   .zws {
-    height: 46px;
-    padding: 0 6px;
+    top: 12px;
+    left: calc(0.9rem + 46px + 0.7rem);
+    right: 0.9rem;
+    transform: none;
+    width: auto;
+    max-width: none;
+    height: 42px;
+    padding: 0 5px;
+    border-radius: 20px;
   }
 
   .zws__pointer {
@@ -297,21 +304,42 @@
   }
 
   .zws__tick-zone {
-    height: 18px;
-    margin-top: 11px;
+    height: 15px;
+    margin-top: 10px;
   }
 
-  .zws__tick.major::after { height: 11px; }
-  .zws__tick.mid::after   { height: 7px;  }
-  .zws__tick.minor::after { height: 5px;  }
+  .zws__tick.major::after { height: 9px; }
+  .zws__tick.mid::after   { height: 6px; }
+  .zws__tick.minor::after { height: 4px; }
   .zws__tick.pad::after   { height: 3px;  }
 
-  .zws__label  { font-size: 7.5px; padding: 2px 3px; letter-spacing: 0.06em; }
-  .zws__sep    { margin: 0 3px; height: 8px; }
-  .zws__labels { bottom: 3px; }
+  .zws__label  { font-size: 6.8px; padding: 1px 2px; letter-spacing: 0.04em; }
+  .zws__sep    { margin: 0 2px; height: 7px; }
+  .zws__labels { bottom: 2px; }
 }
 
 @media (max-width: 400px) {
-  .zws__label { font-size: 7px; padding: 2px 2px; }
-  .zws__sep   { margin: 0 2px; }
+  .zws {
+    top: 10px;
+    left: calc(0.8rem + 46px + 0.62rem);
+    right: 0.8rem;
+    width: auto;
+    height: 38px;
+    padding: 0 3px;
+    border-radius: 18px;
+  }
+
+  .zws__tick-zone {
+    height: 14px;
+    margin-top: 9px;
+  }
+
+  .zws__tick.major::after { height: 8px; }
+  .zws__tick.mid::after   { height: 5px; }
+  .zws__tick.minor::after { height: 3px; }
+  .zws__tick.pad::after   { height: 2px; }
+
+  .zws__label { font-size: 6.2px; padding: 1px 1px; letter-spacing: 0.03em; }
+  .zws__sep   { margin: 0 1px; height: 7px; }
+  .zws__labels { bottom: 2px; }
 }
