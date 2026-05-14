@@ -8,6 +8,10 @@ import { initGA } from "./services/analyticsService";
 import { getRuntimeConfigValue, loadRuntimeConfig } from "./config/runtimeConfig";
 import { decrypt } from "./utils/crypto";
 import "./styles/global.css";
+import { mountSplash, removeSplash } from "./splash";
+
+// Show the splash immediately — runs synchronously before the async bootstrap
+mountSplash();
 
 function normalizeBaseUrl(baseUrl) {
   if (!baseUrl) return "/";
@@ -149,9 +153,15 @@ async function bootstrap() {
       </LanguageProvider>
     </React.StrictMode>,
   );
+
+  // Fade out splash after React's first paint
+  // Double-RAF ensures the browser has committed at least one rendered frame
+  requestAnimationFrame(() => { requestAnimationFrame(removeSplash); });
 }
 
 bootstrap().catch(() => {
+  // Remove splash immediately so the error message is visible
+  removeSplash();
   ReactDOM.createRoot(document.getElementById("root")).render(
     <div style={{ padding: "1rem", fontFamily: "sans-serif" }}>
       Failed to initialize the application.

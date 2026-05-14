@@ -64,6 +64,7 @@ const hi = {
     printDetails:    "भूमि जानकारी विवरण प्रिंट करें",
     closeTable:      "भूमि जानकारी तालिका बंद करें",
     print:           "प्रिंट",
+    whatsappShare:   "WhatsApp पर शेयर करें",
     fetchingOwners:  "मालिक लोड हो रहे हैं…",
     processingSelection: "चयन प्रक्रियाधीन...",
     noData:          "अभी तक कोई डेटा नहीं चुना गया।",

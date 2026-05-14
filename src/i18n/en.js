@@ -64,6 +64,7 @@ const en = {
     printDetails:    "Print land information details",
     closeTable:      "Close land information details table",
     print:           "Print",
+    whatsappShare:   "Share via WhatsApp",
     fetchingOwners:  "Fetching owners…",
     processingSelection: "Processing selection…",
     noData:          "No data selected yet.",
