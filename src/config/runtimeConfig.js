@@ -1,17 +1,17 @@
 import { decrypt } from "@/utils/crypto";
 
 const DEFAULT_RUNTIME_CONFIG = {
-  VITE_HSAC_MAIN_URL: "/mapserver/service/hsacMain",
-  VITE_ASMX_BASE_PATH: "/mapserver/land-record",
-  VITE_ARCGIS_GEOCODER_URL: "/mapserver/service/geocoder",
-  VITE_ARCGIS_IMAGERY_URL: "/mapserver/service/imagery",
-  VITE_ARCGIS_REFERENCE_URL: "/mapserver/service/reference",
-  VITE_ARCGIS_TOPO_URL: "/mapserver/service/topo",
-  VITE_ARCGIS_STREETS_URL: "/mapserver/service/streets",
-  VITE_HARYANA_BOUNDARY_URL: "/mapserver/service/haryanaBoundary",
-  VITE_HSACGGM_ASSETS_URL: "/mapserver/service/governmentAssets",
-  VITE_NHAI_ROADS_URL: "/mapserver/service/nhaiRoads",
-  VITE_HARYANA_ROADS_URL: "/mapserver/service/haryanaRoads",
+  VITE_HSAC_MAIN_URL: "",
+  VITE_ASMX_BASE_PATH: "",
+  VITE_ARCGIS_GEOCODER_URL: "",
+  VITE_ARCGIS_IMAGERY_URL: "",
+  VITE_ARCGIS_REFERENCE_URL: "",
+  VITE_ARCGIS_TOPO_URL: "",
+  VITE_ARCGIS_STREETS_URL: "",
+  VITE_HARYANA_BOUNDARY_URL: "",
+  VITE_HSACGGM_ASSETS_URL: "",
+  VITE_NHAI_ROADS_URL: "",
+  VITE_HARYANA_ROADS_URL: "",
   VITE_ARCGIS_API_KEY: "",
   VITE_GA_MEASUREMENT_ID: "",
 };

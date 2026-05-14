@@ -21,7 +21,7 @@ import Graphic from "@arcgis/core/Graphic.js";
 import SketchViewModel from "@arcgis/core/widgets/Sketch/SketchViewModel.js";
 import * as restQuery from "@arcgis/core/rest/query.js";
 import Query from "@arcgis/core/rest/support/Query.js";
-import { HSAC_MAIN_URL } from "@/config/arcgis";
+import { getHsacMainUrl } from "@/config/arcgis";
 import { getCadastralLayerId } from "@/services/hsacLayerResolver";
 import { getOwnerNames } from "@/services/landRecordService";
 import { SELECTION_FILL_SYMBOL } from "@/config/mapSymbols";
@@ -103,7 +103,7 @@ export function useSelectFeatures({ viewRef, layersRef }) {
     try {
       // ── Step 1: district guard ──────────────────────────────────────────────
       const distRes = await restQuery.executeQueryJSON(
-        `${HSAC_MAIN_URL}/26`,
+        `${getHsacMainUrl()}/26`,
         new Query({
           geometry,
           spatialRelationship: "intersects",
@@ -138,7 +138,7 @@ export function useSelectFeatures({ viewRef, layersRef }) {
 
       // ── Step 2: khasra query on the district cadastral sublayer ─────────────
       const khasRes = await restQuery.executeQueryJSON(
-        `${HSAC_MAIN_URL}/${layerId}`,
+        `${getHsacMainUrl()}/${layerId}`,
         new Query({
           geometry,
           spatialRelationship: "intersects",
@@ -350,3 +350,4 @@ export function useSelectFeatures({ viewRef, layersRef }) {
     clearSelection,
   };
 }
+

@@ -4,6 +4,7 @@ import AdminOverviewChart from "@/components/admin/AdminOverviewChart";
 import AdminRecentActivity from "@/components/admin/AdminRecentActivity";
 import AdminRecentEventsTable from "@/components/admin/AdminRecentEventsTable";
 import AdminLoginLogsTable from "@/components/admin/AdminLoginLogsTable";
+import AdminAnalyticsEventsTable from "@/components/admin/AdminAnalyticsEventsTable";
 import AdminApiUrlManager from "@/components/admin/AdminApiUrlManager";
 import AdminStatCards from "@/components/admin/AdminStatCards";
 import AdminSummaryCards from "@/components/admin/AdminSummaryCards";
@@ -40,12 +41,32 @@ export default function AdminDashboardView({
   currentPage,
   pageSize,
   loginLogsTotal,
+  analyticsStats = null,
+  analyticsOverviewSeries = [],
+  analyticsCategorySeries = [],
+  analyticsRecentEvents = [],
+  analyticsEvents = [],
+  analyticsLoading = false,
+  analyticsError = null,
+  analyticsPage = 1,
+  analyticsTotal = 0,
+  onAnalyticsPageChange,
   onPageChange,
   onCreateEvent,
 }) {
   const activeItem = adminNavigationItems.find((item) => item.id === activeSection)
     ?? adminNavigationItems[0];
   const isDashboard = activeItem.id === "dashboard";
+  const statCards = analyticsStats || adminStatCards;
+  const overviewSeries = analyticsOverviewSeries?.length
+    ? analyticsOverviewSeries
+    : adminOverviewSeries;
+  const categorySeries = analyticsCategorySeries?.length
+    ? analyticsCategorySeries
+    : adminCategorySeries;
+  const recentEvents = analyticsRecentEvents?.length
+    ? analyticsRecentEvents
+    : adminRecentEvents;
 
   return (
     <section className="admin-dashboard">
@@ -80,15 +101,15 @@ export default function AdminDashboardView({
 
         {isDashboard ? (
           <>
-            <AdminStatCards cards={adminStatCards} />
+            <AdminStatCards cards={statCards} />
 
             <div className="admin-grid admin-grid--charts">
-              <AdminOverviewChart series={adminOverviewSeries} />
-              <AdminCategoryChart categories={adminCategorySeries} />
+              <AdminOverviewChart series={overviewSeries} />
+              <AdminCategoryChart categories={categorySeries} />
             </div>
 
             <div className="admin-grid admin-grid--lower">
-              <AdminRecentEventsTable events={adminRecentEvents} />
+              <AdminRecentEventsTable events={recentEvents} />
               <AdminRecentActivity items={adminRecentActivity} />
             </div>
 
@@ -110,6 +131,19 @@ export default function AdminDashboardView({
         ) : activeItem.id === "api-urls" ? (
           <>
             <AdminApiUrlManager />
+            <AdminSummaryCards cards={adminSummaryMetrics} />
+          </>
+        ) : activeItem.id === "reports" ? (
+          <>
+            <AdminAnalyticsEventsTable
+              events={analyticsEvents}
+              loading={analyticsLoading}
+              error={analyticsError}
+              page={analyticsPage}
+              pageSize={pageSize}
+              totalCount={analyticsTotal}
+              onPageChange={onAnalyticsPageChange}
+            />
             <AdminSummaryCards cards={adminSummaryMetrics} />
           </>
         ) : (
