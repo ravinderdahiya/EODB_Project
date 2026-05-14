@@ -11,7 +11,7 @@
 
 import * as restQuery from "@arcgis/core/rest/query.js";
 import Query from "@arcgis/core/rest/support/Query.js";
-import { HSAC_MAIN_URL } from "@/config/arcgis";
+import { getHsacMainUrl } from "@/config/arcgis";
 import { getCadastralLayerId, getHsacLayerPlan } from "@/services/hsacLayerResolver";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -22,7 +22,7 @@ import { getCadastralLayerId, getHsacLayerPlan } from "@/services/hsacLayerResol
 // ─────────────────────────────────────────────────────────────────────────────
 async function cadastralUrl(dCode) {
   const layerId = await getCadastralLayerId(dCode);
-  return `${HSAC_MAIN_URL}/${layerId}`;
+  return `${getHsacMainUrl()}/${layerId}`;
 }
 
 function cleanText(value) {
@@ -125,7 +125,7 @@ export async function getDistricts() {
   });
 
   const res = await restQuery.executeQueryJSON(
-    `${HSAC_MAIN_URL}/${layerPlan.districtLayerId}`,
+    `${getHsacMainUrl()}/${layerPlan.districtLayerId}`,
     q,
   );
 
@@ -150,7 +150,7 @@ export async function getTehsils(dCode) {
   });
 
   const res = await restQuery.executeQueryJSON(
-    `${HSAC_MAIN_URL}/${layerPlan.tehsilLayerId}`,
+    `${getHsacMainUrl()}/${layerPlan.tehsilLayerId}`,
     q,
   );
 
@@ -178,7 +178,7 @@ export async function getAllTehsils() {
   });
 
   const res = await restQuery.executeQueryJSON(
-    `${HSAC_MAIN_URL}/${layerPlan.tehsilLayerId}`,
+    `${getHsacMainUrl()}/${layerPlan.tehsilLayerId}`,
     q,
   );
 
@@ -230,7 +230,7 @@ export async function getVillages(dCode, tCode) {
   });
 
   const res = await restQuery.executeQueryJSON(
-    `${HSAC_MAIN_URL}/${layerPlan.villageLayerId}`,
+    `${getHsacMainUrl()}/${layerPlan.villageLayerId}`,
     q,
   );
 
@@ -261,7 +261,7 @@ export async function getAllVillages() {
   });
 
   const res = await restQuery.executeQueryJSON(
-    `${HSAC_MAIN_URL}/${layerPlan.villageLayerId}`,
+    `${getHsacMainUrl()}/${layerPlan.villageLayerId}`,
     q,
   );
 
@@ -389,7 +389,7 @@ export async function searchAdministrativeAreas(term, options = {}) {
 
   const [districtRes, tehsilRes, villageRes] = await Promise.allSettled([
     restQuery.executeQueryJSON(
-      `${HSAC_MAIN_URL}/${layerPlan.districtLayerId}`,
+      `${getHsacMainUrl()}/${layerPlan.districtLayerId}`,
       new Query({
         outFields: ["n_d_code", "n_d_name"],
         returnDistinctValues: true,
@@ -403,7 +403,7 @@ export async function searchAdministrativeAreas(term, options = {}) {
       }),
     ),
     restQuery.executeQueryJSON(
-      `${HSAC_MAIN_URL}/${layerPlan.tehsilLayerId}`,
+      `${getHsacMainUrl()}/${layerPlan.tehsilLayerId}`,
       new Query({
         outFields: ["n_d_code", "n_d_name", "n_t_code", "n_t_name"],
         returnDistinctValues: true,
@@ -418,7 +418,7 @@ export async function searchAdministrativeAreas(term, options = {}) {
       }),
     ),
     restQuery.executeQueryJSON(
-      `${HSAC_MAIN_URL}/${layerPlan.villageLayerId}`,
+      `${getHsacMainUrl()}/${layerPlan.villageLayerId}`,
       new Query({
         outFields: ["n_d_code", "n_d_name", "n_t_code", "n_t_name", "n_v_code", "n_v_name"],
         returnDistinctValues: true,
@@ -502,17 +502,17 @@ export async function getBoundaryGeometry(type, codes) {
 
   switch (type) {
     case "district":
-      url   = `${HSAC_MAIN_URL}/${layerPlan.districtLayerId}`;
+      url   = `${getHsacMainUrl()}/${layerPlan.districtLayerId}`;
       where = `n_d_code='${dCode}'`;
       break;
 
     case "tehsil":
-      url   = `${HSAC_MAIN_URL}/${layerPlan.tehsilLayerId}`;
+      url   = `${getHsacMainUrl()}/${layerPlan.tehsilLayerId}`;
       where = `n_d_code='${dCode}' AND n_t_code='${tCode}'`;
       break;
 
     case "village":
-      url   = `${HSAC_MAIN_URL}/${layerPlan.villageLayerId}`;
+      url   = `${getHsacMainUrl()}/${layerPlan.villageLayerId}`;
       where = `n_d_code='${dCode}' AND n_t_code='${tCode}' AND n_v_code='${vCode}'`;
       break;
 
@@ -540,3 +540,4 @@ export async function getBoundaryGeometry(type, codes) {
   const res = await restQuery.executeQueryJSON(url, q);
   return { features: res.features };
 }
+

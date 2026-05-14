@@ -8,8 +8,7 @@
  *   demo/khatoni.js       → getKhatonis()
  *   demo/ownersInPopup.js → getOwnerNames()
  *
- * All calls are routed through backend proxy:
- *   /mapserver/land-record/:method
+ * All calls are routed through a backend proxy path resolved from runtime config.
  * Backend then forwards to HSAC ASMX endpoints.
  *
  * ASMX response format (double-wrapped XML):
@@ -25,8 +24,9 @@ import { getRuntimeConfigValue } from "@/config/runtimeConfig";
 import { decrypt } from "@/utils/crypto";
 
 // ─── Backend proxy base URL ───────────────────────────────────────────────────
-const ASMX_BASE =
-  getRuntimeConfigValue("VITE_ASMX_BASE_PATH", "/mapserver/land-record");
+function getAsmxBasePath() {
+  return getRuntimeConfigValue("VITE_ASMX_BASE_PATH", "");
+}
 
 function getAuthorizationHeaderFromLocalToken() {
   const encryptedToken = localStorage.getItem("token");
@@ -88,7 +88,7 @@ function parseAsmxXml(rawText) {
  */
 async function asmxGet(method, params) {
   const qs  = new URLSearchParams(params).toString();
-  const url = `${ASMX_BASE}/${method}?${qs}`;
+  const url = `${getAsmxBasePath()}/${method}?${qs}`;
   const authHeader = getAuthorizationHeaderFromLocalToken();
 
   const res = await fetch(url, {
@@ -113,7 +113,7 @@ async function asmxGet(method, params) {
  * Migrated from: demo/khewat.js → Khewatoption()
  *
  * Backend endpoint:
- *   /mapserver/land-record/GetKhewats?Dcode1=XX&Tcode1=XX&Nvcode1=XX
+ *   <runtime land-record base>/GetKhewats?Dcode1=XX&Tcode1=XX&Nvcode1=XX
  *
  * Old XML tag read: a.getElementsByTagName('khewat')[i].childNodes[0].nodeValue
  *
@@ -139,7 +139,7 @@ export async function getKhewats(dCode, tCode, vCode) {
  * Migrated from: demo/timePeriod.js → TimePeriodOption()
  *
  * Backend endpoint:
- *   /mapserver/land-record/GetJamabandiPeriod?Dcode1=XX&Tcode1=XX&Nvcode1=XX
+ *   <runtime land-record base>/GetJamabandiPeriod?Dcode1=XX&Tcode1=XX&Nvcode1=XX
  *
  * Old code extracted with: xmlText.slice(52, -51)
  * New: reads textContent of root element after double-parse.
@@ -167,7 +167,7 @@ export async function getJamabandiPeriod(dCode, tCode, vCode) {
  * Migrated from: demo/khatoni.js → getkhatoni()
  *
  * Backend endpoint:
- *   /mapserver/land-record/GetKhatonis?...query params...
+ *   <runtime land-record base>/GetKhatonis?...query params...
  *
  * Old XML tag read: a.getElementsByTagName('khatoni')[i].childNodes[0].nodeValue
  *
@@ -197,7 +197,7 @@ export async function getKhatonis(dCode, tCode, vCode, period, khewat) {
  * Migrated from: demo/ownersInPopup.js → Owners_name()
  *
  * Backend endpoint:
- *   /mapserver/land-record/Owner_name?...query params...
+ *   <runtime land-record base>/Owner_name?...query params...
  *
  * Old XML tag read:
  *   a.getElementsByTagName('OWNER')[i].childNodes[0].nodeValue.split(",")
