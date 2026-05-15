@@ -5,6 +5,34 @@ import { useLanguage } from "@/context/LanguageContext";
 import axiosInstance from "../utils/axiosInstance";
 import LanguageToggle from "@/components/LanguageToggle";
 import { encrypt } from "../utils/crypto";
+import { reloadRuntimeConfig } from "@/config/runtimeConfig";
+
+const GOOGLE_GSI_SCRIPT_ID = "google-gsi-client";
+
+function loadGoogleIdentityScript() {
+  return new Promise((resolve, reject) => {
+    if (window.google?.accounts?.id) {
+      resolve();
+      return;
+    }
+
+    const existing = document.getElementById(GOOGLE_GSI_SCRIPT_ID);
+    if (existing) {
+      existing.addEventListener("load", () => resolve(), { once: true });
+      existing.addEventListener("error", () => reject(new Error("Failed to load Google GSI")), { once: true });
+      return;
+    }
+
+    const script = document.createElement("script");
+    script.id = GOOGLE_GSI_SCRIPT_ID;
+    script.src = "https://accounts.google.com/gsi/client";
+    script.async = true;
+    script.defer = true;
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error("Failed to load Google GSI"));
+    document.head.appendChild(script);
+  });
+}
 
 export default function Login() {
   const navigate = useNavigate();
@@ -67,6 +95,7 @@ export default function Login() {
       localStorage.setItem("user", JSON.stringify(res.data.user));
       localStorage.setItem("isAdmin", "false");
       sessionStorage.setItem("isAuthenticated", "true");
+      await reloadRuntimeConfig();
       navigate("/map");
     } catch (err) {
       setError(err.response?.data?.message || t("login.errOtpFailed"));
@@ -147,6 +176,7 @@ export default function Login() {
       localStorage.setItem("user", JSON.stringify(res.data.user));
       localStorage.setItem("isAdmin", "true");
       sessionStorage.setItem("isAuthenticated", "true");
+      await reloadRuntimeConfig();
       navigate("/admin");
     } catch (err) {
       setError(err.response?.data?.message || t("login.errBadAdmin"));
@@ -185,6 +215,7 @@ export default function Login() {
       localStorage.setItem("user", JSON.stringify(user));
       localStorage.setItem("isAdmin", user.role === "admin" || user.role === "superadmin" ? "true" : "false");
       sessionStorage.setItem("isAuthenticated", "true");
+      await reloadRuntimeConfig();
       navigate("/map");
     } catch (err) {
       console.error(err);
@@ -206,24 +237,20 @@ export default function Login() {
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    let intervalId = null;
-    const tryInitialize = () => {
-      if (window.google?.accounts?.id) {
-        initializeGoogle();
-        if (intervalId) {
-          window.clearInterval(intervalId);
-          intervalId = null;
-        }
-      }
-    };
+    let disposed = false;
 
-    tryInitialize();
-    intervalId = window.setInterval(tryInitialize, 100);
+    loadGoogleIdentityScript()
+      .then(() => {
+        if (disposed) return;
+        initializeGoogle();
+      })
+      .catch(() => {
+        if (disposed) return;
+        setError(t("login.errGoogleNotReady"));
+      });
 
     return () => {
-      if (intervalId) {
-        window.clearInterval(intervalId);
-      }
+      disposed = true;
     };
   }, []);
 

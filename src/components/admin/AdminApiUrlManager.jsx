@@ -1,10 +1,14 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   CheckCircle2,
+  Copy,
   Edit3,
-  Plus,
-  Trash2,
   Eye,
+  Filter,
+  Link2,
+  Plus,
+  Search,
+  Trash2,
 } from "lucide-react";
 import {
   createApiUrl,
@@ -33,15 +37,18 @@ export default function AdminApiUrlManager() {
   const [formError, setFormError] = useState(null);
   const [selectedUrl, setSelectedUrl] = useState(null);
   const [categories, setCategories] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
 
   const loadApiUrls = async () => {
     setLoading(true);
     setError(null);
     try {
       const res = await fetchApiUrls();
-      setApiUrls(res.data || []);
-      if ((res.data || []).length && !selectedUrl) {
-        setSelectedUrl(res.data[0]);
+      const rows = res.data || [];
+      setApiUrls(rows);
+      if (rows.length && !selectedUrl) {
+        setSelectedUrl(rows[0]);
       }
     } catch (err) {
       setError(err?.response?.data?.error || "Failed to fetch API URLs.");
@@ -55,7 +62,7 @@ export default function AdminApiUrlManager() {
       const res = await fetchApiUrlCategories();
       setCategories(res.data || []);
     } catch {
-      // Ignore categories fetch errors and keep manual input available.
+      // Ignore category fetch failures and keep manual input enabled.
     }
   };
 
@@ -63,6 +70,37 @@ export default function AdminApiUrlManager() {
     loadApiUrls();
     loadCategories();
   }, []);
+
+  const activeCount = useMemo(
+    () => apiUrls.filter((item) => item.isActive).length,
+    [apiUrls],
+  );
+  const inactiveCount = Math.max(apiUrls.length - activeCount, 0);
+
+  const filteredApiUrls = useMemo(() => {
+    const query = searchTerm.trim().toLowerCase();
+    return apiUrls.filter((item) => {
+      const statusMatch =
+        statusFilter === "all"
+        || (statusFilter === "active" && item.isActive)
+        || (statusFilter === "inactive" && !item.isActive);
+
+      if (!statusMatch) return false;
+      if (!query) return true;
+
+      return [item.name, item.url, item.category]
+        .filter(Boolean)
+        .some((value) => `${value}`.toLowerCase().includes(query));
+    });
+  }, [apiUrls, searchTerm, statusFilter]);
+
+  useEffect(() => {
+    if (!selectedUrl?.id) return;
+    const stillVisible = filteredApiUrls.some((item) => item.id === selectedUrl.id);
+    if (!stillVisible) {
+      setSelectedUrl(filteredApiUrls[0] || null);
+    }
+  }, [filteredApiUrls, selectedUrl?.id]);
 
   const resetForm = () => {
     setFormData(initialFormState);
@@ -154,6 +192,15 @@ export default function AdminApiUrlManager() {
     }
   };
 
+  const handleCopySelectedUrl = async () => {
+    if (!selectedUrl?.url || !navigator?.clipboard?.writeText) return;
+    try {
+      await navigator.clipboard.writeText(selectedUrl.url);
+    } catch {
+      // Ignore clipboard failures; URL remains visible in details panel.
+    }
+  };
+
   return (
     <article className="admin-card admin-table-card admin-api-url-card">
       <header className="admin-card__header admin-api-url-header">
@@ -242,7 +289,7 @@ export default function AdminApiUrlManager() {
 
             <div className="admin-api-url-form__actions">
               <button type="submit" className="header-action-button header-action-button--primary">
-                {saving ? "Saving…" : editingId ? "Update URL" : "Create URL"}
+                {saving ? "Saving..." : editingId ? "Update URL" : "Create URL"}
               </button>
               <button type="button" className="header-action-button" onClick={resetForm}>
                 Reset
@@ -256,6 +303,20 @@ export default function AdminApiUrlManager() {
             </header>
             {selectedUrl ? (
               <div className="admin-api-url-details__card">
+                <div className="admin-api-url-details__meta">
+                  <span className={`admin-status admin-status--${selectedUrl.isActive ? "success" : "failed"}`}>
+                    {selectedUrl.isActive ? "Active" : "Inactive"}
+                  </span>
+                  <button
+                    type="button"
+                    className="admin-api-url-copy-btn"
+                    onClick={handleCopySelectedUrl}
+                    title="Copy URL"
+                  >
+                    <Copy size={14} />
+                    <span>Copy URL</span>
+                  </button>
+                </div>
                 <p>
                   <strong>Name:</strong> {selectedUrl.name}
                 </p>
@@ -263,18 +324,48 @@ export default function AdminApiUrlManager() {
                   <strong>URL:</strong> {selectedUrl.url}
                 </p>
                 <p>
-                  <strong>Category:</strong> {selectedUrl.category || "—"}
+                  <strong>Category:</strong> {selectedUrl.category || "-"}
                 </p>
                 <p>
-                  <strong>Status:</strong> {selectedUrl.isActive ? "Active" : "Inactive"}
-                </p>
-                <p>
-                  <strong>Description:</strong> {selectedUrl.description || "—"}
+                  <strong>Description:</strong> {selectedUrl.description || "-"}
                 </p>
               </div>
             ) : (
               <p className="admin-api-url-details__empty">Select an API row to view details.</p>
             )}
+          </div>
+        </div>
+
+        <div className="admin-api-url-toolbar">
+          <div className="admin-api-url-toolbar__stats">
+            <span className="admin-chip">Total: {apiUrls.length}</span>
+            <span className="admin-chip admin-chip--success">Active: {activeCount}</span>
+            <span className="admin-chip admin-chip--muted">Inactive: {inactiveCount}</span>
+          </div>
+
+          <div className="admin-api-url-toolbar__filters">
+            <label className="admin-api-url-search">
+              <Search size={15} />
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search by name, URL, or category"
+              />
+            </label>
+
+            <label className="admin-api-url-filter">
+              <Filter size={14} />
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                aria-label="Filter by status"
+              >
+                <option value="all">All</option>
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+              </select>
+            </label>
           </div>
         </div>
 
@@ -300,35 +391,44 @@ export default function AdminApiUrlManager() {
                 </tr>
               </thead>
               <tbody>
-                {apiUrls.length === 0 ? (
+                {filteredApiUrls.length === 0 ? (
                   <tr>
                     <td colSpan="6" style={{ padding: "1rem", textAlign: "center" }}>
-                      No API URLs found.
+                      No API URLs found for the current filters.
                     </td>
                   </tr>
                 ) : (
-                  apiUrls.map((item, index) => (
-                    <tr key={item.id}>
+                  filteredApiUrls.map((item, index) => (
+                    <tr
+                      key={item.id}
+                      className={selectedUrl?.id === item.id ? "admin-api-url-row--selected" : ""}
+                      onClick={() => handleSelectUrl(item)}
+                    >
                       <td>{index + 1}</td>
-                      <td>{item.name}</td>
-                      <td className="admin-api-url-table-url">{item.url}</td>
+                      <td>
+                        <span className="admin-api-url-name-cell">
+                          <Link2 size={13} />
+                          <span>{item.name}</span>
+                        </span>
+                      </td>
+                      <td className="admin-api-url-table-url" title={item.url}>{item.url}</td>
                       <td>{item.category || "-"}</td>
                       <td>
                         <span className={`admin-status admin-status--${item.isActive ? "success" : "failed"}`}>
                           {item.isActive ? "Active" : "Inactive"}
                         </span>
                       </td>
-                      <td className="admin-api-url-actions">
-                        <button type="button" onClick={() => handleSelectUrl(item)}>
+                      <td className="admin-api-url-actions" onClick={(event) => event.stopPropagation()}>
+                        <button type="button" className="admin-action-btn" onClick={() => handleSelectUrl(item)}>
                           <Eye size={14} /> View
                         </button>
-                        <button type="button" onClick={() => handleEdit(item)}>
+                        <button type="button" className="admin-action-btn" onClick={() => handleEdit(item)}>
                           <Edit3 size={14} /> Edit
                         </button>
-                        <button type="button" onClick={() => handleDelete(item.id)}>
+                        <button type="button" className="admin-action-btn admin-action-btn--danger" onClick={() => handleDelete(item.id)}>
                           <Trash2 size={14} /> Delete
                         </button>
-                        <button type="button" onClick={() => handleToggleStatus(item.id)}>
+                        <button type="button" className="admin-action-btn admin-action-btn--toggle" onClick={() => handleToggleStatus(item.id)}>
                           <CheckCircle2 size={14} /> {item.isActive ? "Disable" : "Enable"}
                         </button>
                       </td>

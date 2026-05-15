@@ -1,5 +1,5 @@
 import esriRequest from "@arcgis/core/request.js";
-import { DISTRICT_SUBLAYERS, HSAC_LAYER, HSAC_MAIN_URL } from "@/config/arcgis";
+import { DISTRICT_SUBLAYERS, HSAC_LAYER, getHsacMainUrl } from "@/config/arcgis";
 
 const FALLBACK_LAYER_ID = DISTRICT_SUBLAYERS[0]?.id ?? 1;
 
@@ -83,7 +83,7 @@ export async function getHsacLayerPlan() {
   if (!cachedLayerPlanPromise) {
     cachedLayerPlanPromise = (async () => {
       try {
-        const response = await esriRequest(HSAC_MAIN_URL, {
+        const response = await esriRequest(getHsacMainUrl(), {
           query: { f: "pjson" },
           responseType: "json",
         });

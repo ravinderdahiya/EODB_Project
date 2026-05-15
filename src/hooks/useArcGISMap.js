@@ -580,28 +580,19 @@ function createLocationGraphic(point, title) {
 // The SDK 5.x built-in "classic" basemaps (hybrid, topo-vector, streets-vector) rely on
 // cdn.arcgis.com VectorTile CDN items that fail without an API key, so we build
 // explicit Basemap instances from these authenticated-free tile endpoints instead.
-const _TILE = {
-  imagery: getRuntimeConfigValue(
-    "VITE_ARCGIS_IMAGERY_URL",
-    "/mapserver/service/imagery",
-  ),
-  reference: getRuntimeConfigValue(
-    "VITE_ARCGIS_REFERENCE_URL",
-    "/mapserver/service/reference",
-  ),
-  topo: getRuntimeConfigValue(
-    "VITE_ARCGIS_TOPO_URL",
-    "/mapserver/service/topo",
-  ),
-  streets: getRuntimeConfigValue(
-    "VITE_ARCGIS_STREETS_URL",
-    "/mapserver/service/streets",
-  ),
-};
+function getTileServiceUrls() {
+  return {
+    imagery: getRuntimeConfigValue("VITE_ARCGIS_IMAGERY_URL", ""),
+    reference: getRuntimeConfigValue("VITE_ARCGIS_REFERENCE_URL", ""),
+    topo: getRuntimeConfigValue("VITE_ARCGIS_TOPO_URL", ""),
+    streets: getRuntimeConfigValue("VITE_ARCGIS_STREETS_URL", ""),
+  };
+}
 
 const _basemapInstanceCache = {};
 
 function resolveBasemap(activeBasemap) {
+  const tileUrls = getTileServiceUrls();
   const id = basemapPresets[activeBasemap]?.basemapId ?? basemapPresets.cadastral.basemapId;
   if (_basemapInstanceCache[id]) return _basemapInstanceCache[id];
 
@@ -609,27 +600,27 @@ function resolveBasemap(activeBasemap) {
   switch (id) {
     case "satellite":
       basemap = new Basemap({
-        baseLayers: [new TileLayer({ url: _TILE.imagery })],
+        baseLayers: [new TileLayer({ url: tileUrls.imagery })],
         title: "Imagery",
       });
       break;
     case "hybrid":
       basemap = new Basemap({
-        baseLayers: [new TileLayer({ url: _TILE.imagery })],
-        referenceLayers: [new TileLayer({ url: _TILE.reference })],
+        baseLayers: [new TileLayer({ url: tileUrls.imagery })],
+        referenceLayers: [new TileLayer({ url: tileUrls.reference })],
         title: "Hybrid",
       });
       break;
     case "topo-vector":
       basemap = new Basemap({
-        baseLayers: [new TileLayer({ url: _TILE.topo })],
+        baseLayers: [new TileLayer({ url: tileUrls.topo })],
         title: "Topographic",
       });
       break;
     case "streets-vector":
     default:
       basemap = new Basemap({
-        baseLayers: [new TileLayer({ url: _TILE.streets })],
+        baseLayers: [new TileLayer({ url: tileUrls.streets })],
         title: "Streets",
       });
   }

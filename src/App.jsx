@@ -1109,6 +1109,21 @@ export default function App() {
     );
   };
 
+  const handleMapWhatsAppShare = async () => {
+    const savedExtent = await zoomForPrint();
+    // Same tile-settle delay as print
+    await new Promise((resolve) => setTimeout(resolve, 1400));
+    let mapDataUrl = null;
+    try {
+      const screenshot = await viewRef.current.takeScreenshot({ format: "png" });
+      mapDataUrl = screenshot.dataUrl;
+    } catch (err) {
+      console.warn("Map screenshot for WhatsApp failed:", err.message);
+    }
+    await restoreExtentAfterPrint(savedExtent);
+    return mapDataUrl;
+  };
+
   // App-side execution map for parsed voice actions from voiceCommandRegistry.
   const voiceActionHandlers = {
     [VOICE_COMMAND_ACTIONS.APPLY_TOPO_BASEMAP]: () => {
@@ -1265,6 +1280,7 @@ export default function App() {
             selectionProgress={sf.isActive ? sf.progress : null}
             mapScale={mapScale}
             onPrint={handleMapPrint}
+            onWhatsAppShare={handleMapWhatsAppShare}
           >
             <ZoomWheelSlider viewRef={viewRef} layersRef={layersRef} />
 
