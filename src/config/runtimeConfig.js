@@ -26,7 +26,19 @@ function setWindowRuntimeConfig(config) {
 }
 
 function resolveFrontendConfigEndpoint() {
-  return "/api-url/frontend-config";
+  const endpointPath = "/api-url/frontend-config";
+  const configuredApiBaseUrl = (import.meta.env.VITE_SERVER_BASE_URL || "").trim();
+  const forceAbsoluteApiBase = String(import.meta.env.VITE_FORCE_ABSOLUTE_API_BASE || "").toLowerCase() === "true";
+
+  if (import.meta.env.DEV && !forceAbsoluteApiBase) {
+    return endpointPath;
+  }
+
+  if (!configuredApiBaseUrl) {
+    return endpointPath;
+  }
+
+  return `${configuredApiBaseUrl.replace(/\/+$/, "")}${endpointPath}`;
 }
 
 function getAuthorizationHeaderFromLocalToken() {

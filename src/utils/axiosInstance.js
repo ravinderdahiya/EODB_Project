@@ -1,8 +1,12 @@
 import axios from "axios";
 import { decrypt } from "./crypto";
 
+const configuredApiBaseUrl = (import.meta.env.VITE_SERVER_BASE_URL || "").trim();
+const forceAbsoluteApiBase = String(import.meta.env.VITE_FORCE_ABSOLUTE_API_BASE || "").toLowerCase() === "true";
+const apiBaseUrl = import.meta.env.DEV && !forceAbsoluteApiBase ? "" : configuredApiBaseUrl;
+
 const axiosInstance = axios.create({
-  baseURL: "",
+  baseURL: apiBaseUrl,
   withCredentials: true, // Send httpOnly auth_token cookie automatically
 });
 
