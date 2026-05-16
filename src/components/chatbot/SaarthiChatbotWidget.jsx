@@ -1445,7 +1445,7 @@ export default function SaarthiChatbotWidget({ lang = "en", blurred = false, hid
 
     const syncWidget = () => {
       const frameDoc = iframe.contentDocument;
-      if (!frameDoc) return;
+      if (!frameDoc?.documentElement || !frameDoc.head || !frameDoc.body) return;
       frameDoc.documentElement.lang = lang === "hi" ? "hi" : "en";
 
       const appNode = frameDoc.querySelector(".app");
