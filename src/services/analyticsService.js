@@ -41,6 +41,12 @@ const toSerializableMetadata = (metadata) => {
   }
 };
 
+const toFiniteNumberOrNull = (value) => {
+  if (value === null || value === undefined || value === "") return null;
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : null;
+};
+
 const sendEventToBackend = async (payload) => {
   try {
     await axiosInstance.post("/analytics/events", payload);
@@ -104,19 +110,25 @@ export const trackEvent = (
   value = null,
   backendOptions = {},
 ) => {
-  ReactGA.event({
+  const numericValue = toFiniteNumberOrNull(value);
+  const gaPayload = {
     category: category,
     action: action,
-    label: label,
-    value: value
-  });
+    label: label
+  };
+
+  if (numericValue !== null) {
+    gaPayload.value = numericValue;
+  }
+
+  ReactGA.event(gaPayload);
 
   trackToBackend({
     eventType: backendOptions.eventType || "event",
     category,
     action,
     label,
-    value,
+    value: numericValue,
     page: backendOptions.page || window.location.pathname,
     metadata: backendOptions.metadata || null,
   });
