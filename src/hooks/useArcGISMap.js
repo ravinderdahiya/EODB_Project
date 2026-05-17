@@ -83,6 +83,7 @@ const MAP_CLICK_POPUP_OFFSET_Y = 18;
 const LAYER_LOAD_TIMEOUT_MS = 12000;
 const LAYER_LOAD_RETRY_ATTEMPTS = 2;
 const LAYER_LOAD_RETRY_DELAY_MS = 900;
+const INITIAL_EXTENT_ZOOM_OUT_FACTOR = 1.5;
 
 // Zoom thresholds that drive click-to-select behaviour.
 // ≤ DISTRICT_MAX  → state view   → click selects district and zooms to fit
@@ -593,7 +594,7 @@ const _basemapInstanceCache = {};
 
 function resolveBasemap(activeBasemap) {
   const tileUrls = getTileServiceUrls();
-  const id = basemapPresets[activeBasemap]?.basemapId ?? basemapPresets.cadastral.basemapId;
+  const id = basemapPresets[activeBasemap]?.basemapId ?? basemapPresets.satellite.basemapId;
   if (_basemapInstanceCache[id]) return _basemapInstanceCache[id];
 
   let basemap;
@@ -779,7 +780,8 @@ export function useArcGISMap({
     }
 
     const defaultExtent = new Extent(arcgisPortalConfig.defaultExtent);
-    defaultExtentRef.current = defaultExtent;
+    const initialExtent = defaultExtent.clone().expand(INITIAL_EXTENT_ZOOM_OUT_FACTOR);
+    defaultExtentRef.current = initialExtent.clone();
 
     const updateHealth = (key, value) =>
       setServiceHealth((cur) => ({ ...cur, [key]: value }));
@@ -844,7 +846,8 @@ export function useArcGISMap({
       const hsacCadastralLayer = new MapImageLayer({
         url: arcgisPortalConfig.serviceUrls.hsacMain,
         title: "Cadastral",
-        visible: layerVisibility.cadastral,
+        // Keep heavy cadastral draw off during initial state-wide load; zoom watcher turns it on later.
+        visible: false,
         minScale: 0,
         maxScale: 0,
         sublayers: cadastralSublayers,
@@ -872,7 +875,7 @@ export function useArcGISMap({
       const highlightLayer = new GraphicsLayer({
         title: "Selected land information",
         listMode: "hide",
-        visible: layerVisibility.cadastral,
+        visible: false,
       });
       const locationLayer   = new GraphicsLayer({ title: "Location search",    listMode: "hide" });
       const selectionLayer  = new GraphicsLayer({ title: "Feature selection",  listMode: "hide" });
@@ -893,8 +896,8 @@ export function useArcGISMap({
       view = new MapView({
         container: containerRef.current,
         map,
-        extent: defaultExtent.clone(),
-        constraints: { minZoom: 7, snapToZoom: false },
+        extent: initialExtent.clone(),
+        constraints: { minZoom: 6, snapToZoom: false },
         navigation: { mouseWheelZoomEnabled: true, browserTouchPanEnabled: true },
         popup: {
           dockEnabled: false,

@@ -104,7 +104,6 @@
     "is-regex": "^1.2.1",
     "jpeg-exif": "^1.1.4",
     "lightningcss": "^1.32.0",
-    "lightningcss-win32-x64-msvc": "^1.32.0",
     "lit": "^3.3.2",
     "lit-element": "^4.2.2",
     "lit-html": "^3.3.2",
