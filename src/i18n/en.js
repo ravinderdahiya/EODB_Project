@@ -25,6 +25,25 @@ const en = {
     help:                 { label: "Help / FAQ",             description: "Guides and support links" },
   },
 
+  latLong: {
+    latitude: "Latitude",
+    longitude: "Longitude",
+    latitudePlaceholder: "e.g. 29.0588",
+    longitudePlaceholder: "e.g. 76.0856",
+    findPoint: "Find Point",
+    finding: "Finding...",
+    success: {
+      located: "Point located successfully.",
+    },
+    errors: {
+      numeric: "Please enter numeric latitude and longitude.",
+      latitudeRange: "Latitude must be between -90 and 90.",
+      longitudeRange: "Longitude must be between -180 and 180.",
+      notAvailable: "Find Lat/Long is not available right now.",
+      unableToFind: "Unable to find this point.",
+    },
+  },
+
   sf: {
     title: "Select Features",
     clear: "Clear",
@@ -59,13 +78,14 @@ const en = {
     panelTitleDetails:         "Land Information Details",
     panelTitleSelection:       "Selected Features",
     panelTitleSelectionCount:  "Selected Features ({count} parcel{s})",
-    disclaimer: "All the revenue information displayed on these maps is based on the data provided by Haryana Revenue Department. HARSAC is not responsible for any discrepancy in the data, if any. This information on the map is not for any dispute in the court of law. It is for viewing purposes only. The map scale is 1:10,000.",
+    disclaimer: "All the revenue information displayed on these maps is based on the data provided by Haryana Revenue Department. HARSAC is not responsible for any discrepancy in the data, if any. This information on the map is not for any dispute in the court of law. It is for viewing purposes only. The map scale is 1:4,000.",
     showTable:       "Show land information table",
     hideTable:       "Hide land information table",
     printDetails:    "Print land information details",
     closeTable:      "Close land information details table",
     print:           "Print",
     whatsappShare:   "Share via WhatsApp",
+    share:           "Share",
     fetchingOwners:  "Fetching owners…",
     processingSelection: "Processing selection…",
     noData:          "No data selected yet.",

@@ -92,6 +92,53 @@ const INITIAL_EXTENT_ZOOM_OUT_FACTOR = 1.5;
 // > VILLAGE_MAX   → cadastral zone → cadastral parcel popup (when layer visible)
 const CLICK_ZOOM = { DISTRICT_MAX: 9, TEHSIL_MAX: 12, VILLAGE_MAX: 14 };
 
+function getPopupLocaleStrings() {
+  const lang = (document?.documentElement?.dataset?.lang || "en").toLowerCase();
+  if (lang === "hi") {
+    return {
+      ariaLabel: "भूमि अभिलेख जानकारी",
+      title: "भूमि अभिलेख जानकारी",
+      zoomAria: "भूमि जानकारी पर ज़ूम करें",
+      zoom: "ज़ूम",
+      closeAria: "भूमि अभिलेख पॉपअप बंद करें",
+      loading: "भूमि अभिलेख विवरण लोड हो रहा है...",
+      district: "जिला",
+      tehsil: "तहसील",
+      village: "गांव",
+      murabba: "मुरब्बा",
+      khasra: "खसरा",
+      ownerName: "मालिक का नाम",
+      khewat: "खेवट",
+      khatoni: "खतौनी",
+      jamabandi: "जमाबंदी",
+      area: "क्षेत्र(K-M)",
+      updatedPrefix: "अपडेट ",
+      viewFullDetails: "पूरा विवरण देखें",
+    };
+  }
+
+  return {
+    ariaLabel: "Land record information",
+    title: "Land Record Information",
+    zoomAria: "Zoom to land information",
+    zoom: "Zoom",
+    closeAria: "Close land record popup",
+    loading: "Loading land record details...",
+    district: "District",
+    tehsil: "Tehsil",
+    village: "Village",
+    murabba: "Murabba",
+    khasra: "Khasra",
+    ownerName: "Owner Name",
+    khewat: "Khewat",
+    khatoni: "Khatoni",
+    jamabandi: "Jamabandi",
+    area: "Area(K-M)",
+    updatedPrefix: "Updated ",
+    viewFullDetails: "View Full Details",
+  };
+}
+
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -244,6 +291,7 @@ function createLandRecordPopupContent({
   onViewFullDetails,
 }) {
   const preview = parcel;
+  const s = getPopupLocaleStrings();
   const container = document.createElement("div");
   const verificationTone = /service linked|verified/i.test(preview.verificationStatus)
     ? "verified"
@@ -251,12 +299,12 @@ function createLandRecordPopupContent({
 
   container.className = "map-click-popup";
   container.innerHTML = `
-    <section class="map-click-popup__card" aria-label="Land record information">
+    <section class="map-click-popup__card" aria-label="${s.ariaLabel}">
       <div class="map-click-popup__hero">
 
         <div class="map-click-popup__hero-top">
           <div class="map-click-popup__hero-copy">
-            <h3>Land Record Information</h3>
+            <h3>${s.title}</h3>
             <p>${preview.breadcrumb}</p>
           </div>
 
@@ -265,15 +313,15 @@ function createLandRecordPopupContent({
               type="button"
               class="map-click-popup__icon-button"
               data-role="zoom"
-              aria-label="Zoom to land information"
+              aria-label="${s.zoomAria}"
             >
-              Zoom
+              ${s.zoom}
             </button>
             <button
               type="button"
               class="map-click-popup__icon-button"
               data-role="close"
-              aria-label="Close land record popup"
+              aria-label="${s.closeAria}"
             >
               x
             </button>
@@ -286,11 +334,11 @@ function createLandRecordPopupContent({
       <div class="map-click-popup__scroll">
         <div class="map-click-popup__loading ${/fetching|loading/i.test(preview.verificationStatus || "") ? "is-active" : ""}" data-role="popup-loading">
           <span class="map-click-popup__loading-spinner" aria-hidden="true"></span>
-          <span>Loading land record details...</span>
+          <span>${s.loading}</span>
         </div>
         <div class="map-click-popup__selectors">
           <div class="map-click-popup__selector">
-            <span>District</span>
+            <span>${s.district}</span>
             <div class="map-click-popup__select">
               <strong data-field="district">${preview.district}</strong>
               <small data-field="districtCode">${preview.districtCode || "--"}</small>
@@ -298,7 +346,7 @@ function createLandRecordPopupContent({
           </div>
 
           <div class="map-click-popup__selector">
-            <span>Tehsil</span>
+            <span>${s.tehsil}</span>
             <div class="map-click-popup__select">
               <strong data-field="tehsil">${preview.tehsil}</strong>
               <small data-field="tehsilCode">${preview.tehsilCode || "--"}</small>
@@ -306,7 +354,7 @@ function createLandRecordPopupContent({
           </div>
 
           <div class="map-click-popup__selector map-click-popup__selector--wide">
-            <span>Village</span>
+            <span>${s.village}</span>
             <div class="map-click-popup__select">
               <strong data-field="village">${preview.village}</strong>
               <small data-field="villageCode">${preview.villageCode || "--"}</small>
@@ -316,11 +364,11 @@ function createLandRecordPopupContent({
 
         <div class="map-click-popup__metrics">
           <article class="map-click-popup__metric">
-            <span>Murabba</span>
+            <span>${s.murabba}</span>
             <strong data-field="murabbaNo">${preview.murabbaNo}</strong>
           </article>
           <article class="map-click-popup__metric">
-            <span>Khasra</span>
+            <span>${s.khasra}</span>
             <strong data-field="khasraNo">${preview.khasraNo}</strong>
           </article>
           
@@ -329,36 +377,36 @@ function createLandRecordPopupContent({
 
         <div class="record-panel__details map-click-popup__details">
           <div class="info-row">
-            <span>Owner Name</span>
+            <span>${s.ownerName}</span>
             <strong data-field="ownerName">${preview.ownerName}</strong>
           </div>
           <div class="info-row">
-            <span>Khewat</span>
+            <span>${s.khewat}</span>
             <strong data-field="khewatNo">${preview.khewatNo}</strong>
           </div>
           <div class="info-row">
-            <span>Khatoni</span>
+            <span>${s.khatoni}</span>
             <strong data-field="khatoniNo">${preview.khatoniNo}</strong>
           </div>
           <div class="info-row">
-            <span>Jamabandi</span>
+            <span>${s.jamabandi}</span>
             <strong data-field="jamabandiYear">${preview.jamabandiYear}</strong>
           </div>
           <div class="info-row">
-            <span>Area(K-M)</span>
+            <span>${s.area}</span>
             <strong data-field="area">${preview.area}</strong>
           </div>
         </div>
 
         <div class="record-panel__status map-click-popup__status">
           <span class="badge badge--${verificationTone}" data-field="verificationStatus">${preview.verificationStatus}</span>
-          <small data-field="lastUpdated">Updated ${preview.lastUpdated}</small>
+          <small data-field="lastUpdated">${s.updatedPrefix}${preview.lastUpdated}</small>
         </div>
 
         
 
         <button type="button" class="primary-button map-click-popup__primary" data-role="view-details">
-          View Full Details
+          ${s.viewFullDetails}
         </button>
 
         
@@ -398,6 +446,7 @@ function createLandRecordPopupContent({
 
 function hydrateLandRecordPopupDetails(popupContainer, preview, options = {}) {
   if (!popupContainer || !preview) return;
+  const s = getPopupLocaleStrings();
   const keepLoading = Boolean(options.keepLoading);
 
   const applyText = (field, value, prefix = "") => {
@@ -420,7 +469,7 @@ function hydrateLandRecordPopupDetails(popupContainer, preview, options = {}) {
   applyText("jamabandiYear", preview.jamabandiYear);
   applyText("area", preview.area);
   applyText("verificationStatus", preview.verificationStatus);
-  applyText("lastUpdated", preview.lastUpdated, "Updated ");
+  applyText("lastUpdated", preview.lastUpdated, s.updatedPrefix);
 
   const loadingNode = popupContainer.querySelector('[data-role="popup-loading"]');
   if (loadingNode) {
@@ -482,6 +531,8 @@ function createParcelGraphic(parcel) {
 }
 
 function createInstantParcelPreview({ attributes = {}, geometry = null, fallbackParcel }) {
+  const lang = (document?.documentElement?.dataset?.lang || "en").toLowerCase();
+  const isHindi = lang === "hi";
   const fallback = fallbackParcel ?? {};
   const pick = (value, fb = "--") => {
     if (value === undefined || value === null) return fb;
@@ -499,8 +550,14 @@ function createInstantParcelPreview({ attributes = {}, geometry = null, fallback
   const village = pick(attributes.n_v_name, fallback.village ?? "--");
   const breadcrumb = [district, tehsil, village]
     .filter((value) => value && value !== "--")
-    .map((value, index) => (index === 0 ? `${value} District` : index === 1 ? `${value} Tehsil` : `Village ${value}`))
-    .join(" > ") || "Haryana land record selection";
+    .map((value, index) => (
+      index === 0
+        ? isHindi ? `${value} जिला` : `${value} District`
+        : index === 1
+          ? isHindi ? `${value} तहसील` : `${value} Tehsil`
+          : isHindi ? `गांव ${value}` : `Village ${value}`
+    ))
+    .join(" > ") || (isHindi ? "हरियाणा भूमि अभिलेख चयन" : "Haryana land record selection");
 
   return {
     district,
@@ -511,21 +568,21 @@ function createInstantParcelPreview({ attributes = {}, geometry = null, fallback
     villageCode,
     murabbaNo,
     khasraNo,
-    ownerName: pick(fallback.ownerName, "Loading..."),
+    ownerName: pick(fallback.ownerName, isHindi ? "लोड हो रहा है..." : "Loading..."),
     khewatNo: pick(fallback.khewatNo, "--"),
     khatoniNo: pick(fallback.khatoniNo, "--"),
-    jamabandiYear: pick(fallback.jamabandiYear, "Loading..."),
+    jamabandiYear: pick(fallback.jamabandiYear, isHindi ? "लोड हो रहा है..." : "Loading..."),
     area: pick(fallback.area, "--"),
     landUse: pick(fallback.landUse, "--"),
-    verificationStatus: "Fetching live details",
+    verificationStatus: isHindi ? "लाइव विवरण प्राप्त किए जा रहे हैं" : "Fetching live details",
     recordType: pick(fallback.recordType, "Khasra"),
     mutationStatus: pick(fallback.mutationStatus, "--"),
     registryRef:
       districtCode && tehsilCode && villageCode
         ? `DLR-${[districtCode, tehsilCode, villageCode, murabbaNo, khasraNo].filter(Boolean).join("-")}`
         : "DLR-UNAVAILABLE",
-    lastUpdated: "Loading live HSAC service details...",
-    overview: "Parcel preview opened quickly. Additional details are loading.",
+    lastUpdated: isHindi ? "लाइव HSAC सेवा विवरण लोड हो रहा है..." : "Loading live HSAC service details...",
+    overview: isHindi ? "पार्सल पूर्वावलोकन खुल गया है। अतिरिक्त विवरण लोड हो रहे हैं।" : "Parcel preview opened quickly. Additional details are loading.",
     breadcrumb,
     geometry,
   };
