@@ -577,6 +577,31 @@ function createLocationGraphic(point, title) {
   });
 }
 
+function createLatLongGraphic(point, latitude, longitude) {
+  const latLabel = Number(latitude).toFixed(6);
+  const lonLabel = Number(longitude).toFixed(6);
+
+  return new Graphic({
+    geometry: point,
+    attributes: {
+      title: "Selected Coordinate",
+      latitude: latLabel,
+      longitude: lonLabel,
+    },
+    symbol: {
+      type: "simple-marker",
+      style: "circle",
+      color: [229, 115, 40, 0.95],
+      size: 11,
+      outline: { color: [255, 255, 255, 1], width: 2 },
+    },
+    popupTemplate: {
+      title: "Selected Coordinate",
+      content: `<strong>Latitude:</strong> ${latLabel}<br /><strong>Longitude:</strong> ${lonLabel}`,
+    },
+  });
+}
+
 // Public raster tile services — no ArcGIS API key required.
 // The SDK 5.x built-in "classic" basemaps (hybrid, topo-vector, streets-vector) rely on
 // cdn.arcgis.com VectorTile CDN items that fail without an API key, so we build
@@ -1410,6 +1435,60 @@ export function useArcGISMap({
     }
   };
 
+  const goToLatLong = async ({ latitude, longitude }) => {
+    const view = viewRef.current;
+    const locationLayer = layersRef.current.locationLayer;
+
+    if (!view || !locationLayer) {
+      return { ok: false, message: "Map is still loading." };
+    }
+
+    const lat = Number(latitude);
+    const lon = Number(longitude);
+
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+      return { ok: false, message: "Latitude and Longitude must be numeric values." };
+    }
+
+    if (lat < -90 || lat > 90) {
+      return { ok: false, message: "Latitude must be between -90 and 90." };
+    }
+
+    if (lon < -180 || lon > 180) {
+      return { ok: false, message: "Longitude must be between -180 and 180." };
+    }
+
+    const point = new Point({
+      longitude: lon,
+      latitude: lat,
+      spatialReference: { wkid: 4326 },
+    });
+
+    try {
+      locationLayer.removeAll();
+      const marker = createLatLongGraphic(point, lat, lon);
+      locationLayer.add(marker);
+
+      await view.goTo(
+        { target: point, zoom: Math.max(view.zoom ?? 12, 15) },
+        { duration: 900, easing: "ease-in-out" },
+      );
+
+      closeLandRecordMiniPopup(popupStateRef);
+      view.closePopup();
+
+      return {
+        ok: true,
+        message: `Point located at ${lat.toFixed(6)}, ${lon.toFixed(6)}.`,
+      };
+    } catch (error) {
+      return {
+        ok: false,
+        message: error?.message || "Unable to locate this point on the map.",
+      };
+    }
+  };
+
   const openSelectedParcel = async () => {
     if (!selectedParcel || !viewRef.current) {
       return { ok: false, message: "Select land information first." };
@@ -1496,6 +1575,7 @@ export function useArcGISMap({
     resetView,
     refreshOperationalLayers,
     goToCurrentLocation,
+    goToLatLong,
     searchPlace,
     openSelectedParcel,
     drawBoundary,

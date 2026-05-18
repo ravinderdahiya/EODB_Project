@@ -75,7 +75,8 @@
 
 .sidebar__nav {
   display: grid;
-  gap: 0.45rem;
+  --sidebar-nav-gap: 0.45rem;
+  gap: var(--sidebar-nav-gap);
   align-content: start;
 }
 
@@ -139,6 +140,124 @@
   overflow: hidden;
 }
 
+/* ── Find Lat/Long Drawer ─────────────────────────────────────── */
+
+.sidebar__latlong-drawer {
+  display: none;
+  overflow: hidden;
+}
+
+.sidebar__latlong-drawer--open {
+  display: block;
+  overflow: hidden;
+  transform-origin: top;
+  will-change: max-height, opacity, transform;
+  animation: sidebar-latlong-expand 900ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.sidebar__latlong-drawer > * {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.sidebar-latlong {
+  margin-top: 0;
+  border-radius: 16px;
+  border: 1px solid rgba(47, 141, 93, 0.16);
+  background: rgba(255, 255, 255, 0.55);
+  padding: 0.7rem 0.7rem 0.75rem;
+}
+
+@keyframes sidebar-latlong-expand {
+  from {
+    max-height: 0;
+    opacity: 0;
+    transform: translateY(-0.45rem) scaleY(0.94);
+    transform-origin: top;
+  }
+  to {
+    max-height: 20rem;
+    opacity: 1;
+    transform: translateY(0) scaleY(1);
+    transform-origin: top;
+  }
+}
+
+.sidebar-latlong__form {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.sidebar-latlong__field {
+  display: grid;
+  gap: 0.22rem;
+}
+
+.sidebar-latlong__field > span {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ink);
+  opacity: 0.62;
+}
+
+.sidebar-latlong__field > input {
+  width: 100%;
+  min-height: 38px;
+  border-radius: 10px;
+  border: 1px solid rgba(47, 141, 93, 0.2);
+  background: #ffffff;
+  color: var(--ink);
+  padding: 0.45rem 0.62rem;
+  font-size: 0.84rem;
+  font-weight: 600;
+  outline: none;
+  transition: border-color 150ms ease, box-shadow 150ms ease, background 150ms ease;
+}
+
+.sidebar-latlong__field > input::placeholder {
+  color: rgba(45, 69, 86, 0.52);
+  font-weight: 500;
+}
+
+.sidebar-latlong__field > input:focus {
+  border-color: rgba(47, 141, 93, 0.48);
+  box-shadow: 0 0 0 3px rgba(47, 141, 93, 0.14);
+  background: #fbfefc;
+}
+
+.sidebar-latlong__error {
+  margin: 0;
+  font-size: 0.73rem;
+  font-weight: 700;
+  line-height: 1.35;
+  color: #c0392b;
+}
+
+.sidebar-latlong__button {
+  min-height: 38px;
+  border: 0;
+  border-radius: 10px;
+  background: linear-gradient(135deg, rgba(47, 141, 93, 0.95), rgba(46, 115, 180, 0.9));
+  color: #ffffff;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  transition: transform 160ms ease, filter 160ms ease, opacity 160ms ease;
+}
+
+.sidebar-latlong__button:not(:disabled):hover {
+  transform: translateY(-1px);
+  filter: brightness(1.03);
+}
+
+.sidebar-latlong__button:disabled {
+  opacity: 0.48;
+  cursor: not-allowed;
+}
+
 /* ── Selector Drawer (personalizations) ────────────────────────── */
 
 .sidebar__selector-drawer {
@@ -149,11 +268,29 @@
   display: grid;
   grid-template-rows: 1fr;
   overflow: hidden;
+  transform-origin: top;
+  will-change: max-height, opacity, transform;
+  animation: sidebar-selector-expand 900ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .sidebar__selector-drawer > * {
   min-height: 0;
   overflow: hidden;
+}
+
+@keyframes sidebar-selector-expand {
+  from {
+    max-height: 0;
+    opacity: 0;
+    transform: translateY(-0.45rem) scaleY(0.94);
+    transform-origin: top;
+  }
+  to {
+    max-height: 30rem;
+    opacity: 1;
+    transform: translateY(0) scaleY(1);
+    transform-origin: top;
+  }
 }
 
 .sidebar__selector-drawer:not(.sidebar__selector-drawer--open) .sidebar-selector {
@@ -432,6 +569,31 @@
 :root[data-theme="dark"] .sidebar-selector {
   border-color: rgba(125, 181, 255, 0.14);
   background: rgba(12, 24, 34, 0.6);
+}
+
+:root[data-theme="dark"] .sidebar-latlong {
+  border-color: rgba(125, 181, 255, 0.14);
+  background: rgba(12, 24, 34, 0.6);
+}
+
+:root[data-theme="dark"] .sidebar-latlong__field > input {
+  background: rgba(18, 34, 48, 0.96);
+  border-color: rgba(125, 181, 255, 0.18);
+  color: var(--ink);
+}
+
+:root[data-theme="dark"] .sidebar-latlong__field > input::placeholder {
+  color: rgba(196, 216, 231, 0.5);
+}
+
+:root[data-theme="dark"] .sidebar-latlong__field > input:focus {
+  border-color: rgba(125, 181, 255, 0.45);
+  box-shadow: 0 0 0 3px rgba(125, 181, 255, 0.12);
+  background: rgba(24, 43, 60, 0.95);
+}
+
+:root[data-theme="dark"] .sidebar-latlong__error {
+  color: #ff8f86;
 }
 
 :root[data-theme="dark"] .sidebar-selector__option {

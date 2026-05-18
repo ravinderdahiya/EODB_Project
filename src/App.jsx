@@ -220,6 +220,7 @@ export default function App() {
     resetView,
     refreshOperationalLayers,
     goToCurrentLocation,
+    goToLatLong,
     searchPlace,
     drawBoundary,
     closePopup,
@@ -1075,6 +1076,17 @@ export default function App() {
     }
   };
 
+  const handleFindLatLong = async ({ latitude, longitude }) => {
+    const result = await goToLatLong({ latitude, longitude });
+    if (!result.ok) {
+      return result;
+    }
+
+    setActiveMapPanel(null);
+    setSystemMessage(result.message);
+    return result;
+  };
+
   const handleToggleLayer = (layerKey) => {
     setLayerVisibility((current) => ({
       ...current,
@@ -1252,6 +1264,7 @@ export default function App() {
           isOpen={sidebarOpen}
           onBoundaryDraw={drawBoundary}
           onSelectionStart={resetParcelSelection}
+          onFindLatLong={handleFindLatLong}
           onRecordSelect={(parcel) =>
             applyParcelSelection(parcel, {
               statusMessage: `Loaded ${parcel.recordType || "land record"} from sidebar search.`,
@@ -1260,10 +1273,17 @@ export default function App() {
           onStatusChange={setSystemMessage}
           onSelect={(id) => {
             setActiveNav(id);
-            if (id === "layers") toggleMapPanel("layers");
-            if (id === "measurement") handleToolbarAction("measurement");
+            if (id === "layers") {
+              handleToolbarAction("layers");
+              return;
+            }
+            if (id === "measurement") {
+              handleToolbarAction("measurement");
+            }
           }}
           mapReady={mapReady}
+          layersPanelActive={activeMapPanel === "layers"}
+          measurementActive={measurementMode !== null}
           sfActiveTool={sf.activeTool}
           sfIsActive={sf.isActive}
           sfProgress={sf.progress}

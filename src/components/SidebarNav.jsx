@@ -14,9 +14,12 @@ export default function SidebarNav({
   onSelect,
   onBoundaryDraw,
   onSelectionStart,
+  onFindLatLong,
   onRecordSelect,
   onStatusChange,
   mapReady,
+  layersPanelActive,
+  measurementActive,
   sfActiveTool,
   sfIsActive,
   sfProgress,
@@ -26,7 +29,15 @@ export default function SidebarNav({
 }) {
   const { t } = useLanguage();
   const [searchExpanded,   setSearchExpanded]   = useState(false);
+  const [latLongExpanded,  setLatLongExpanded]  = useState(false);
   const [selectorExpanded, setSelectorExpanded] = useState(false);
+  const [latitude, setLatitude] = useState("");
+  const [longitude, setLongitude] = useState("");
+  const [latLongLoading, setLatLongLoading] = useState(false);
+  const [latLongError, setLatLongError] = useState("");
+
+  const mapUsable = mapReady !== false;
+  const parseCoordinate = (value) => Number(String(value ?? "").trim().replace(",", "."));
 
   const handleNavClick = (id) => {
     const item = items.find((i) => i.id === id);
@@ -44,14 +55,66 @@ export default function SidebarNav({
         }
         return next;
       });
+      setLatLongExpanded(false);
+      setLatLongError("");
       setSelectorExpanded(false);
+    } else if (id === "find-latlong") {
+      setLatLongExpanded((prev) => !prev);
+      setSearchExpanded(false);
+      setSelectorExpanded(false);
+      setLatLongError("");
     } else if (id === "personalizations") {
       setSelectorExpanded((prev) => !prev);
       setSearchExpanded(false);
+      setLatLongExpanded(false);
+      setLatLongError("");
     } else {
       setSearchExpanded(false);
+      setLatLongExpanded(false);
+      setLatLongError("");
       setSelectorExpanded(false);
       onSelect(id);
+    }
+  };
+
+  const handleLatLongSubmit = async (event) => {
+    event.preventDefault();
+    const lat = parseCoordinate(latitude);
+    const lon = parseCoordinate(longitude);
+
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+      setLatLongError("Please enter numeric latitude and longitude.");
+      return;
+    }
+
+    if (lat < -90 || lat > 90) {
+      setLatLongError("Latitude must be between -90 and 90.");
+      return;
+    }
+
+    if (lon < -180 || lon > 180) {
+      setLatLongError("Longitude must be between -180 and 180.");
+      return;
+    }
+
+    if (!onFindLatLong) {
+      setLatLongError("Find Lat/Long is not available right now.");
+      return;
+    }
+
+    setLatLongLoading(true);
+    setLatLongError("");
+    try {
+      const result = await onFindLatLong({ latitude: lat, longitude: lon });
+      if (!result?.ok) {
+        setLatLongError(result?.message || "Unable to find this point.");
+        return;
+      }
+      onStatusChange?.(result.message || "Point located successfully.");
+    } catch (error) {
+      setLatLongError(error?.message || "Unable to find this point.");
+    } finally {
+      setLatLongLoading(false);
     }
   };
 
@@ -71,6 +134,9 @@ export default function SidebarNav({
               const Icon = item.icon;
               const isActive =
                 item.id === "search"           ? searchExpanded  :
+                item.id === "find-latlong"     ? latLongExpanded :
+                item.id === "layers"           ? Boolean(layersPanelActive) :
+                item.id === "measurement"      ? Boolean(measurementActive) :
                 item.id === "personalizations" ? selectorExpanded :
                 item.id === activeId;
 
@@ -97,6 +163,45 @@ export default function SidebarNav({
                         onRecordSelect={onRecordSelect}
                         onStatusChange={onStatusChange}
                       />
+                    </div>
+                  )}
+
+                  {item.id === "find-latlong" && (
+                    <div className={`sidebar__latlong-drawer ${latLongExpanded ? "sidebar__latlong-drawer--open" : ""}`}>
+                      <div className="sidebar-latlong">
+                        <form className="sidebar-latlong__form" onSubmit={handleLatLongSubmit}>
+                          <label className="sidebar-latlong__field">
+                            <span>Latitude</span>
+                            <input
+                              type="text"
+                              inputMode="decimal"
+                              placeholder="e.g. 29.0588"
+                              value={latitude}
+                              onChange={(e) => setLatitude(e.target.value)}
+                            />
+                          </label>
+                          <label className="sidebar-latlong__field">
+                            <span>Longitude</span>
+                            <input
+                              type="text"
+                              inputMode="decimal"
+                              placeholder="e.g. 76.0856"
+                              value={longitude}
+                              onChange={(e) => setLongitude(e.target.value)}
+                            />
+                          </label>
+                          {latLongError ? (
+                            <p className="sidebar-latlong__error" role="alert">{latLongError}</p>
+                          ) : null}
+                          <button
+                            type="submit"
+                            className="sidebar-latlong__button"
+                            disabled={latLongLoading || !mapUsable}
+                          >
+                            {latLongLoading ? "Finding..." : "Find Point"}
+                          </button>
+                        </form>
+                      </div>
                     </div>
                   )}
 

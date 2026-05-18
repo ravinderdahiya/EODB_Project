@@ -18,6 +18,7 @@ const hi = {
   nav: {
     search:               { label: "भूमि अभिलेख खोजें",   description: "खसरा, मालिक और गांव खोज" },
     layers:               { label: "मानचित्र परतें",       description: "ओवरले और लेजेंड नियंत्रण" },
+    "find-latlong":      { label: "Find Lat/Long",         description: "अक्षांश-देशांतर से स्थान खोजें" },
     measurement:          { label: "मापन उपकरण",           description: "दूरी और क्षेत्र कार्यप्रवाह" },
     "download-terminology": { label: "भूकर शब्दावली",      description: "संदर्भ शब्दकोश PDF देखें" },
     personalizations:     { label: "व्यक्तिगत सेटिंग्स",  description: "थीम, प्रदर्शन और दृश्य सेटिंग्स" },

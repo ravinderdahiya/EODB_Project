@@ -2,6 +2,7 @@ import {
   CircleHelp,
   FileDown,
   Layers3,
+  LocateFixed,
   Ruler,
   SearchCheck,
   SlidersHorizontal,
@@ -19,6 +20,12 @@ export const navigationItems = [
     label: "Map Layers",
     description: "Overlay and legend control",
     icon: Layers3,
+  },
+  {
+    id: "find-latlong",
+    label: "Find Lat/Long",
+    description: "Find map location by coordinates",
+    icon: LocateFixed,
   },
   {
     id: "measurement",
