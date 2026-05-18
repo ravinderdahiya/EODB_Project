@@ -191,6 +191,18 @@ function installLocalHsacProxyMiddleware(server, proxyPath, upstreamProxyUrl) {
   });
 }
 
+function resolveProxyOrigin(targetUrl) {
+  const raw = `${targetUrl || ""}`.trim();
+  if (!raw) return "http://localhost:8080";
+
+  try {
+    const parsed = new URL(raw);
+    return `${parsed.protocol}//${parsed.host}`;
+  } catch {
+    return raw;
+  }
+}
+
 export default defineConfig(({ mode }) => {
   // Load .env variables into Node context so vite.config.js can reference them.
   // Third arg "" loads ALL vars, not just VITE_* prefixed ones.
@@ -205,6 +217,7 @@ export default defineConfig(({ mode }) => {
   );
   const devPort    = parseInt(env.VITE_DEV_PORT || "5173", 10);
   const baseURL    = env.VITE_SERVER_BASE_URL || "https://hsac.org.in/eodb_backend";
+  const backendOriginForPrefixedProxy = resolveProxyOrigin(baseURL);
   const rawBase    = env.VITE_BASENAME || "/";
   const base       = rawBase.endsWith("/") ? rawBase : rawBase + "/";
   return {
@@ -265,6 +278,17 @@ export default defineConfig(({ mode }) => {
           changeOrigin: true,
           secure: false,
         },
+        "/analytics": {
+          target: baseURL,
+          changeOrigin: true,
+          secure: false,
+        },
+        // Local dev fallback: when frontend resolves backend-prefixed URLs, proxy them to backend origin.
+        "/eodb_backend": {
+          target: backendOriginForPrefixedProxy,
+          changeOrigin: true,
+          secure: false,
+        },
         // ArcGIS REST proxy (dev only): VITE_HSAC_DEV_PROXY/... -> VITE_HSAC_ORIGIN/...
         [hsacProxy]: {
           target: hsacTarget,
@@ -314,6 +338,16 @@ export default defineConfig(({ mode }) => {
         },
         "/mapserver": {
           target: baseURL,
+          changeOrigin: true,
+          secure: false,
+        },
+        "/analytics": {
+          target: baseURL,
+          changeOrigin: true,
+          secure: false,
+        },
+        "/eodb_backend": {
+          target: backendOriginForPrefixedProxy,
           changeOrigin: true,
           secure: false,
         },

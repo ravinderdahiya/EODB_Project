@@ -88,7 +88,7 @@ export default function App() {
   const [parcelTableOpen, setParcelTableOpen] = useState(false);
   const [searchValue, setSearchValue] = useState("");
   const deferredSearch = useDeferredValue(searchValue);
-  const [activeBasemap, setActiveBasemap] = useState("cadastral");
+  const [activeBasemap, setActiveBasemap] = useState("satellite");
   const [layerVisibility, setLayerVisibility] = useState(initialLayers);
   const [selectedParcel, setSelectedParcel] = useState(createEmptyParcelRecord);
   const [parcelHistory, setParcelHistory] = useState([]);
@@ -319,38 +319,50 @@ export default function App() {
   }, [deferredSearch]);
 
   useEffect(() => {
-    let active = true;
-    Promise.allSettled([getDistricts(), getAllTehsils(), getAllVillages()])
-      .then(([districtResult, tehsilResult, villageResult]) => {
-        if (!active) return;
+    if (!mapReady) return undefined;
 
-        setVoiceDistricts(
-          districtResult.status === "fulfilled" && Array.isArray(districtResult.value)
-            ? districtResult.value
-            : [],
-        );
-        setVoiceTehsils(
-          tehsilResult.status === "fulfilled" && Array.isArray(tehsilResult.value)
-            ? tehsilResult.value
-            : [],
-        );
-        setVoiceVillages(
-          villageResult.status === "fulfilled" && Array.isArray(villageResult.value)
-            ? villageResult.value
-            : [],
-        );
-      })
-      .catch(() => {
-        if (!active) return;
-        setVoiceDistricts([]);
-        setVoiceTehsils([]);
-        setVoiceVillages([]);
-      });
+    let active = true;
+    let timeoutId = 0;
+
+    const loadVoiceBoundaryLists = () => {
+      Promise.allSettled([getDistricts(), getAllTehsils(), getAllVillages()])
+        .then(([districtResult, tehsilResult, villageResult]) => {
+          if (!active) return;
+
+          setVoiceDistricts(
+            districtResult.status === "fulfilled" && Array.isArray(districtResult.value)
+              ? districtResult.value
+              : [],
+          );
+          setVoiceTehsils(
+            tehsilResult.status === "fulfilled" && Array.isArray(tehsilResult.value)
+              ? tehsilResult.value
+              : [],
+          );
+          setVoiceVillages(
+            villageResult.status === "fulfilled" && Array.isArray(villageResult.value)
+              ? villageResult.value
+              : [],
+          );
+        })
+        .catch(() => {
+          if (!active) return;
+          setVoiceDistricts([]);
+          setVoiceTehsils([]);
+          setVoiceVillages([]);
+        });
+    };
+
+    // Defer heavy voice-dataset fetch until map is painted and interactive.
+    timeoutId = window.setTimeout(loadVoiceBoundaryLists, 1200);
 
     return () => {
       active = false;
+      if (timeoutId) {
+        window.clearTimeout(timeoutId);
+      }
     };
-  }, []);
+  }, [mapReady]);
 
   // Resolve search text into the best matching administrative boundary target.
   const resolveAdminBoundarySearch = async (rawQuery) => {

@@ -2,18 +2,41 @@ import esriRequest from "@arcgis/core/request.js";
 import { DISTRICT_SUBLAYERS, HSAC_LAYER, getHsacMainUrl } from "@/config/arcgis";
 
 const FALLBACK_LAYER_ID = DISTRICT_SUBLAYERS[0]?.id ?? 1;
+const HSAC_LAYER_PLAN_STORAGE_KEY = "eodb_hsac_layer_plan_v1";
+const HSAC_LAYER_PLAN_REFRESH_TIMEOUT_MS = 2500;
 
 let cachedLayerPlanPromise;
+let metadataRefreshStarted = false;
 
 function createDefaultLayerPlan() {
+  const cadastralIds = DISTRICT_SUBLAYERS
+    .map((entry) => entry?.id)
+    .filter((id) => Number.isFinite(id))
+    .sort((a, b) => a - b);
+
+  const districtLayerId = Number.isFinite(HSAC_LAYER.DISTRICT) ? HSAC_LAYER.DISTRICT : FALLBACK_LAYER_ID;
+  const tehsilLayerId = Number.isFinite(HSAC_LAYER.TEHSIL) ? HSAC_LAYER.TEHSIL : districtLayerId;
+  const villageLayerId = Number.isFinite(HSAC_LAYER.VILLAGE) ? HSAC_LAYER.VILLAGE : districtLayerId;
+  const murabbaLayerId = Number.isFinite(HSAC_LAYER.MURABBA) ? HSAC_LAYER.MURABBA : districtLayerId;
+
+  const layerIds = Array.from(
+    new Set([
+      districtLayerId,
+      tehsilLayerId,
+      villageLayerId,
+      murabbaLayerId,
+      ...cadastralIds,
+    ]),
+  ).sort((a, b) => a - b);
+
   return {
-    layerIds: [FALLBACK_LAYER_ID],
-    districtLayerId: FALLBACK_LAYER_ID,
-    tehsilLayerId: FALLBACK_LAYER_ID,
-    villageLayerId: FALLBACK_LAYER_ID,
-    murabbaLayerId: FALLBACK_LAYER_ID,
-    cadastralLayerIds: [FALLBACK_LAYER_ID],
-    usesFallback: true,
+    layerIds: layerIds.length ? layerIds : [FALLBACK_LAYER_ID],
+    districtLayerId,
+    tehsilLayerId,
+    villageLayerId,
+    murabbaLayerId,
+    cadastralLayerIds: cadastralIds.length ? cadastralIds : [FALLBACK_LAYER_ID],
+    usesFallback: false,
   };
 }
 
@@ -79,18 +102,101 @@ function createLayerPlanFromMetadata(metadata) {
   };
 }
 
+function withTimeout(promise, timeoutMs) {
+  return new Promise((resolve, reject) => {
+    const timeoutId = setTimeout(() => {
+      reject(new Error("HSAC layer metadata request timed out."));
+    }, timeoutMs);
+
+    promise.then(
+      (value) => {
+        clearTimeout(timeoutId);
+        resolve(value);
+      },
+      (error) => {
+        clearTimeout(timeoutId);
+        reject(error);
+      },
+    );
+  });
+}
+
+function readLayerPlanFromStorage() {
+  if (typeof window === "undefined") return null;
+
+  try {
+    const raw = window.sessionStorage.getItem(HSAC_LAYER_PLAN_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object") return null;
+
+    const layerIds = Array.isArray(parsed.layerIds)
+      ? parsed.layerIds.filter((id) => Number.isFinite(id)).sort((a, b) => a - b)
+      : [];
+    const cadastralLayerIds = Array.isArray(parsed.cadastralLayerIds)
+      ? parsed.cadastralLayerIds.filter((id) => Number.isFinite(id)).sort((a, b) => a - b)
+      : [];
+    const districtLayerId = Number.isFinite(parsed.districtLayerId) ? parsed.districtLayerId : null;
+    const tehsilLayerId = Number.isFinite(parsed.tehsilLayerId) ? parsed.tehsilLayerId : null;
+    const villageLayerId = Number.isFinite(parsed.villageLayerId) ? parsed.villageLayerId : null;
+    const murabbaLayerId = Number.isFinite(parsed.murabbaLayerId) ? parsed.murabbaLayerId : null;
+
+    if (!layerIds.length || !districtLayerId || !tehsilLayerId || !villageLayerId || !murabbaLayerId) {
+      return null;
+    }
+
+    return {
+      layerIds,
+      districtLayerId,
+      tehsilLayerId,
+      villageLayerId,
+      murabbaLayerId,
+      cadastralLayerIds: cadastralLayerIds.length ? cadastralLayerIds : [districtLayerId],
+      usesFallback: Boolean(parsed.usesFallback),
+    };
+  } catch {
+    return null;
+  }
+}
+
+function saveLayerPlanToStorage(plan) {
+  if (typeof window === "undefined" || !plan) return;
+  try {
+    window.sessionStorage.setItem(HSAC_LAYER_PLAN_STORAGE_KEY, JSON.stringify(plan));
+  } catch {
+    // Ignore storage write failures (private mode/quota).
+  }
+}
+
+async function fetchLayerPlanFromMetadata() {
+  const response = await withTimeout(
+    esriRequest(getHsacMainUrl(), {
+      query: { f: "pjson" },
+      responseType: "json",
+    }),
+    HSAC_LAYER_PLAN_REFRESH_TIMEOUT_MS,
+  );
+  const metadata = response?.data ?? response;
+  return createLayerPlanFromMetadata(metadata);
+}
+
 export async function getHsacLayerPlan() {
   if (!cachedLayerPlanPromise) {
-    cachedLayerPlanPromise = (async () => {
+    const storedPlan = readLayerPlanFromStorage();
+    const initialPlan = storedPlan ?? createDefaultLayerPlan();
+    cachedLayerPlanPromise = Promise.resolve(initialPlan);
+    saveLayerPlanToStorage(initialPlan);
+  }
+
+  if (!metadataRefreshStarted) {
+    metadataRefreshStarted = true;
+    void (async () => {
       try {
-        const response = await esriRequest(getHsacMainUrl(), {
-          query: { f: "pjson" },
-          responseType: "json",
-        });
-        const metadata = response?.data ?? response;
-        return createLayerPlanFromMetadata(metadata);
+        const freshPlan = await fetchLayerPlanFromMetadata();
+        cachedLayerPlanPromise = Promise.resolve(freshPlan);
+        saveLayerPlanToStorage(freshPlan);
       } catch {
-        return createDefaultLayerPlan();
+        // Keep fast cached/default plan for this session when metadata is slow/unreachable.
       }
     })();
   }
