@@ -66,7 +66,7 @@ const trackToBackend = (payload) => {
   void sendEventToBackend(normalizedPayload);
 };
 
-// Initialize Google Analytics
+// Initialize alytics
 export const initGA = (measurementId) => {
   if (measurementId && measurementId !== 'GA_MEASUREMENT_ID') {
     loadGtagScript(measurementId)

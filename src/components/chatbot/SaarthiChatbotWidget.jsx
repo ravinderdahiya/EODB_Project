@@ -89,6 +89,7 @@ const VOICE_SEARCH_HELP_TEXT = `Voice search steps:
 3. Your spoken query appears in chatbot and search runs.`;
 const CADASTRAL_LAYER_QUESTION = "When does cadastral layer appear?";
 const CADASTRAL_LAYER_ANSWER = "Cadastral layer is shown after map zoom reaches 1:5000.";
+const OWNER_API_ENDPOINT = "https://hsac.org.in/emissions/extract_land_record";
 const OWNER_SEARCH_HELP_TEXT = `Live Owner Search enabled.
 Type your full query in one line and press send.
 Example (English/Hinglish):
@@ -163,7 +164,58 @@ function toCount(value) {
 }
 
 function formatOwnerApiResult(rawPayload) {
+  if (typeof rawPayload === "string") {
+    const directText = rawPayload.trim();
+    if (!directText) return "Owner details request returned empty response.";
+    try {
+      return formatOwnerApiResult(JSON.parse(directText));
+    } catch {
+      return directText;
+    }
+  }
+
   const payload = unwrapOwnerPayload(rawPayload);
+  if (!payload || typeof payload !== "object") {
+    return safeText(payload, "Owner details request returned empty response.");
+  }
+
+  const payloadKeys = Object.keys(payload);
+  if (!payloadKeys.length) {
+    return "Owner details request returned empty response.";
+  }
+
+  const hasOwnerShape = [
+    "district",
+    "districtName",
+    "district_name",
+    "tehsil",
+    "tehsilName",
+    "tehsil_name",
+    "village",
+    "villageName",
+    "village_name",
+    "murabba",
+    "murabbaNo",
+    "murabba_no",
+    "khasra",
+    "khasraNo",
+    "khasra_no",
+    "owner",
+    "ownerName",
+    "owner_name",
+    "owners",
+    "farmerName",
+  ].some((key) => payload[key] !== undefined && payload[key] !== null && String(payload[key]).trim() !== "");
+
+  if (!hasOwnerShape) {
+    const freeText = safeText(
+      payload.message ?? payload.msg ?? payload.detail ?? payload.error ?? payload.resultText ?? payload.output,
+      "",
+    );
+    if (freeText) return freeText;
+    return JSON.stringify(payload, null, 2);
+  }
+
   const ownerPrimary = pickFirstValue(payload, [
     "owner",
     "ownerName",
@@ -218,6 +270,82 @@ function resolveOwnerExtractor(frameWindow) {
     throw new Error("extractLandRecordFromSpeech is not available.");
   }
   return extractor;
+}
+
+async function parseOwnerApiHttpResponse(response) {
+  const contentType = String(response.headers.get("content-type") || "").toLowerCase();
+  if (contentType.includes("application/json")) {
+    return response.json();
+  }
+  const text = await response.text();
+  if (!text) return {};
+  try {
+    return JSON.parse(text);
+  } catch {
+    return text;
+  }
+}
+
+async function requestOwnerApiResult(query, frameWindow) {
+  const fetchFn = frameWindow?.fetch?.bind(frameWindow) || window.fetch?.bind(window);
+  if (typeof fetchFn !== "function") {
+    throw new Error("Fetch API is not available.");
+  }
+
+  const attempts = [
+    {
+      url: OWNER_API_ENDPOINT,
+      init: {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json, text/plain, */*",
+        },
+        body: JSON.stringify({ query }),
+      },
+    },
+    {
+      url: OWNER_API_ENDPOINT,
+      init: {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
+          Accept: "application/json, text/plain, */*",
+        },
+        body: `query=${encodeURIComponent(query)}`,
+      },
+    },
+    {
+      url: `${OWNER_API_ENDPOINT}?query=${encodeURIComponent(query)}`,
+      init: {
+        method: "GET",
+        headers: {
+          Accept: "application/json, text/plain, */*",
+        },
+      },
+    },
+  ];
+
+  let lastError = null;
+  for (const attempt of attempts) {
+    try {
+      const response = await fetchFn(attempt.url, attempt.init);
+      if (!response.ok) {
+        lastError = new Error(`Live API responded with status ${response.status}.`);
+        continue;
+      }
+      return await parseOwnerApiHttpResponse(response);
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  try {
+    const extractor = resolveOwnerExtractor(frameWindow);
+    return await Promise.resolve(extractor(query));
+  } catch {
+    throw new Error(safeText(lastError?.message || lastError, "Owner details request failed."));
+  }
 }
 
 function resolveWebsiteFaqQuery(localeQuestions, fallbackQueries, containsTokens = []) {
@@ -581,8 +709,17 @@ function ensureJumpToMenuButton(frameDoc, session) {
   const updateVisibility = () => {
     const inputAreaNode = frameDoc.querySelector(".input-area");
     const inputHeight = Math.ceil(inputAreaNode?.getBoundingClientRect?.().height || 62);
-    jumpButton.style.bottom = `${Math.max(6, inputHeight - 6)}px`;
-    jumpButton.style.display = chatContainer.scrollTop > 120 ? "inline-flex" : "none";
+    const shouldShow = chatContainer.scrollTop > 120;
+    const bottomOffset = Math.max(6, inputHeight + 6);
+
+    jumpButton.style.setProperty("bottom", `${bottomOffset}px`, "important");
+    jumpButton.style.display = shouldShow ? "inline-flex" : "none";
+
+    if (shouldShow) {
+      chatContainer.style.setProperty("padding-bottom", "52px", "important");
+    } else {
+      chatContainer.style.setProperty("padding-bottom", "8px", "important");
+    }
   };
 
   if (session.jumpContainer !== chatContainer) {
@@ -1210,8 +1347,7 @@ export default function SaarthiChatbotWidget({ lang = "en", blurred = false, hid
       scrollChatToBottom(frameDoc);
 
       try {
-        const extractor = resolveOwnerExtractor(iframe.contentWindow);
-        const response = await Promise.resolve(extractor(query));
+        const response = await requestOwnerApiResult(query, iframe.contentWindow);
         const resultText = formatOwnerApiResult(response);
         session.injectedMessages = session.injectedMessages.map((message) => (
           message.id === loadingMessageId
