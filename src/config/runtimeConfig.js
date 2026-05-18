@@ -9,6 +9,24 @@ function normalizeBasePath(value) {
   return withLeadingSlash.replace(/\/+$/, "");
 }
 
+function extractOriginAndPath(value) {
+  const raw = `${value || ""}`.trim();
+  if (!raw) return { origin: "", path: "" };
+
+  try {
+    const parsed = new URL(raw);
+    return {
+      origin: `${parsed.protocol}//${parsed.host}`,
+      path: normalizeBasePath(parsed.pathname),
+    };
+  } catch {
+    return {
+      origin: "",
+      path: normalizeBasePath(raw),
+    };
+  }
+}
+
 function isLoopbackHost(hostname) {
   const host = `${hostname || ""}`.trim().toLowerCase();
   return host === "localhost" || host === "127.0.0.1" || host === "::1";
@@ -104,6 +122,11 @@ function resolveFrontendConfigEndpoint() {
 
   if (!configuredApiBaseUrl || shouldIgnoreConfiguredApiBase) {
     return withBasePath(fallbackBackendBasePath, endpointPath);
+  }
+
+  const configuredApiBaseParts = extractOriginAndPath(configuredApiBaseUrl);
+  if (configuredApiBaseParts.origin && !configuredApiBaseParts.path && fallbackBackendBasePath) {
+    return `${configuredApiBaseParts.origin}${fallbackBackendBasePath}${endpointPath}`;
   }
 
   return `${configuredApiBaseUrl.replace(/\/+$/, "")}${endpointPath}`;
