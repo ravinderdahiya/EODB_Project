@@ -133,9 +133,9 @@ async function bootstrap() {
             <Route
               path="/map"
               element={(
-                <ProtectedRoute>
+                
                   <App />
-                </ProtectedRoute>
+                
               )}
             />
             <Route

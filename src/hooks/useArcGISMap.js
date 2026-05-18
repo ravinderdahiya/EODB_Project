@@ -83,6 +83,7 @@ const MAP_CLICK_POPUP_OFFSET_Y = 18;
 const LAYER_LOAD_TIMEOUT_MS = 12000;
 const LAYER_LOAD_RETRY_ATTEMPTS = 2;
 const LAYER_LOAD_RETRY_DELAY_MS = 900;
+const INITIAL_EXTENT_ZOOM_OUT_FACTOR = 1.5;
 
 // Zoom thresholds that drive click-to-select behaviour.
 // ≤ DISTRICT_MAX  → state view   → click selects district and zooms to fit
@@ -576,6 +577,31 @@ function createLocationGraphic(point, title) {
   });
 }
 
+function createLatLongGraphic(point, latitude, longitude) {
+  const latLabel = Number(latitude).toFixed(6);
+  const lonLabel = Number(longitude).toFixed(6);
+
+  return new Graphic({
+    geometry: point,
+    attributes: {
+      title: "Selected Coordinate",
+      latitude: latLabel,
+      longitude: lonLabel,
+    },
+    symbol: {
+      type: "simple-marker",
+      style: "circle",
+      color: [229, 115, 40, 0.95],
+      size: 11,
+      outline: { color: [255, 255, 255, 1], width: 2 },
+    },
+    popupTemplate: {
+      title: "Selected Coordinate",
+      content: `<strong>Latitude:</strong> ${latLabel}<br /><strong>Longitude:</strong> ${lonLabel}`,
+    },
+  });
+}
+
 // Public raster tile services — no ArcGIS API key required.
 // The SDK 5.x built-in "classic" basemaps (hybrid, topo-vector, streets-vector) rely on
 // cdn.arcgis.com VectorTile CDN items that fail without an API key, so we build
@@ -593,7 +619,7 @@ const _basemapInstanceCache = {};
 
 function resolveBasemap(activeBasemap) {
   const tileUrls = getTileServiceUrls();
-  const id = basemapPresets[activeBasemap]?.basemapId ?? basemapPresets.cadastral.basemapId;
+  const id = basemapPresets[activeBasemap]?.basemapId ?? basemapPresets.satellite.basemapId;
   if (_basemapInstanceCache[id]) return _basemapInstanceCache[id];
 
   let basemap;
@@ -779,7 +805,8 @@ export function useArcGISMap({
     }
 
     const defaultExtent = new Extent(arcgisPortalConfig.defaultExtent);
-    defaultExtentRef.current = defaultExtent;
+    const initialExtent = defaultExtent.clone().expand(INITIAL_EXTENT_ZOOM_OUT_FACTOR);
+    defaultExtentRef.current = initialExtent.clone();
 
     const updateHealth = (key, value) =>
       setServiceHealth((cur) => ({ ...cur, [key]: value }));
@@ -844,7 +871,8 @@ export function useArcGISMap({
       const hsacCadastralLayer = new MapImageLayer({
         url: arcgisPortalConfig.serviceUrls.hsacMain,
         title: "Cadastral",
-        visible: layerVisibility.cadastral,
+        // Keep heavy cadastral draw off during initial state-wide load; zoom watcher turns it on later.
+        visible: false,
         minScale: 0,
         maxScale: 0,
         sublayers: cadastralSublayers,
@@ -872,7 +900,7 @@ export function useArcGISMap({
       const highlightLayer = new GraphicsLayer({
         title: "Selected land information",
         listMode: "hide",
-        visible: layerVisibility.cadastral,
+        visible: false,
       });
       const locationLayer   = new GraphicsLayer({ title: "Location search",    listMode: "hide" });
       const selectionLayer  = new GraphicsLayer({ title: "Feature selection",  listMode: "hide" });
@@ -893,8 +921,8 @@ export function useArcGISMap({
       view = new MapView({
         container: containerRef.current,
         map,
-        extent: defaultExtent.clone(),
-        constraints: { minZoom: 7, snapToZoom: false },
+        extent: initialExtent.clone(),
+        constraints: { minZoom: 6, snapToZoom: false },
         navigation: { mouseWheelZoomEnabled: true, browserTouchPanEnabled: true },
         popup: {
           dockEnabled: false,
@@ -1407,6 +1435,60 @@ export function useArcGISMap({
     }
   };
 
+  const goToLatLong = async ({ latitude, longitude }) => {
+    const view = viewRef.current;
+    const locationLayer = layersRef.current.locationLayer;
+
+    if (!view || !locationLayer) {
+      return { ok: false, message: "Map is still loading." };
+    }
+
+    const lat = Number(latitude);
+    const lon = Number(longitude);
+
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+      return { ok: false, message: "Latitude and Longitude must be numeric values." };
+    }
+
+    if (lat < -90 || lat > 90) {
+      return { ok: false, message: "Latitude must be between -90 and 90." };
+    }
+
+    if (lon < -180 || lon > 180) {
+      return { ok: false, message: "Longitude must be between -180 and 180." };
+    }
+
+    const point = new Point({
+      longitude: lon,
+      latitude: lat,
+      spatialReference: { wkid: 4326 },
+    });
+
+    try {
+      locationLayer.removeAll();
+      const marker = createLatLongGraphic(point, lat, lon);
+      locationLayer.add(marker);
+
+      await view.goTo(
+        { target: point, zoom: Math.max(view.zoom ?? 12, 15) },
+        { duration: 900, easing: "ease-in-out" },
+      );
+
+      closeLandRecordMiniPopup(popupStateRef);
+      view.closePopup();
+
+      return {
+        ok: true,
+        message: `Point located at ${lat.toFixed(6)}, ${lon.toFixed(6)}.`,
+      };
+    } catch (error) {
+      return {
+        ok: false,
+        message: error?.message || "Unable to locate this point on the map.",
+      };
+    }
+  };
+
   const openSelectedParcel = async () => {
     if (!selectedParcel || !viewRef.current) {
       return { ok: false, message: "Select land information first." };
@@ -1493,6 +1575,7 @@ export function useArcGISMap({
     resetView,
     refreshOperationalLayers,
     goToCurrentLocation,
+    goToLatLong,
     searchPlace,
     openSelectedParcel,
     drawBoundary,
