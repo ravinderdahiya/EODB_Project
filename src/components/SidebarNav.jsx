@@ -83,22 +83,22 @@ export default function SidebarNav({
     const lon = parseCoordinate(longitude);
 
     if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
-      setLatLongError("Please enter numeric latitude and longitude.");
+      setLatLongError(t("latLong.errors.numeric"));
       return;
     }
 
     if (lat < -90 || lat > 90) {
-      setLatLongError("Latitude must be between -90 and 90.");
+      setLatLongError(t("latLong.errors.latitudeRange"));
       return;
     }
 
     if (lon < -180 || lon > 180) {
-      setLatLongError("Longitude must be between -180 and 180.");
+      setLatLongError(t("latLong.errors.longitudeRange"));
       return;
     }
 
     if (!onFindLatLong) {
-      setLatLongError("Find Lat/Long is not available right now.");
+      setLatLongError(t("latLong.errors.notAvailable"));
       return;
     }
 
@@ -107,12 +107,12 @@ export default function SidebarNav({
     try {
       const result = await onFindLatLong({ latitude: lat, longitude: lon });
       if (!result?.ok) {
-        setLatLongError(result?.message || "Unable to find this point.");
+        setLatLongError(result?.message || t("latLong.errors.unableToFind"));
         return;
       }
-      onStatusChange?.(result.message || "Point located successfully.");
+      onStatusChange?.(result.message || t("latLong.success.located"));
     } catch (error) {
-      setLatLongError(error?.message || "Unable to find this point.");
+      setLatLongError(error?.message || t("latLong.errors.unableToFind"));
     } finally {
       setLatLongLoading(false);
     }
@@ -171,21 +171,21 @@ export default function SidebarNav({
                       <div className="sidebar-latlong">
                         <form className="sidebar-latlong__form" onSubmit={handleLatLongSubmit}>
                           <label className="sidebar-latlong__field">
-                            <span>Latitude</span>
+                            <span>{t("latLong.latitude")}</span>
                             <input
                               type="text"
                               inputMode="decimal"
-                              placeholder="e.g. 29.0588"
+                              placeholder={t("latLong.latitudePlaceholder")}
                               value={latitude}
                               onChange={(e) => setLatitude(e.target.value)}
                             />
                           </label>
                           <label className="sidebar-latlong__field">
-                            <span>Longitude</span>
+                            <span>{t("latLong.longitude")}</span>
                             <input
                               type="text"
                               inputMode="decimal"
-                              placeholder="e.g. 76.0856"
+                              placeholder={t("latLong.longitudePlaceholder")}
                               value={longitude}
                               onChange={(e) => setLongitude(e.target.value)}
                             />
@@ -198,7 +198,7 @@ export default function SidebarNav({
                             className="sidebar-latlong__button"
                             disabled={latLongLoading || !mapUsable}
                           >
-                            {latLongLoading ? "Finding..." : "Find Point"}
+                            {latLongLoading ? t("latLong.finding") : t("latLong.findPoint")}
                           </button>
                         </form>
                       </div>

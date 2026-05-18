@@ -163,11 +163,40 @@
     background: transparent;
     color: var(--ink);
     outline: 0;
+    box-shadow: none;
+    appearance: none;
+    -webkit-appearance: none;
+}
+
+/* Remove native search-field rectangular chrome */
+.search-shell__input::-webkit-search-decoration,
+.search-shell__input::-webkit-search-cancel-button,
+.search-shell__input::-webkit-search-results-button,
+.search-shell__input::-webkit-search-results-decoration {
+    -webkit-appearance: none;
+}
+
+/* Keep header search clean without global focus rectangle */
+.search-shell__input:focus,
+.search-shell__input:focus-visible {
+    outline: none;
+    box-shadow: none;
 }
 
 .search-shell__input::placeholder {
     color: var(--ink-soft);
     opacity: 1;
+}
+
+/* Hindi input text can clip matras with tight default line metrics. */
+[data-lang="hi"] .search-shell {
+    min-height: 52px;
+}
+
+[data-lang="hi"] .search-shell__input {
+    line-height: 1.55;
+    padding-top: 0.12rem;
+    padding-bottom: 0.12rem;
 }
 
 .search-shell__submit {

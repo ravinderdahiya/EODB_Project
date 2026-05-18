@@ -117,6 +117,13 @@
   transition: border-color 160ms ease, box-shadow 160ms ease;
 }
 
+/* Prevent Devanagari matra clipping inside selects */
+[data-lang="hi"] .search-section__select {
+  line-height: 1.28;
+  padding-top: 0.72rem;
+  padding-bottom: 0.60rem;
+}
+
 .search-section__select:focus {
   outline: none;
   border-color: rgba(47, 141, 93, 0.55);

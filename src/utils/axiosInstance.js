@@ -10,6 +10,24 @@ function normalizeBasePath(value) {
   return withLeadingSlash.replace(/\/+$/, "");
 }
 
+function extractOriginAndPath(value) {
+  const raw = `${value || ""}`.trim();
+  if (!raw) return { origin: "", path: "" };
+
+  try {
+    const parsed = new URL(raw);
+    return {
+      origin: `${parsed.protocol}//${parsed.host}`,
+      path: normalizeBasePath(parsed.pathname),
+    };
+  } catch {
+    return {
+      origin: "",
+      path: normalizeBasePath(raw),
+    };
+  }
+}
+
 function isLoopbackAbsoluteUrl(value) {
   const raw = `${value || ""}`.trim();
   if (!raw) return false;
@@ -48,12 +66,26 @@ const shouldIgnoreConfiguredApiBase =
 const explicitBackendBasePath = normalizeBasePath(import.meta.env.VITE_FRONTEND_BACKEND_BASE_PATH || "");
 const inferredBackendBasePath = explicitBackendBasePath || inferBackendBasePathFromLocation();
 const resolvedApiBaseWhenConfiguredMissing = withBasePath(inferredBackendBasePath, "");
+const configuredApiBaseParts = extractOriginAndPath(configuredApiBaseUrl);
 
-const apiBaseUrl = import.meta.env.DEV && !forceAbsoluteApiBase
-  ? ""
-  : (shouldIgnoreConfiguredApiBase || !configuredApiBaseUrl
-      ? resolvedApiBaseWhenConfiguredMissing
-      : configuredApiBaseUrl);
+function resolveApiBaseUrl() {
+  if (import.meta.env.DEV && !forceAbsoluteApiBase) {
+    return "";
+  }
+
+  if (shouldIgnoreConfiguredApiBase || !configuredApiBaseUrl) {
+    return resolvedApiBaseWhenConfiguredMissing;
+  }
+
+  // If only origin is provided (e.g. https://hsac.org.in), attach backend base path.
+  if (configuredApiBaseParts.origin && !configuredApiBaseParts.path && inferredBackendBasePath) {
+    return `${configuredApiBaseParts.origin}${inferredBackendBasePath}`;
+  }
+
+  return configuredApiBaseUrl;
+}
+
+const apiBaseUrl = resolveApiBaseUrl();
 
 const axiosInstance = axios.create({
   baseURL: apiBaseUrl,

@@ -194,11 +194,11 @@
   background: rgba(255, 255, 255, 0.20);
 }
 
-/* Light theme: use the site's ink colour for ticks so they're visible on a light basemap */
-:root:not([data-theme="dark"]) .zws__tick.major::after  { background: rgba(23, 50, 72, 0.90); }
-:root:not([data-theme="dark"]) .zws__tick.mid::after    { background: rgba(23, 50, 72, 0.75); }
-:root:not([data-theme="dark"]) .zws__tick.minor::after  { background: rgba(23, 50, 72, 0.65); }
-:root:not([data-theme="dark"]) .zws__tick.pad::after    { background: rgba(23, 50, 72, 0.15); }
+/* Light theme: keep tick lines white */
+:root:not([data-theme="dark"]) .zws__tick.major::after  { background: rgba(255, 255, 255, 0.95); }
+:root:not([data-theme="dark"]) .zws__tick.mid::after    { background: rgba(255, 255, 255, 0.90); }
+:root:not([data-theme="dark"]) .zws__tick.minor::after  { background: rgba(255, 255, 255, 0.82); }
+:root:not([data-theme="dark"]) .zws__tick.pad::after    { background: rgba(255, 255, 255, 0.28); }
 
 /* ── Layer name labels ────────────────────────────────────────────────────── */
 
@@ -224,7 +224,7 @@
   width: 1px;
   height: 10px;
   /* Light theme */
-  background: rgba(23, 50, 72, 0.25);
+  background: rgba(255, 255, 255, 0.42);
   margin: 0 5px;
 }
 
@@ -246,8 +246,8 @@
   white-space: nowrap;
   transition: color 0.18s ease, background 0.18s ease, text-shadow 0.18s ease;
 
-  /* Light theme — use muted ink */
-  color: rgba(23, 50, 72, 0.45);
+  /* Light theme */
+  color: rgba(255, 255, 255, 0.75);
 }
 
 :root[data-theme="dark"] .zws__label {
@@ -274,7 +274,7 @@
 
 .zws__label:hover:not(.is-active) {
   /* Light theme */
-  color: rgba(23, 50, 72, 0.82);
+  color: rgba(255, 255, 255, 0.94);
 }
 
 :root[data-theme="dark"] .zws__label:hover:not(.is-active) {

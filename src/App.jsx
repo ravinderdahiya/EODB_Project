@@ -1217,13 +1217,43 @@ export default function App() {
   };
 
   const handleMapWhatsAppShare = async () => {
+    const waitForMapToSettle = async (view, maxWaitMs = 3500) => {
+      const start = Date.now();
+      while (view?.updating && Date.now() - start < maxWaitMs) {
+        await new Promise((resolve) => setTimeout(resolve, 120));
+      }
+    };
+
+    const takeMapScreenshotWithRetry = async (view) => {
+      try {
+        const shot = await view.takeScreenshot({ format: "png" });
+        return shot?.dataUrl ?? null;
+      } catch (firstErr) {
+        await new Promise((resolve) => setTimeout(resolve, 300));
+        try {
+          const retryShot = await view.takeScreenshot({ format: "png" });
+          return retryShot?.dataUrl ?? null;
+        } catch (retryErr) {
+          console.warn("Map screenshot retry failed:", retryErr.message);
+          console.warn("Map screenshot initial failure:", firstErr.message);
+          return null;
+        }
+      }
+    };
+
+    const view = viewRef.current;
+    if (!view) {
+      console.warn("Map screenshot skipped: map view not ready");
+      return null;
+    }
+
     const savedExtent = await zoomForPrint();
     // Same tile-settle delay as print
     await new Promise((resolve) => setTimeout(resolve, 1400));
     let mapDataUrl = null;
     try {
-      const screenshot = await viewRef.current.takeScreenshot({ format: "png" });
-      mapDataUrl = screenshot.dataUrl;
+      await waitForMapToSettle(view);
+      mapDataUrl = await takeMapScreenshotWithRetry(view);
     } catch (err) {
       console.warn("Map screenshot for WhatsApp failed:", err.message);
     }

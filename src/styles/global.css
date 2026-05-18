@@ -238,6 +238,17 @@ select:focus-visible {
   color: rgba(255, 255, 255, 0.9);
 }
 
+/* ArcGIS attribution strip: keep it transparent (no visible white line bar) */
+.esri-attribution,
+.esri-attribution--open,
+.esri-attribution--closed,
+.esri-attribution__sources,
+.esri-attribution__powered-by {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
 :root[data-theme="dark"] .field select {
   border-color: rgba(171, 194, 208, 0.1);
 }
