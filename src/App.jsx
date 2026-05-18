@@ -20,7 +20,10 @@ import { useSelectFeatures } from "@/hooks/useSelectFeatures";
 import useDisableDevTools from "@/hooks/useDisableDevTools";
 import { useLanguage } from "@/context/LanguageContext";
 import { getAllTehsils, getAllVillages, getDistricts, searchAdministrativeAreas } from "@/services/mapQueryService";
-import { createEmptyParcelRecord } from "@/services/parcelRecordService";
+import {
+  createEmptyParcelRecord,
+  createParcelRecordFromSelection,
+} from "@/services/parcelRecordService";
 import { triggerPrint } from "@/utils/printUtils";
 import { VOICE_COMMAND_ACTIONS, normalizeVoiceTranscript } from "@/voice-addon/voiceCommandRegistry";
 import {
@@ -1000,6 +1003,86 @@ export default function App() {
       statusMessage: `Loaded land information ${suggestion.registryRef} from recent selections.`,
     });
   };
+
+  const openCadastralFromChatbot = async (payload = {}) => {
+    const codes = payload?.codes ?? {};
+    const names = payload?.names ?? {};
+
+    const district = `${codes.district ?? ""}`.trim();
+    const tehsil = `${codes.tehsil ?? ""}`.trim();
+    const village = `${codes.village ?? ""}`.trim();
+    const murabba = `${codes.murabba ?? ""}`.trim();
+    const khasra = `${codes.khasra ?? ""}`.trim();
+
+    if (!district || !tehsil || !village) {
+      const message =
+        "Could not open cadastral parcel from chatbot result. Please include district, tehsil and village in query.";
+      setSystemMessage(message);
+      return { ok: false, message };
+    }
+
+    try {
+      setSystemMessage("Opening cadastral parcel from chatbot result...");
+      setLayerVisibility((current) => ({ ...current, cadastral: true }));
+
+      if (!murabba || !khasra) {
+        const boundaryResult = await drawBoundary(
+          "village",
+          { dCode: district, tCode: tehsil, vCode: village },
+          { expandFactor: 1.2 },
+        );
+        const message = boundaryResult?.ok
+          ? "Village boundary opened from chatbot result. Add murabba and khasra to open exact parcel."
+          : "Village boundary could not be opened from chatbot result.";
+        setSystemMessage(message);
+        return { ok: Boolean(boundaryResult?.ok), message };
+      }
+
+      const parcel = await createParcelRecordFromSelection({
+        sectionId: "khasra",
+        codes: {
+          district,
+          tehsil,
+          village,
+          murabba,
+          khasra,
+        },
+        names: {
+          district: `${names.district ?? ""}`.trim() || district,
+          tehsil: `${names.tehsil ?? ""}`.trim() || tehsil,
+          village: `${names.village ?? ""}`.trim() || village,
+          murabba: `${names.murabba ?? ""}`.trim() || murabba,
+          khasra: `${names.khasra ?? ""}`.trim() || khasra,
+        },
+      });
+
+      applyParcelSelection(parcel, {
+        openTable: true,
+        statusMessage: `Loaded Khasra ${parcel.khasraNo} from chatbot owner result.`,
+      });
+      return { ok: true, message: "Opened cadastral parcel on map." };
+    } catch (error) {
+      const message = error?.message || "Failed to open cadastral parcel from chatbot result.";
+      setSystemMessage(message);
+      return { ok: false, message };
+    }
+  };
+
+  useEffect(() => {
+    const onOpenFromChatbot = async (event) => {
+      const result = await openCadastralFromChatbot(event?.detail);
+      window.dispatchEvent(
+        new CustomEvent("eodb-chatbot-cadastral-open-result", {
+          detail: result || { ok: false, message: "Could not open cadastral parcel on map." },
+        }),
+      );
+    };
+
+    window.addEventListener("eodb-chatbot-open-cadastral", onOpenFromChatbot);
+    return () => {
+      window.removeEventListener("eodb-chatbot-open-cadastral", onOpenFromChatbot);
+    };
+  }, [openCadastralFromChatbot]);
 
   const handleBasemapChange = (nextPreset) => {
     setActiveBasemap(nextPreset);

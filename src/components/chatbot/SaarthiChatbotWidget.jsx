@@ -91,9 +91,10 @@ const CADASTRAL_LAYER_QUESTION = "When does cadastral layer appear?";
 const CADASTRAL_LAYER_ANSWER = "Cadastral layer is shown after map zoom reaches 1:5000.";
 const OWNER_API_ENDPOINT = "https://hsac.org.in/emissions/extract_land_record";
 const OWNER_SEARCH_HELP_TEXT = `Live Owner Search enabled.
-Type your full query in one line and press send.
-Example (English/Hinglish):
-district Karnal tehsil Nilokheri village Narayan murabba 51 khasra 18`;
+Currently supported input: Hindi only.
+English/Hinglish support will be added in a future update.
+Example (Hindi placeholder):
+नाम राम जिला रोहतक तहसील रोहतक गांव बोहर मुरबा 00 खसरा 00`;
 
 function getCurrentTimeLabel() {
   return new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
@@ -149,10 +150,26 @@ function unwrapOwnerPayload(payload) {
 
 function toMatchLabel(value) {
   const normalized = String(value ?? "").trim().toLowerCase();
-  if (value === true || value === 1 || normalized === "true" || normalized === "yes" || normalized === "y" || normalized === "matched") {
+  const normalizedLoose = normalized.replace(/_/g, " ");
+  if (
+    value === true
+    || value === 1
+    || normalized === "true"
+    || normalized === "yes"
+    || normalized === "y"
+    || normalized === "matched"
+  ) {
     return "Yes";
   }
-  if (value === false || value === 0 || normalized === "false" || normalized === "no" || normalized === "n" || normalized === "not matched") {
+  if (
+    value === false
+    || value === 0
+    || normalized === "false"
+    || normalized === "no"
+    || normalized === "n"
+    || normalized === "not matched"
+    || normalizedLoose === "not matched"
+  ) {
     return "No";
   }
   return safeText(value);
@@ -163,12 +180,12 @@ function toCount(value) {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
-function formatOwnerApiResult(rawPayload) {
+function formatOwnerApiResult(rawPayload, queryHints = null) {
   if (typeof rawPayload === "string") {
     const directText = rawPayload.trim();
     if (!directText) return "Owner details request returned empty response.";
     try {
-      return formatOwnerApiResult(JSON.parse(directText));
+      return formatOwnerApiResult(JSON.parse(directText), queryHints);
     } catch {
       return directText;
     }
@@ -183,6 +200,14 @@ function formatOwnerApiResult(rawPayload) {
   if (!payloadKeys.length) {
     return "Owner details request returned empty response.";
   }
+
+  const landRecords = payload?.land_records && typeof payload.land_records === "object"
+    ? payload.land_records
+    : null;
+  const spokenText = payload?.spoken_text && typeof payload.spoken_text === "object"
+    ? payload.spoken_text
+    : null;
+  const formattedPayload = landRecords || payload;
 
   const hasOwnerShape = [
     "district",
@@ -205,29 +230,39 @@ function formatOwnerApiResult(rawPayload) {
     "owner_name",
     "owners",
     "farmerName",
-  ].some((key) => payload[key] !== undefined && payload[key] !== null && String(payload[key]).trim() !== "");
+    "available_farmer",
+  ].some((key) => (
+    (formattedPayload[key] !== undefined && formattedPayload[key] !== null && String(formattedPayload[key]).trim() !== "")
+    || (spokenText?.[key] !== undefined && spokenText?.[key] !== null && String(spokenText[key]).trim() !== "")
+  ));
 
   if (!hasOwnerShape) {
     const freeText = safeText(
-      payload.message ?? payload.msg ?? payload.detail ?? payload.error ?? payload.resultText ?? payload.output,
+      formattedPayload.message ?? formattedPayload.msg ?? formattedPayload.detail ?? formattedPayload.error ?? formattedPayload.resultText ?? formattedPayload.output,
       "",
     );
     if (freeText) return freeText;
     return JSON.stringify(payload, null, 2);
   }
 
-  const ownerPrimary = pickFirstValue(payload, [
+  const ownerPrimary = pickFirstValue(formattedPayload, [
     "owner",
     "ownerName",
     "owner_name",
     "farmerName",
     "name",
   ]);
-  const owners = Array.isArray(payload?.owners) ? payload.owners.filter(Boolean) : [];
-  const ownerName = ownerPrimary || (owners.length ? owners[0] : "");
+  const owners = Array.isArray(formattedPayload?.owners) ? formattedPayload.owners.filter(Boolean) : [];
+  const availableFarmers = Array.isArray(formattedPayload?.available_farmer)
+    ? formattedPayload.available_farmer
+      .map((item) => safeText(item?.owner_name ?? item?.ownerName, ""))
+      .filter(Boolean)
+    : [];
+  const spokenOwnerName = safeText(spokenText?.name, "");
+  const ownerName = ownerPrimary || availableFarmers[0] || spokenOwnerName || (owners.length ? owners[0] : "");
   const moreCoOwners = Math.max(
     toCount(
-      pickFirstValue(payload, [
+      pickFirstValue(formattedPayload, [
         "moreCoOwners",
         "more_co_owners",
         "coOwnersCount",
@@ -236,20 +271,19 @@ function formatOwnerApiResult(rawPayload) {
         "additional_co_owners",
       ]),
     ),
-    owners.length > 1 ? owners.length - 1 : 0,
+    availableFarmers.length > 1 ? availableFarmers.length - 1 : (owners.length > 1 ? owners.length - 1 : 0),
   );
 
   const lines = [
-    "Owner Details (Live API)",
-    `District: ${safeText(pickFirstValue(payload, ["district", "districtName", "district_name"]))}`,
-    `Tehsil: ${safeText(pickFirstValue(payload, ["tehsil", "tehsilName", "tehsil_name"]))}`,
-    `Village: ${safeText(pickFirstValue(payload, ["village", "villageName", "village_name"]))}`,
-    `Murabba: ${safeText(pickFirstValue(payload, ["murabba", "murabbaNo", "murabba_no", "muraba", "murabaNo"]))}`,
-    `Khasra: ${safeText(pickFirstValue(payload, ["khasra", "khasraNo", "khasra_no"]))}`,
+    "Owner Details (Instant Search)",
+    `District: ${safeText(pickFirstValue(formattedPayload, ["district", "districtName", "district_name"]) || spokenText?.district || queryHints?.district)}`,
+    `Tehsil: ${safeText(pickFirstValue(formattedPayload, ["tehsil", "tehsilName", "tehsil_name"]) || spokenText?.tehsil || queryHints?.tehsil)}`,
+    `Village: ${safeText(pickFirstValue(formattedPayload, ["village", "villageName", "village_name"]) || spokenText?.village || queryHints?.village)}`,
+    `Murabba: ${safeText(pickFirstValue(formattedPayload, ["murabba", "murabbaNo", "murabba_no", "muraba", "murabaNo", "murraba_no"]) || spokenText?.muraba_no || spokenText?.murabba_no || queryHints?.murabba)}`,
+    `Khasra: ${safeText(pickFirstValue(formattedPayload, ["khasra", "khasraNo", "khasra_no", "khasra_no"]) || spokenText?.khasra_no || queryHints?.khasra)}`,
     `Owner: ${safeText(ownerName)}`,
-    `Share: ${safeText(pickFirstValue(payload, ["share", "ownerShare", "ownershipShare", "owner_share"]))}`,
-    `Land Match: ${toMatchLabel(pickFirstValue(payload, ["landMatch", "land_match"]))}`,
-    `Farmer Match: ${toMatchLabel(pickFirstValue(payload, ["farmerMatch", "farmer_match"]))}`,
+    `Land Match: ${toMatchLabel(pickFirstValue(formattedPayload, ["landMatch", "land_match", "land_match_status"]))}`,
+    `Owner Match: ${toMatchLabel(pickFirstValue(formattedPayload, ["farmerMatch", "farmer_match", "farmer_match_status"]))}`,
   ];
 
   if (moreCoOwners > 0) {
@@ -257,6 +291,66 @@ function formatOwnerApiResult(rawPayload) {
   }
 
   return lines.join("\n");
+}
+
+function extractOwnerCadastralSelectionPayload(rawPayload, queryHints = null) {
+  const payload = unwrapOwnerPayload(rawPayload);
+  if (!payload || typeof payload !== "object") return null;
+
+  const landRecords = payload?.land_records && typeof payload.land_records === "object"
+    ? payload.land_records
+    : null;
+  const spokenText = payload?.spoken_text && typeof payload.spoken_text === "object"
+    ? payload.spoken_text
+    : null;
+  const source = landRecords || payload;
+
+  const districtCode = safeText(
+    pickFirstValue(source, ["nd_code", "d_code", "districtCode", "district_code"]),
+    "",
+  );
+  const tehsilCode = safeText(
+    pickFirstValue(source, ["nt_code", "t_code", "tehsilCode", "tehsil_code"]),
+    "",
+  );
+  const villageCode = safeText(
+    pickFirstValue(source, ["nv_code", "v_code", "villageCode", "village_code"]),
+    "",
+  );
+  const murabbaNo = safeText(
+    pickFirstValue(source, ["murraba_no", "murabba_no", "muraba_no", "murabba", "muraba", "murabbaNo"])
+      || spokenText?.muraba_no
+      || spokenText?.murabba_no
+      || queryHints?.murabba,
+    "",
+  );
+  const khasraNo = safeText(
+    pickFirstValue(source, ["khasra_no", "khasraNo", "khasra"])
+      || spokenText?.khasra_no
+      || queryHints?.khasra,
+    "",
+  );
+
+  if (!districtCode || !tehsilCode || !villageCode) {
+    return null;
+  }
+
+  return {
+    codes: {
+      district: districtCode,
+      tehsil: tehsilCode,
+      village: villageCode,
+      murabba: murabbaNo,
+      khasra: khasraNo,
+    },
+    names: {
+      district: safeText(pickFirstValue(source, ["district", "district_name"]) || spokenText?.district || queryHints?.district, ""),
+      tehsil: safeText(pickFirstValue(source, ["tehsil", "tehsil_name"]) || spokenText?.tehsil || queryHints?.tehsil, ""),
+      village: safeText(pickFirstValue(source, ["village", "village_name"]) || spokenText?.village || queryHints?.village, ""),
+      murabba: murabbaNo,
+      khasra: khasraNo,
+    },
+  };
 }
 
 function resolveOwnerExtractor(frameWindow) {
@@ -270,6 +364,148 @@ function resolveOwnerExtractor(frameWindow) {
     throw new Error("extractLandRecordFromSpeech is not available.");
   }
   return extractor;
+}
+
+function escapeRegex(value) {
+  return String(value || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function cleanOwnerQueryValue(value) {
+  return String(value || "").replace(/\s+/g, " ").trim();
+}
+
+function hasDevanagariText(value) {
+  return /[\u0900-\u097F]/.test(String(value || ""));
+}
+
+function extractOwnerQueryField(sourceText, labels, allLabels) {
+  const source = cleanOwnerQueryValue(sourceText);
+  if (!source) return "";
+
+  const labelPattern = labels.map(escapeRegex).join("|");
+  const boundaryPattern = allLabels.map(escapeRegex).join("|");
+  const regex = new RegExp(
+    `(?:^|\\s)(?:${labelPattern})\\s*[:\\-]?\\s*(.+?)(?=\\s+(?:${boundaryPattern})(?:\\s*[:\\-]?\\s*|$)|$)`,
+    "iu",
+  );
+  const match = source.match(regex);
+  return cleanOwnerQueryValue(match?.[1] || "");
+}
+
+function extractOwnerQueryHints(inputQuery) {
+  const source = cleanOwnerQueryValue(inputQuery);
+  if (!source) return null;
+
+  const labels = {
+    name: ["name", "owner", "\u0928\u093e\u092e"],
+    district: ["district", "\u091c\u093f\u0932\u093e"],
+    tehsil: ["tehsil", "\u0924\u0939\u0938\u0940\u0932"],
+    village: ["village", "gaon", "\u0917\u093e\u0902\u0935", "\u0917\u093e\u0901\u0935"],
+    murabba: ["murabba", "muraba", "murraba", "\u092e\u0941\u0930\u092c\u093e", "\u092e\u0941\u0930\u092c\u094d\u092c\u093e"],
+    khasra: ["khasra", "\u0916\u0938\u0930\u093e"],
+  };
+  const allLabels = Object.values(labels).flat();
+
+  return {
+    name: extractOwnerQueryField(source, labels.name, allLabels),
+    district: extractOwnerQueryField(source, labels.district, allLabels),
+    tehsil: extractOwnerQueryField(source, labels.tehsil, allLabels),
+    village: extractOwnerQueryField(source, labels.village, allLabels),
+    murabba: extractOwnerQueryField(source, labels.murabba, allLabels),
+    khasra: extractOwnerQueryField(source, labels.khasra, allLabels),
+  };
+}
+
+function getMissingOwnerQueryFields(queryHints = {}) {
+  const required = [
+    { key: "name", label: "Name" },
+    { key: "district", label: "District" },
+    { key: "tehsil", label: "Tehsil" },
+    { key: "village", label: "Village" },
+    { key: "murabba", label: "Murabba" },
+    { key: "khasra", label: "Khasra" },
+  ];
+  return required
+    .filter((field) => !cleanOwnerQueryValue(queryHints?.[field.key]))
+    .map((field) => field.label);
+}
+
+function buildOwnerApiQueryVariants(inputQuery) {
+  const baseQuery = cleanOwnerQueryValue(inputQuery);
+  if (!baseQuery) return [];
+
+  const fields = {
+    name: ["name", "owner", "नाम"],
+    district: ["district", "जिला"],
+    tehsil: ["tehsil", "तहसील"],
+    village: ["village", "gaon", "गांव", "गाँव"],
+    murabba: ["murabba", "muraba", "murraba", "मुरबा", "मुरब्बा"],
+    khasra: ["khasra", "खसरा"],
+  };
+  const allLabels = Object.values(fields).flat();
+
+  const extracted = {
+    name: extractOwnerQueryField(baseQuery, fields.name, allLabels),
+    district: extractOwnerQueryField(baseQuery, fields.district, allLabels),
+    tehsil: extractOwnerQueryField(baseQuery, fields.tehsil, allLabels),
+    village: extractOwnerQueryField(baseQuery, fields.village, allLabels),
+    murabba: extractOwnerQueryField(baseQuery, fields.murabba, allLabels),
+    khasra: extractOwnerQueryField(baseQuery, fields.khasra, allLabels),
+  };
+
+  const variants = [baseQuery];
+  if (extracted.district && extracted.tehsil && extracted.village && extracted.murabba && extracted.khasra) {
+    const englishCore = `district ${extracted.district} tehsil ${extracted.tehsil} village ${extracted.village} murabba ${extracted.murabba} khasra ${extracted.khasra}`;
+    const hindiCore = `जिला ${extracted.district} तहसील ${extracted.tehsil} गांव ${extracted.village} मुरबा ${extracted.murabba} खसरा ${extracted.khasra}`;
+    variants.push(englishCore);
+    variants.push(hindiCore);
+    if (extracted.name) {
+      variants.push(`name ${extracted.name} ${englishCore}`);
+      variants.push(`नाम ${extracted.name} ${hindiCore}`);
+    }
+  }
+
+  const deduped = [];
+  const seen = new Set();
+  variants.forEach((variant) => {
+    const normalized = cleanOwnerQueryValue(variant);
+    if (!normalized) return;
+    const key = normalized.toLowerCase();
+    if (seen.has(key)) return;
+    seen.add(key);
+    deduped.push(normalized);
+  });
+  return deduped.slice(0, 6);
+}
+
+function hasOwnerApiResolvedData(payload) {
+  if (!payload || typeof payload !== "object") return false;
+
+  const root = unwrapOwnerPayload(payload);
+  if (!root || typeof root !== "object") return false;
+
+  const land = root?.land_records && typeof root.land_records === "object"
+    ? root.land_records
+    : root;
+  const spoken = root?.spoken_text && typeof root.spoken_text === "object"
+    ? root.spoken_text
+    : {};
+
+  const hasCoreFields = [
+    "district",
+    "tehsil",
+    "village",
+    "murraba_no",
+    "murabba_no",
+    "khasra_no",
+    "nd_code",
+    "nt_code",
+    "nv_code",
+  ].some((key) => cleanOwnerQueryValue(land?.[key] ?? spoken?.[key]));
+
+  const hasOwnerList = Array.isArray(land?.available_farmer) && land.available_farmer.length > 0;
+
+  return hasCoreFields || hasOwnerList;
 }
 
 async function parseOwnerApiHttpResponse(response) {
@@ -292,52 +528,65 @@ async function requestOwnerApiResult(query, frameWindow) {
     throw new Error("Fetch API is not available.");
   }
 
-  const attempts = [
-    {
-      url: OWNER_API_ENDPOINT,
-      init: {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json, text/plain, */*",
-        },
-        body: JSON.stringify({ query }),
-      },
-    },
-    {
-      url: OWNER_API_ENDPOINT,
-      init: {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
-          Accept: "application/json, text/plain, */*",
-        },
-        body: `query=${encodeURIComponent(query)}`,
-      },
-    },
-    {
-      url: `${OWNER_API_ENDPOINT}?query=${encodeURIComponent(query)}`,
-      init: {
-        method: "GET",
-        headers: {
-          Accept: "application/json, text/plain, */*",
-        },
-      },
-    },
-  ];
-
   let lastError = null;
-  for (const attempt of attempts) {
-    try {
-      const response = await fetchFn(attempt.url, attempt.init);
-      if (!response.ok) {
-        lastError = new Error(`Live API responded with status ${response.status}.`);
-        continue;
+  let lastPayload = null;
+  const queryVariants = buildOwnerApiQueryVariants(query);
+
+  for (const queryVariant of queryVariants) {
+    const attempts = [
+      {
+        url: OWNER_API_ENDPOINT,
+        init: {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json, text/plain, */*",
+          },
+          body: JSON.stringify({ speech: queryVariant }),
+        },
+      },
+      {
+        url: OWNER_API_ENDPOINT,
+        init: {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+            Accept: "application/json, text/plain, */*",
+          },
+          body: `speech=${encodeURIComponent(queryVariant)}`,
+        },
+      },
+      {
+        url: `${OWNER_API_ENDPOINT}?query=${encodeURIComponent(queryVariant)}`,
+        init: {
+          method: "GET",
+          headers: {
+            Accept: "application/json, text/plain, */*",
+          },
+        },
+      },
+    ];
+
+    for (const attempt of attempts) {
+      try {
+        const response = await fetchFn(attempt.url, attempt.init);
+        if (!response.ok) {
+          lastError = new Error(`Live API responded with status ${response.status}.`);
+          continue;
+        }
+        const parsedPayload = await parseOwnerApiHttpResponse(response);
+        if (hasOwnerApiResolvedData(parsedPayload)) {
+          return parsedPayload;
+        }
+        lastPayload = parsedPayload;
+      } catch (error) {
+        lastError = error;
       }
-      return await parseOwnerApiHttpResponse(response);
-    } catch (error) {
-      lastError = error;
     }
+  }
+
+  if (lastPayload) {
+    return lastPayload;
   }
 
   try {
@@ -477,10 +726,10 @@ function makeMenuConfig(localeQuestions) {
     "search-land-record": {
       title: "Search Land Record",
       options: [
-        { label: "1 Search by District/Tehsil/Village/Khasra", action: "ask", query: mappedQueries.requiredFields },
-        { label: "2 Search by Owner Name", action: "ask", query: mappedQueries.ownerName },
-        { label: "3 Voice Search Help", action: "voice-help", query: VOICE_SEARCH_HELP_QUESTION },
-        { label: "4 Owner details (Live API)", action: "owner-api", query: mappedQueries.ownerName },
+        { label: "1 Owner details (Instant Search)", action: "owner-api", query: mappedQueries.ownerName },
+        { label: "2 Search by District/Tehsil/Village/Khasra", action: "ask", query: mappedQueries.requiredFields },
+        { label: "3 Search by Owner Name", action: "ask", query: mappedQueries.ownerName },
+        { label: "4 Voice Search Help", action: "voice-help", query: VOICE_SEARCH_HELP_QUESTION },
         { label: "5 What languages are supported?", action: "language-help", query: LANGUAGE_SUPPORT_QUESTION },
         { label: "9 Back to Main Menu", action: "menu", target: "main" },
       ],
@@ -534,7 +783,70 @@ function makeMenuConfig(localeQuestions) {
   };
 }
 
-function createMessageRow(frameDoc, message, iconUrl) {
+function clearInlineTypingTimers(session) {
+  const timerMap = session?.inlineTypingTimers;
+  if (!(timerMap instanceof Map)) return;
+  timerMap.forEach((timerId) => window.clearInterval(timerId));
+  timerMap.clear();
+}
+
+function startInlineBotTyping(frameDoc, bubble, message, session) {
+  if (!bubble || !message || message.sender !== "bot") return;
+
+  const fullText = String(message.text || "");
+  if (!fullText) {
+    message.typed = true;
+    message.typingIndex = 0;
+    return;
+  }
+
+  if (message.typed) {
+    bubble.textContent = fullText;
+    return;
+  }
+
+  if (!(session.inlineTypingTimers instanceof Map)) {
+    session.inlineTypingTimers = new Map();
+  }
+
+  const timerMap = session.inlineTypingTimers;
+  if (timerMap.has(message.id)) {
+    window.clearInterval(timerMap.get(message.id));
+    timerMap.delete(message.id);
+  }
+
+  const safeStart = Number.isFinite(message.typingIndex)
+    ? Math.max(0, Math.min(fullText.length, message.typingIndex))
+    : 0;
+  let cursor = safeStart;
+  bubble.textContent = fullText.slice(0, cursor);
+
+  if (cursor >= fullText.length) {
+    message.typed = true;
+    message.typingIndex = fullText.length;
+    return;
+  }
+
+  const stepSize = fullText.length > 280 ? 4 : fullText.length > 150 ? 3 : fullText.length > 80 ? 2 : 1;
+  const intervalMs = 16;
+  const timerId = window.setInterval(() => {
+    cursor = Math.min(fullText.length, cursor + stepSize);
+    message.typingIndex = cursor;
+    bubble.textContent = fullText.slice(0, cursor);
+    scrollChatToBottom(frameDoc);
+
+    if (cursor >= fullText.length) {
+      window.clearInterval(timerId);
+      timerMap.delete(message.id);
+      message.typed = true;
+      message.typingIndex = fullText.length;
+    }
+  }, intervalMs);
+
+  timerMap.set(message.id, timerId);
+}
+
+function createMessageRow(frameDoc, message, iconUrl, session) {
   const row = frameDoc.createElement("div");
   row.className = `message-row ${message.sender === "user" ? "user-row" : "bot-row"} saarthi-menu-qa-row`;
   row.dataset.saarthiSource = "inline-menu";
@@ -555,8 +867,25 @@ function createMessageRow(frameDoc, message, iconUrl) {
 
   const bubble = frameDoc.createElement("div");
   bubble.className = `message-bubble ${message.sender}`;
-  bubble.textContent = message.text;
+  if (message.sender === "bot") {
+    const fullText = String(message.text || "");
+    const partial = Number.isFinite(message.typingIndex)
+      ? fullText.slice(0, Math.max(0, Math.min(fullText.length, message.typingIndex)))
+      : "";
+    bubble.textContent = message.typed ? fullText : partial;
+  } else {
+    bubble.textContent = message.text;
+  }
   messageGroup.appendChild(bubble);
+
+  if (message.sender === "bot" && message?.action?.kind === "open-cadastral") {
+    const actionButton = frameDoc.createElement("button");
+    actionButton.type = "button";
+    actionButton.className = "saarthi-inline-owner-action";
+    actionButton.dataset.inlineMessageId = message.id;
+    actionButton.textContent = message.action.label || "Show on Cadastral Map";
+    messageGroup.appendChild(actionButton);
+  }
 
   const time = frameDoc.createElement("div");
   time.className = `message-time ${message.sender === "user" ? "user-time" : "bot-time"}`;
@@ -568,8 +897,16 @@ function createMessageRow(frameDoc, message, iconUrl) {
   if (message.sender === "user") {
     const userAvatar = frameDoc.createElement("div");
     userAvatar.className = "avatar user-avatar";
-    userAvatar.textContent = "U";
+    userAvatar.innerHTML = `
+      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <path d="M12 12.25a5.25 5.25 0 1 0 0-10.5 5.25 5.25 0 0 0 0 10.5Zm0 1.5c-4.56 0-8.25 2.74-8.25 6.12 0 .76.62 1.38 1.38 1.38h13.74c.76 0 1.38-.62 1.38-1.38 0-3.38-3.69-6.12-8.25-6.12Z"/>
+      </svg>
+    `;
     row.appendChild(userAvatar);
+  }
+
+  if (message.sender === "bot") {
+    startInlineBotTyping(frameDoc, bubble, message, session);
   }
 
   return row;
@@ -579,6 +916,7 @@ function renderInjectedMessages(frameDoc, session, iconUrl) {
   const chatContainer = frameDoc.querySelector(".chat-container");
   if (!chatContainer) return;
 
+  clearInlineTypingTimers(session);
   chatContainer.querySelectorAll(".saarthi-menu-qa-row").forEach((node) => node.remove());
 
   if (!Array.isArray(session.injectedMessages) || !session.injectedMessages.length) {
@@ -587,7 +925,7 @@ function renderInjectedMessages(frameDoc, session, iconUrl) {
 
   const typingRow = chatContainer.querySelector(".typing-bubble")?.closest(".message-row");
   session.injectedMessages.forEach((message) => {
-    const row = createMessageRow(frameDoc, message, iconUrl);
+    const row = createMessageRow(frameDoc, message, iconUrl, session);
     if (typingRow && typingRow.parentElement === chatContainer) {
       chatContainer.insertBefore(row, typingRow);
     } else {
@@ -609,6 +947,8 @@ function pushInlineMessage(session, sender, text) {
     sender,
     text,
     time: getCurrentTimeLabel(),
+    typed: sender === "user",
+    typingIndex: sender === "user" ? String(text || "").length : 0,
   });
 }
 
@@ -737,7 +1077,7 @@ function ensureJumpToMenuButton(frameDoc, session) {
 function buildInlineRenderKey(lang, session) {
   const injectedMessages = Array.isArray(session?.injectedMessages) ? session.injectedMessages : [];
   const messageSignature = injectedMessages
-    .map((message) => `${message.id}:${message.sender}:${message.text}`)
+    .map((message) => `${message.id}:${message.sender}:${message.text}:${message?.action?.kind || ""}:${message?.action?.label || ""}`)
     .join("|");
   return [
     lang,
@@ -753,6 +1093,8 @@ function resetInlineMenuSession(frameDoc, session, localeQuestions, iconUrl) {
   session.ownerApiBusy = false;
   session.menuState = "main";
   session.injectedMessages = [];
+  clearInlineTypingTimers(session);
+  session.pendingCadastralStatusMessageId = null;
   session.bypassOwnerModeOnce = false;
   session.askLockKey = "";
   session.askLockUntil = 0;
@@ -865,6 +1207,25 @@ body {
 }
 .helper-bubble {
   display: none !important;
+}
+.saarthi-inline-owner-action {
+  margin-top: 8px !important;
+  border: 1px solid rgba(47, 141, 93, 0.32) !important;
+  border-radius: 10px !important;
+  background: rgba(47, 141, 93, 0.1) !important;
+  color: ${green} !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  line-height: 1.2 !important;
+  padding: 8px 10px !important;
+  cursor: pointer !important;
+}
+.saarthi-inline-owner-action:hover {
+  background: rgba(47, 141, 93, 0.16) !important;
+}
+.saarthi-inline-owner-action:disabled {
+  opacity: 0.65 !important;
+  cursor: not-allowed !important;
 }
 .app.dark .helper-bubble {
   display: none !important;
@@ -1039,6 +1400,16 @@ body {
 .message-bubble {
   font-size: 11.5px !important;
 }
+.user-avatar {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+.user-avatar svg {
+  width: 14px !important;
+  height: 14px !important;
+  fill: #ffffff !important;
+}
 .header-text p {
   display: block !important;
   opacity: 1 !important;
@@ -1104,6 +1475,8 @@ export default function SaarthiChatbotWidget({ lang = "en", blurred = false, hid
     lastMenuDispatchKey: "",
     lastMenuDispatchAt: 0,
     menuActionHandler: null,
+    inlineTypingTimers: new Map(),
+    pendingCadastralStatusMessageId: null,
   });
   const [isOpen, setIsOpen] = useState(false);
   const [bottomOffset, setBottomOffset] = useState(28);
@@ -1128,11 +1501,26 @@ export default function SaarthiChatbotWidget({ lang = "en", blurred = false, hid
     const frameDoc = iframeRef.current?.contentDocument;
     const floatingButton = frameDoc?.querySelector(".floating-btn");
     if (!(floatingButton && typeof floatingButton.click === "function")) return;
+
+    const clearInlineInput = () => {
+      const inputNode = frameDoc?.querySelector(".input-area input");
+      if (!inputNode) return;
+      inputNode.value = "";
+      inputNode.dispatchEvent(new Event("input", { bubbles: true }));
+      inputNode.dispatchEvent(new Event("change", { bubbles: true }));
+    };
+
     if (panelWasOpen) {
-      window.setTimeout(() => floatingButton.click(), 100);
+      window.setTimeout(() => {
+        clearInlineInput();
+        floatingButton.click();
+        window.setTimeout(clearInlineInput, 80);
+      }, 100);
       return;
     }
+    clearInlineInput();
     floatingButton.click();
+    window.setTimeout(clearInlineInput, 80);
   };
 
   useEffect(() => {
@@ -1325,40 +1713,90 @@ export default function SaarthiChatbotWidget({ lang = "en", blurred = false, hid
       if (!session.ownerApiMode || session.ownerApiBusy) return;
       const inputNode = frameDoc.querySelector(".input-area input");
       if (!inputNode) return;
-      const query = String(inputNode.value || "").trim();
-      if (!query) return;
+    const query = String(inputNode.value || "").trim();
+    if (!query) return;
 
-      inputNode.value = "";
-      inputNode.dispatchEvent(new Event("input", { bubbles: true }));
+    inputNode.value = "";
+    inputNode.dispatchEvent(new Event("input", { bubbles: true }));
 
-      pushInlineMessage(session, "user", query);
-      const loadingMessageId = createInjectedId();
+    pushInlineMessage(session, "user", query);
+    const loadingMessageId = createInjectedId();
       session.injectedMessages.push({
         id: loadingMessageId,
         sender: "bot",
-        text: "Processing Live API request...",
+        text: "Processing Instant Search request...",
         time: getCurrentTimeLabel(),
+        typed: false,
+        typingIndex: 0,
       });
-      session.ownerApiBusy = true;
+    session.ownerApiBusy = true;
 
-      upsertOwnerStatus(frameDoc, session);
-      renderInjectedMessages(frameDoc, session, iconUrl);
-      session.lastInlineRenderKey = buildInlineRenderKey(lang, session);
-      scrollChatToBottom(frameDoc);
+    upsertOwnerStatus(frameDoc, session);
+    renderInjectedMessages(frameDoc, session, iconUrl);
+    session.lastInlineRenderKey = buildInlineRenderKey(lang, session);
+    scrollChatToBottom(frameDoc);
 
-      try {
-        const response = await requestOwnerApiResult(query, iframe.contentWindow);
-        const resultText = formatOwnerApiResult(response);
+    try {
+      if (!hasDevanagariText(query)) {
         session.injectedMessages = session.injectedMessages.map((message) => (
           message.id === loadingMessageId
-            ? { ...message, text: resultText }
+            ? {
+              ...message,
+              text: "Live Owner Search currently supports Hindi query input only.\nPlease type your full query in Hindi.\nEnglish support will be added in a future update.",
+              typed: false,
+              typingIndex: 0,
+            }
+            : message
+        ));
+        return;
+      }
+
+      const queryHints = extractOwnerQueryHints(query);
+      const missingFields = getMissingOwnerQueryFields(queryHints);
+      if (missingFields.length > 0) {
+        session.injectedMessages = session.injectedMessages.map((message) => (
+          message.id === loadingMessageId
+            ? {
+              ...message,
+              text: `Please include all required fields.\nMissing: ${missingFields.join(", ")}\nExample: नाम XYZ जिला XYZ तहसील XYZ गांव XYZ मुरबा 00 खसरा 00`,
+              typed: false,
+              typingIndex: 0,
+            }
+            : message
+        ));
+        return;
+      }
+
+      const response = await requestOwnerApiResult(query, iframe.contentWindow);
+      const resultText = formatOwnerApiResult(response, queryHints);
+      const selectionPayload = extractOwnerCadastralSelectionPayload(response, queryHints);
+        session.injectedMessages = session.injectedMessages.map((message) => (
+          message.id === loadingMessageId
+            ? {
+              ...message,
+              text: resultText,
+              typed: false,
+              typingIndex: 0,
+              action: selectionPayload
+                ? {
+                  kind: "open-cadastral",
+                  label: "Show on Cadastral Map",
+                  payload: selectionPayload,
+                }
+                : null,
+            }
             : message
         ));
       } catch (error) {
         const errorMessage = safeText(error?.message || error, "Unexpected error.");
         session.injectedMessages = session.injectedMessages.map((message) => (
           message.id === loadingMessageId
-            ? { ...message, text: `Owner details request failed.\n${errorMessage}` }
+            ? {
+              ...message,
+              text: `Owner details request failed.\n${errorMessage}`,
+              typed: false,
+              typingIndex: 0,
+            }
             : message
         ));
       } finally {
@@ -1392,6 +1830,23 @@ export default function SaarthiChatbotWidget({ lang = "en", blurred = false, hid
           return target.parentElement;
         }
         return null;
+      };
+
+      const forceClearInlineInput = () => {
+        const inputNode = frameDoc.querySelector(".input-area input");
+        if (!inputNode) return;
+
+        const nativeValueSetter = Object.getOwnPropertyDescriptor(
+          frameWindow.HTMLInputElement?.prototype || HTMLInputElement.prototype,
+          "value",
+        )?.set;
+        if (typeof nativeValueSetter === "function") {
+          nativeValueSetter.call(inputNode, "");
+        } else {
+          inputNode.value = "";
+        }
+        inputNode.dispatchEvent(new Event("input", { bubbles: true }));
+        inputNode.dispatchEvent(new Event("change", { bubbles: true }));
       };
 
       const shouldSkipDuplicateMenuDispatch = (dispatchKey) => {
@@ -1499,15 +1954,14 @@ export default function SaarthiChatbotWidget({ lang = "en", blurred = false, hid
         session.clearResetTimer = window.setTimeout(() => {
           resetInlineMenuSession(frameDoc, session, activeLocale.questions, iconUrl);
           clearChatHistoryRows(frameDoc);
-          const inputNode = frameDoc.querySelector(".input-area input");
-          if (inputNode) {
-            inputNode.value = "";
-            inputNode.dispatchEvent(new Event("input", { bubbles: true }));
-          }
+          forceClearInlineInput();
+          window.setTimeout(forceClearInlineInput, 140);
+          window.setTimeout(forceClearInlineInput, 360);
           session.clearResetTimer = window.setTimeout(() => {
             session.clearResetTimer = null;
             resetInlineMenuSession(frameDoc, session, activeLocale.questions, iconUrl);
             clearChatHistoryRows(frameDoc);
+            forceClearInlineInput();
           }, 240);
         }, 120);
       };
@@ -1528,6 +1982,49 @@ export default function SaarthiChatbotWidget({ lang = "en", blurred = false, hid
         const menuButton = target.closest(".saarthi-inline-menu__option");
         if (isFrameHTMLElement(menuButton)) {
           handleMenuSelection(menuButton, event);
+          return;
+        }
+
+        const ownerActionButton = target.closest(".saarthi-inline-owner-action");
+        if (isFrameHTMLElement(ownerActionButton)) {
+          const messageId = ownerActionButton.dataset.inlineMessageId || "";
+          const linkedMessage = Array.isArray(session.injectedMessages)
+            ? session.injectedMessages.find((message) => message.id === messageId)
+            : null;
+          const actionPayload = linkedMessage?.action?.payload;
+          if (!actionPayload) {
+            event.preventDefault();
+            event.stopPropagation();
+            return;
+          }
+
+          ownerActionButton.disabled = true;
+          try {
+            const pendingMessageId = createInjectedId();
+            session.pendingCadastralStatusMessageId = pendingMessageId;
+            session.injectedMessages.push({
+              id: pendingMessageId,
+              sender: "bot",
+              text: "Opening cadastral parcel on map...",
+              time: getCurrentTimeLabel(),
+              typed: false,
+              typingIndex: 0,
+            });
+            renderInjectedMessages(frameDoc, session, iconUrl);
+            scrollChatToBottom(frameDoc);
+
+            window.dispatchEvent(
+              new CustomEvent("eodb-chatbot-open-cadastral", {
+                detail: actionPayload,
+              }),
+            );
+          } finally {
+            window.setTimeout(() => {
+              ownerActionButton.disabled = false;
+            }, 600);
+          }
+          event.preventDefault();
+          event.stopPropagation();
           return;
         }
 
@@ -1770,6 +2267,44 @@ export default function SaarthiChatbotWidget({ lang = "en", blurred = false, hid
     document.addEventListener("click", onHostClickCapture, true);
     document.addEventListener("pointerdown", onHostPointerDownCapture, true);
 
+    const onCadastralOpenResult = (event) => {
+      const frameDoc = iframe.contentDocument;
+      if (!frameDoc) return;
+
+      const session = menuSessionRef.current;
+      const detail = event?.detail || {};
+      const resultText = safeText(
+        detail?.message,
+        detail?.ok ? "Opened cadastral parcel on map." : "Could not open cadastral parcel on map.",
+      );
+      const pendingId = session.pendingCadastralStatusMessageId;
+      session.pendingCadastralStatusMessageId = null;
+
+      if (pendingId) {
+        let replaced = false;
+        session.injectedMessages = (session.injectedMessages || []).map((message) => {
+          if (message.id !== pendingId) return message;
+          replaced = true;
+          return {
+            ...message,
+            text: resultText,
+            typed: false,
+            typingIndex: 0,
+          };
+        });
+        if (!replaced) {
+          pushInlineMessage(session, "bot", resultText);
+        }
+      } else {
+        pushInlineMessage(session, "bot", resultText);
+      }
+
+      renderInjectedMessages(frameDoc, session, iconUrl);
+      session.lastInlineRenderKey = buildInlineRenderKey(lang, session);
+      scrollChatToBottom(frameDoc);
+    };
+    window.addEventListener("eodb-chatbot-cadastral-open-result", onCadastralOpenResult);
+
     syncBottomOffset();
 
     return () => {
@@ -1782,6 +2317,7 @@ export default function SaarthiChatbotWidget({ lang = "en", blurred = false, hid
       scheduler.pending = false;
 
       const session = menuSessionRef.current;
+      clearInlineTypingTimers(session);
       if (session.docCleanup) {
         session.docCleanup();
         session.docCleanup = null;
@@ -1805,6 +2341,7 @@ export default function SaarthiChatbotWidget({ lang = "en", blurred = false, hid
       observerRef.current?.disconnect();
       layoutObserverRef.current?.disconnect();
       hostLayoutObserverRef.current?.disconnect();
+      window.removeEventListener("eodb-chatbot-cadastral-open-result", onCadastralOpenResult);
       document.removeEventListener("click", onHostClickCapture, true);
       document.removeEventListener("pointerdown", onHostPointerDownCapture, true);
     };
