@@ -53,13 +53,7 @@
     background: rgba(100, 116, 139, 0.95);
 }
 
-.layer-panel::-webkit-scrollbar-button {
-    width: 0;
-    height: 0;
-    display: none;
-    background: transparent;
-}
-
+.layer-panel::-webkit-scrollbar-button,
 .layer-panel::-webkit-scrollbar-button:single-button,
 .layer-panel::-webkit-scrollbar-button:start:decrement,
 .layer-panel::-webkit-scrollbar-button:end:increment,

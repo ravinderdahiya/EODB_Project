@@ -1203,14 +1203,12 @@
 
 /* ── Responsive ───────────────────────────────────────────── */
 
-/* Tablet and below: map fills the full workspace column */
 @media (max-width: 1024px) {
+  /* Tablet and below: map fills the full workspace column */
   .map-stage {
     height: 100%;
   }
-}
 
-@media (max-width: 1024px) {
   .record-panel {
     left: 1rem;
     right: 1rem;
