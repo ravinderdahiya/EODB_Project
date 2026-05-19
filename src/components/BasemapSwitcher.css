@@ -10,11 +10,13 @@
   top: 1rem;
   left: calc(1rem + 48px + 0.6rem);
   right: auto;
-  z-index: 11;
+  z-index: 20;
   width: min(280px, calc(100% - 6rem));
+  max-height: calc(100% - 6rem);
   padding: 0.8rem;
   border-radius: 22px;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
   isolation: isolate;
   background: rgba(255, 255, 255, 0.9);
   box-shadow: var(--shadow-strong);
@@ -139,9 +141,11 @@
 
 @media (max-width: 1024px) {
   .basemap-switcher {
-    top: 4.8rem;
-    right: 5rem;
+    top: 1rem;
+    left: calc(1rem + 48px + 0.6rem);
+    right: auto;
     width: min(280px, calc(100% - 6rem));
+    max-height: calc(100% - 6rem);
   }
 }
 

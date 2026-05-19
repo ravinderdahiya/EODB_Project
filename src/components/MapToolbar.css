@@ -69,3 +69,42 @@
     border-radius: 16px;
   }
 }
+
+@media (min-width: 768px) and (max-width: 1024px) and (orientation: landscape) {
+  .map-toolbar--left {
+    top: 0.85rem;
+  }
+
+  .map-toolbar__button {
+    width: 44px;
+    height: 44px;
+    border-radius: 14px;
+  }
+}
+
+@media (max-height: 500px) and (orientation: landscape) {
+  .map-toolbar {
+    bottom: 0.9rem;
+    left: 0.75rem;
+    gap: 0.4rem;
+  }
+
+  /* Move zoom (+/-) toolbar to upper-right in landscape */
+  .map-toolbar:not(.map-toolbar--left) {
+    top: 0.75rem;
+    right: 0.75rem;
+    left: auto;
+    bottom: auto;
+  }
+
+  .map-toolbar--left {
+    top: 0.75rem;
+    left: 0.75rem;
+  }
+
+  .map-toolbar__button {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+  }
+}

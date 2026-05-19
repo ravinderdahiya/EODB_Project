@@ -15,8 +15,8 @@
 .voice-mic-btn {
   position: relative;
   flex-shrink: 0;
-  width: 42px;
-  height: 42px;
+  width: clamp(34px, 2.6vw, 42px);
+  height: clamp(34px, 2.6vw, 42px);
   padding: 0;
   border-radius: 50%;
   display: inline-flex;
@@ -24,6 +24,11 @@
   justify-content: center;
   overflow: visible;
   transition: background 200ms ease, color 200ms ease;
+}
+
+.voice-mic-btn svg {
+  width: clamp(14px, 1.2vw, 17px);
+  height: clamp(14px, 1.2vw, 17px);
 }
 
 /* Pulsing ring element inside the button */
@@ -427,6 +432,26 @@
     padding: 0.32rem 0.44rem 0.36rem;
   }
   .voice-chips__chip { font-size: 0.56rem; padding: 0.14rem 0.34rem; }
+}
+
+@media (orientation: landscape) and (max-height: 600px) {
+  .voice-mic-btn {
+    width: 34px;
+    height: 34px;
+  }
+
+  .voice-mic-btn svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  .voice-mic-btn__ring {
+    inset: -4px;
+  }
+
+  .voice-mic-btn--listening::before {
+    inset: -8px;
+  }
 }
 
 /* ══════════════════════════════════════════════════════════════════

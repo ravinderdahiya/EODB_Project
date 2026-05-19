@@ -285,6 +285,30 @@ select:focus-visible {
   }
 }
 
+/* Tablet landscape: restore compact single-row header height */
+@media (min-width: 768px) and (max-width: 1024px) and (orientation: landscape) {
+  :root {
+    --header-height: 82px;
+  }
+
+  .dashboard-shell {
+    gap: 0.55rem;
+    padding: 0.65rem;
+  }
+}
+
+/* Mobile landscape: keep controls visible and map using remaining height */
+@media (max-height: 500px) and (orientation: landscape) {
+  :root {
+    --header-height: 70px;
+  }
+
+  .dashboard-shell {
+    gap: 0.45rem;
+    padding: 0.55rem;
+  }
+}
+
 /* Small mobile: constrain floating panels to viewport */
 @media (max-width: 480px) {
   .record-panel {

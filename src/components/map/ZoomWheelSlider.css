@@ -318,6 +318,82 @@
   .zws__labels { bottom: 2px; }
 }
 
+@media (min-width: 641px) and (max-width: 1024px) {
+  .zws {
+    top: 14px;
+    width: min(620px, 90vw);
+    height: 46px;
+    padding: 0 7px;
+    border-radius: 24px;
+  }
+
+  .zws__tick-zone {
+    height: 18px;
+    margin-top: 11px;
+  }
+
+  .zws__tick.major::after { height: 11px; }
+  .zws__tick.mid::after   { height: 7px; }
+  .zws__tick.minor::after { height: 5px; }
+
+  .zws__label {
+    font-size: 7.8px;
+    letter-spacing: 0.06em;
+    padding: 1px 3px;
+  }
+
+  .zws__sep {
+    height: 8px;
+    margin: 0 3px;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 600px) {
+  .zws {
+    top: 10px;
+    width: min(560px, 86vw);
+    height: 40px;
+    padding: 0 5px;
+    border-radius: 20px;
+  }
+
+  .zws__pointer {
+    top: 3px;
+    border-left-width: 3px;
+    border-right-width: 3px;
+    border-top-width: 5px;
+  }
+
+  .zws__tick-zone {
+    height: 14px;
+    margin-top: 9px;
+  }
+
+  .zws__tick {
+    width: 8px;
+  }
+
+  .zws__tick.major::after { height: 9px; width: 1.7px; }
+  .zws__tick.mid::after   { height: 6px; }
+  .zws__tick.minor::after { height: 4px; }
+  .zws__tick.pad::after   { height: 3px; }
+
+  .zws__labels {
+    bottom: 1px;
+  }
+
+  .zws__label {
+    font-size: 6.5px;
+    letter-spacing: 0.04em;
+    padding: 1px 2px;
+  }
+
+  .zws__sep {
+    height: 6px;
+    margin: 0 2px;
+  }
+}
+
 @media (max-width: 400px) {
   .zws {
     top: 10px;
