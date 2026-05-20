@@ -52,6 +52,16 @@ export default function LayerPanel({
       </div>
 
       <div className="layer-panel__section">
+        <span className="layer-panel__section-label eyebrow">Murraba Grid</span>
+        <LayerToggleRow
+          title="Murraba Grid (Haryana)"
+          description="Group + child layer (id 29 + 30)"
+          checked={layerVisibility.murrabaGrid ?? false}
+          onChange={() => onToggleLayer("murrabaGrid")}
+        />
+      </div>
+
+      <div className="layer-panel__section">
         <span className="layer-panel__section-label eyebrow">{t("layerPanel.cadastral")}</span>
 
         <LayerToggleRow
@@ -60,10 +70,18 @@ export default function LayerPanel({
           checked={layerVisibility.cadastral}
           onChange={() => onToggleLayer("cadastral")}
         />
+
       </div>
 
       <div className="layer-panel__section">
         <span className="layer-panel__section-label eyebrow">{t("layerPanel.boundaries")}</span>
+
+        <LayerToggleRow
+          title="Haryana State Boundary"
+          description="State boundary layer (id 31)"
+          checked={layerVisibility.stateBoundary ?? false}
+          onChange={() => onToggleLayer("stateBoundary")}
+        />
 
         {arcgisPortalConfig.boundarySublayers.map((layer) => (
           <LayerToggleRow
@@ -74,6 +92,16 @@ export default function LayerPanel({
             onChange={() => onToggleLayer(layer.key)}
           />
         ))}
+      </div>
+
+      <div className="layer-panel__section">
+        <span className="layer-panel__section-label eyebrow">Nearby Places</span>
+        <LayerToggleRow
+          title="Nearby Places (POI)"
+          description="Group + child layer (id 23 + 24)"
+          checked={layerVisibility.nearbyPlaces ?? false}
+          onChange={() => onToggleLayer("nearbyPlaces")}
+        />
       </div>
 
       <div className="layer-panel__section">

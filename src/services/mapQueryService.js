@@ -55,6 +55,61 @@ function normalizeLookupName(value) {
     .replace(/\s+/g, " ");
 }
 
+export function normalizeAdminSearchTerm(value) {
+  return normalizeLookupName(value);
+}
+
+export function formatAdminSuggestionDescription(match) {
+  if (match.type === "district") {
+    return "District boundary";
+  }
+
+  if (match.type === "tehsil") {
+    return `Tehsil boundary | District ${match.dName || match.dCode}`;
+  }
+
+  return `Village boundary | District ${match.dName || match.dCode} | Tehsil ${match.tName || match.tCode}`;
+}
+
+export function toAdminSuggestionItem(match) {
+  return {
+    id: `admin-${match.id}`,
+    kind: "admin",
+    title: match.name,
+    description: formatAdminSuggestionDescription(match),
+    boundaryType: match.type,
+    codes: {
+      dCode: match.dCode,
+      ...(match.tCode ? { tCode: match.tCode } : {}),
+      ...(match.vCode ? { vCode: match.vCode } : {}),
+    },
+  };
+}
+
+export async function resolveAdminBoundarySearchTarget(rawQuery, options = {}) {
+  const matches = await searchAdministrativeAreas(rawQuery, { limit: options.limit ?? 10 });
+  if (!matches.length) return null;
+
+  const normalizedQuery = normalizeAdminSearchTerm(rawQuery);
+  const exact = matches.find(
+    (match) => normalizeAdminSearchTerm(match.name) === normalizedQuery,
+  );
+  const chosen = exact ?? matches[0];
+
+  return {
+    target: {
+      type: chosen.type,
+      label: chosen.name,
+      codes: {
+        dCode: chosen.dCode,
+        ...(chosen.tCode ? { tCode: chosen.tCode } : {}),
+        ...(chosen.vCode ? { vCode: chosen.vCode } : {}),
+      },
+    },
+    exactMatch: Boolean(exact),
+  };
+}
+
 function escapeSqlLikeTerm(value) {
   return cleanText(value)
     .replace(/'/g, "''")

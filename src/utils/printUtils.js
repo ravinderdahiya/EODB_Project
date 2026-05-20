@@ -32,3 +32,46 @@ export function triggerPrint() {
     document.title = prevTitle;
   }, { once: true });
 }
+
+export async function waitForMapToSettle(view, maxWaitMs = 3500) {
+  const start = Date.now();
+  while (view?.updating && Date.now() - start < maxWaitMs) {
+    await new Promise((resolve) => setTimeout(resolve, 120));
+  }
+}
+
+export async function takeMapScreenshotWithRetry(view) {
+  try {
+    const shot = await view.takeScreenshot({ format: "png" });
+    return shot?.dataUrl ?? null;
+  } catch (firstErr) {
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    try {
+      const retryShot = await view.takeScreenshot({ format: "png" });
+      return retryShot?.dataUrl ?? null;
+    } catch (retryErr) {
+      console.warn("Map screenshot retry failed:", retryErr.message);
+      console.warn("Map screenshot initial failure:", firstErr.message);
+      return null;
+    }
+  }
+}
+
+export async function runPrintViewLifecycle({
+  zoomForPrint,
+  restoreExtentAfterPrint,
+  beforePrintDelayMs = 1400,
+}) {
+  document.body.classList.add("print-parcel-view");
+  const savedExtent = await zoomForPrint();
+  await new Promise((resolve) => setTimeout(resolve, beforePrintDelayMs));
+  triggerPrint();
+  window.addEventListener(
+    "afterprint",
+    async () => {
+      document.body.classList.remove("print-parcel-view");
+      await restoreExtentAfterPrint(savedExtent);
+    },
+    { once: true },
+  );
+}
