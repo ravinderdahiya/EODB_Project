@@ -116,7 +116,6 @@ const CADASTRAL_LAYER_ANSWER = {
   en: "Cadastral layer is shown after map zoom reaches 1:4000.",
   hi: "मैप ज़ूम 1:4000 तक पहुँचने पर कैडस्ट्रल लेयर दिखाई देती है।",
 };
-const OWNER_API_ENDPOINT = "https://hsac.org.in/emissions/extract_land_record";
 const OWNER_SEARCH_HELP_TEXT = {
   en: `Live Owner Search enabled.
 Currently supported input: Hindi only.
