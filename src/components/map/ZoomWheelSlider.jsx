@@ -18,7 +18,7 @@ const LAYERS = [
   { key: 'district',  label: 'District',  min: 9,  max: 10.9  },
   { key: 'tehsil',    label: 'Tehsil',    min: 11, max: 12.9 },
   { key: 'village',   label: 'Village',   min: 13, max: 16.9 },
-  { key: 'cadastral', label: 'Murraba Grid', min: 17, max: 19 },
+  { key: 'cadastral', label: 'Murraba', min: 17, max: 19 },
 ];
 
 function getActiveKey(zoom) {
@@ -140,7 +140,6 @@ export default function ZoomWheelSlider({ viewRef, layerVisibility, mapScale }) 
       // Apply final fractional zoom with smooth finish animation
       const finalZoom = zoomRef.current;
       await goToZoom(finalZoom);
-      syncLayers(finalZoom);
     };
 
     window.addEventListener('mousemove', onMove);
@@ -165,6 +164,10 @@ export default function ZoomWheelSlider({ viewRef, layerVisibility, mapScale }) 
     cadastral: Boolean(layerVisibility?.cadastral),
   };
   const isStateScaleEligible = Number.isFinite(mapScale) && mapScale > 5000000;
+  const isMurrabaZoomLabelEligible =
+    Boolean(layerVisibility?.murrabaGrid) &&
+    Boolean(layerVisibility?.murabba) &&
+    Boolean(layerVisibility?.cadastral);
 
   return (
     <div className="zws" role="region" aria-label="Map zoom level">
@@ -216,11 +219,15 @@ export default function ZoomWheelSlider({ viewRef, layerVisibility, mapScale }) 
                 className={`zws__label${
                   layer.key === 'state'
                     ? (layerEnabled.state && isStateScaleEligible ? ' is-active' : '')
+                    : layer.key === 'cadastral'
+                      ? (zoomActiveKey === layer.key && isMurrabaZoomLabelEligible ? ' is-active' : '')
                     : (zoomActiveKey === layer.key && layerEnabled[layer.key] ? ' is-active' : '')
                 }`}
                 aria-pressed={
                   layer.key === 'state'
                     ? (layerEnabled.state && isStateScaleEligible)
+                    : layer.key === 'cadastral'
+                      ? (zoomActiveKey === layer.key && isMurrabaZoomLabelEligible)
                     : (zoomActiveKey === layer.key && layerEnabled[layer.key])
                 }
                 onClick={() => {
