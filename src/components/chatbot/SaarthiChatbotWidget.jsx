@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+﻿import { useEffect, useRef, useState } from "react";
 import "./SaarthiChatbotWidget.css";
 
 const CHATBOT_LOCALE = {
@@ -41,10 +41,10 @@ const CHATBOT_LOCALE = {
     ],
   },
   hi: {
-    subtitle: "सहायक + FAQ",
-    welcomeMessage: "स्वागत है! मैं EODB Saarthi हूँ।\nअपना सवाल English या Hinglish में पूछें।",
-    faqTitle: "FAQ सवाल (पूछने के लिए क्लिक करें)",
-    inputPlaceholder: "English या Hinglish में पूछें...",
+    subtitle: "सहायक + सामान्य प्रश्न",
+    welcomeMessage: "स्वागत है! मैं EODB सारथी हूँ।\nअपना सवाल हिंदी में पूछें।",
+    faqTitle: "सामान्य प्रश्न (पूछने के लिए क्लिक करें)",
+    inputPlaceholder: "यहाँ हिंदी में लिखें...",
     questions: [
       "भूमि रिकॉर्ड कैसे खोजें?",
       "खोज के लिए कौन-कौन से फ़ील्ड जरूरी हैं?",
@@ -80,21 +80,53 @@ const CHATBOT_LOCALE = {
   },
 };
 
-const LANGUAGE_SUPPORT_QUESTION = "Which language types are supported for search?";
-const LANGUAGE_SUPPORT_TEXT = "I support English, Hinglish, Hindi.";
-const VOICE_SEARCH_HELP_QUESTION = "How to use voice search?";
-const VOICE_SEARCH_HELP_TEXT = `Voice search steps:
+const LANGUAGE_SUPPORT_QUESTION = {
+  en: "Which language types are supported for search?",
+  hi: "खोज के लिए कौन-कौन सी भाषाएँ समर्थित हैं?",
+};
+const LANGUAGE_SUPPORT_TEXT = {
+  en: "I support English, Hinglish, Hindi.",
+  hi: "मैं अंग्रेज़ी, हिंग्लिश और हिंदी को सपोर्ट करता हूँ।",
+};
+const VOICE_SEARCH_HELP_QUESTION = {
+  en: "How to use voice search?",
+  hi: "वॉइस सर्च कैसे उपयोग करें?",
+};
+const VOICE_SEARCH_HELP_TEXT = {
+  en: `Voice search steps (Top Header Search Bar):
 1. Click the voice icon.
-2. Speak your full query in one line.
-3. Your spoken query appears in chatbot and search runs.`;
-const CADASTRAL_LAYER_QUESTION = "When does cadastral layer appear?";
-const CADASTRAL_LAYER_ANSWER = "Cadastral layer is shown after map zoom reaches 1:5000.";
+2. Speak search terms like District, Tehsil, Village.
+3. Your spoken query is filled and search runs.`,
+  hi: `वॉइस सर्च के चरण:
+1. टॉप हेडर सर्च बार में माइक आइकन पर क्लिक करें।
+2. जिला, तहसील, गांव जैसे सर्च शब्द बोलें।
+3. बोला गया सर्च टेक्स्ट भर जाएगा और खोज चल जाएगी।`,
+};
+const PARCEL_NOT_HIGHLIGHTED_QUESTION = {
+  en: "Why parcel not highlighted?",
+  hi: "पार्सल हाइलाइट क्यों नहीं हो रहा?",
+};
+const CADASTRAL_LAYER_QUESTION = {
+  en: "When does cadastral layer appear?",
+  hi: "कैडस्ट्रल लेयर कब दिखाई देती है?",
+};
+const CADASTRAL_LAYER_ANSWER = {
+  en: "Cadastral layer is shown after map zoom reaches 1:4000.",
+  hi: "मैप ज़ूम 1:4000 तक पहुँचने पर कैडस्ट्रल लेयर दिखाई देती है।",
+};
 const OWNER_API_ENDPOINT = "https://hsac.org.in/emissions/extract_land_record";
-const OWNER_SEARCH_HELP_TEXT = `Live Owner Search enabled.
+const OWNER_SEARCH_HELP_TEXT = {
+  en: `Live Owner Search enabled.
 Currently supported input: Hindi only.
 English/Hinglish support will be added in a future update.
 Example (Hindi placeholder):
-नाम राम जिला रोहतक तहसील रोहतक गांव बोहर मुरबा 00 खसरा 00`;
+नाम राम जिला रोहतक तहसील रोहतक गांव बोहर मुरबा 00 खसरा 00`,
+  hi: `लाइव ओनर सर्च सक्रिय है।
+फिलहाल समर्थित इनपुट: केवल हिंदी।
+English/Hinglish सपोर्ट भविष्य के अपडेट में जोड़ा जाएगा।
+उदाहरण:
+नाम राम जिला रोहतक तहसील रोहतक गांव बोहर मुरबा 00 खसरा 00`,
+};
 
 function getCurrentTimeLabel() {
   return new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
@@ -180,12 +212,17 @@ function toCount(value) {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
-function formatOwnerApiResult(rawPayload, queryHints = null) {
+function isHindiLocale(localeLang) {
+  return String(localeLang || "").toLowerCase() === "hi";
+}
+
+function formatOwnerApiResult(rawPayload, queryHints = null, localeLang = "en") {
+  const useHindi = isHindiLocale(localeLang);
   if (typeof rawPayload === "string") {
     const directText = rawPayload.trim();
-    if (!directText) return "Owner details request returned empty response.";
+    if (!directText) return useHindi ? "ओनर विवरण के लिए खाली प्रतिक्रिया मिली।" : "Owner details request returned empty response.";
     try {
-      return formatOwnerApiResult(JSON.parse(directText), queryHints);
+      return formatOwnerApiResult(JSON.parse(directText), queryHints, localeLang);
     } catch {
       return directText;
     }
@@ -193,12 +230,12 @@ function formatOwnerApiResult(rawPayload, queryHints = null) {
 
   const payload = unwrapOwnerPayload(rawPayload);
   if (!payload || typeof payload !== "object") {
-    return safeText(payload, "Owner details request returned empty response.");
+    return safeText(payload, useHindi ? "ओनर विवरण के लिए खाली प्रतिक्रिया मिली।" : "Owner details request returned empty response.");
   }
 
   const payloadKeys = Object.keys(payload);
   if (!payloadKeys.length) {
-    return "Owner details request returned empty response.";
+    return useHindi ? "ओनर विवरण के लिए खाली प्रतिक्रिया मिली।" : "Owner details request returned empty response.";
   }
 
   const landRecords = payload?.land_records && typeof payload.land_records === "object"
@@ -274,20 +311,32 @@ function formatOwnerApiResult(rawPayload, queryHints = null) {
     availableFarmers.length > 1 ? availableFarmers.length - 1 : (owners.length > 1 ? owners.length - 1 : 0),
   );
 
-  const lines = [
-    "Owner Details (Instant Search)",
-    `District: ${safeText(pickFirstValue(formattedPayload, ["district", "districtName", "district_name"]) || spokenText?.district || queryHints?.district)}`,
-    `Tehsil: ${safeText(pickFirstValue(formattedPayload, ["tehsil", "tehsilName", "tehsil_name"]) || spokenText?.tehsil || queryHints?.tehsil)}`,
-    `Village: ${safeText(pickFirstValue(formattedPayload, ["village", "villageName", "village_name"]) || spokenText?.village || queryHints?.village)}`,
-    `Murabba: ${safeText(pickFirstValue(formattedPayload, ["murabba", "murabbaNo", "murabba_no", "muraba", "murabaNo", "murraba_no"]) || spokenText?.muraba_no || spokenText?.murabba_no || queryHints?.murabba)}`,
-    `Khasra: ${safeText(pickFirstValue(formattedPayload, ["khasra", "khasraNo", "khasra_no", "khasra_no"]) || spokenText?.khasra_no || queryHints?.khasra)}`,
-    `Owner: ${safeText(ownerName)}`,
-    `Land Match: ${toMatchLabel(pickFirstValue(formattedPayload, ["landMatch", "land_match", "land_match_status"]))}`,
-    `Owner Match: ${toMatchLabel(pickFirstValue(formattedPayload, ["farmerMatch", "farmer_match", "farmer_match_status"]))}`,
-  ];
+  const lines = useHindi
+    ? [
+      "ओनर विवरण (तुरंत खोज)",
+      `जिला: ${safeText(pickFirstValue(formattedPayload, ["district", "districtName", "district_name"]) || spokenText?.district || queryHints?.district)}`,
+      `तहसील: ${safeText(pickFirstValue(formattedPayload, ["tehsil", "tehsilName", "tehsil_name"]) || spokenText?.tehsil || queryHints?.tehsil)}`,
+      `गांव: ${safeText(pickFirstValue(formattedPayload, ["village", "villageName", "village_name"]) || spokenText?.village || queryHints?.village)}`,
+      `मुरबा: ${safeText(pickFirstValue(formattedPayload, ["murabba", "murabbaNo", "murabba_no", "muraba", "murabaNo", "murraba_no"]) || spokenText?.muraba_no || spokenText?.murabba_no || queryHints?.murabba)}`,
+      `खसरा: ${safeText(pickFirstValue(formattedPayload, ["khasra", "khasraNo", "khasra_no", "khasra_no"]) || spokenText?.khasra_no || queryHints?.khasra)}`,
+      `मालिक: ${safeText(ownerName)}`,
+      `भूमि मिलान: ${toMatchLabel(pickFirstValue(formattedPayload, ["landMatch", "land_match", "land_match_status"]))}`,
+      `ओनर मिलान: ${toMatchLabel(pickFirstValue(formattedPayload, ["farmerMatch", "farmer_match", "farmer_match_status"]))}`,
+    ]
+    : [
+      "Owner Details (Instant Search)",
+      `District: ${safeText(pickFirstValue(formattedPayload, ["district", "districtName", "district_name"]) || spokenText?.district || queryHints?.district)}`,
+      `Tehsil: ${safeText(pickFirstValue(formattedPayload, ["tehsil", "tehsilName", "tehsil_name"]) || spokenText?.tehsil || queryHints?.tehsil)}`,
+      `Village: ${safeText(pickFirstValue(formattedPayload, ["village", "villageName", "village_name"]) || spokenText?.village || queryHints?.village)}`,
+      `Murabba: ${safeText(pickFirstValue(formattedPayload, ["murabba", "murabbaNo", "murabba_no", "muraba", "murabaNo", "murraba_no"]) || spokenText?.muraba_no || spokenText?.murabba_no || queryHints?.murabba)}`,
+      `Khasra: ${safeText(pickFirstValue(formattedPayload, ["khasra", "khasraNo", "khasra_no", "khasra_no"]) || spokenText?.khasra_no || queryHints?.khasra)}`,
+      `Owner: ${safeText(ownerName)}`,
+      `Land Match: ${toMatchLabel(pickFirstValue(formattedPayload, ["landMatch", "land_match", "land_match_status"]))}`,
+      `Owner Match: ${toMatchLabel(pickFirstValue(formattedPayload, ["farmerMatch", "farmer_match", "farmer_match_status"]))}`,
+    ];
 
   if (moreCoOwners > 0) {
-    lines.push(`More co-owners: ${moreCoOwners}`);
+    lines.push(useHindi ? `अतिरिक्त सह-मालिक: ${moreCoOwners}` : `More co-owners: ${moreCoOwners}`);
   }
 
   return lines.join("\n");
@@ -435,12 +484,12 @@ function buildOwnerApiQueryVariants(inputQuery) {
   if (!baseQuery) return [];
 
   const fields = {
-    name: ["name", "owner", "नाम"],
-    district: ["district", "जिला"],
-    tehsil: ["tehsil", "तहसील"],
-    village: ["village", "gaon", "गांव", "गाँव"],
-    murabba: ["murabba", "muraba", "murraba", "मुरबा", "मुरब्बा"],
-    khasra: ["khasra", "खसरा"],
+    name: ["name", "owner", "à¤¨à¤¾à¤®"],
+    district: ["district", "à¤œà¤¿à¤²à¤¾"],
+    tehsil: ["tehsil", "à¤¤à¤¹à¤¸à¥€à¤²"],
+    village: ["village", "gaon", "à¤—à¤¾à¤‚à¤µ", "à¤—à¤¾à¤à¤µ"],
+    murabba: ["murabba", "muraba", "murraba", "à¤®à¥à¤°à¤¬à¤¾", "à¤®à¥à¤°à¤¬à¥à¤¬à¤¾"],
+    khasra: ["khasra", "à¤–à¤¸à¤°à¤¾"],
   };
   const allLabels = Object.values(fields).flat();
 
@@ -456,12 +505,12 @@ function buildOwnerApiQueryVariants(inputQuery) {
   const variants = [baseQuery];
   if (extracted.district && extracted.tehsil && extracted.village && extracted.murabba && extracted.khasra) {
     const englishCore = `district ${extracted.district} tehsil ${extracted.tehsil} village ${extracted.village} murabba ${extracted.murabba} khasra ${extracted.khasra}`;
-    const hindiCore = `जिला ${extracted.district} तहसील ${extracted.tehsil} गांव ${extracted.village} मुरबा ${extracted.murabba} खसरा ${extracted.khasra}`;
+    const hindiCore = `à¤œà¤¿à¤²à¤¾ ${extracted.district} à¤¤à¤¹à¤¸à¥€à¤² ${extracted.tehsil} à¤—à¤¾à¤‚à¤µ ${extracted.village} à¤®à¥à¤°à¤¬à¤¾ ${extracted.murabba} à¤–à¤¸à¤°à¤¾ ${extracted.khasra}`;
     variants.push(englishCore);
     variants.push(hindiCore);
     if (extracted.name) {
       variants.push(`name ${extracted.name} ${englishCore}`);
-      variants.push(`नाम ${extracted.name} ${hindiCore}`);
+      variants.push(`à¤¨à¤¾à¤® ${extracted.name} ${hindiCore}`);
     }
   }
 
@@ -620,7 +669,142 @@ function resolveWebsiteFaqQuery(localeQuestions, fallbackQueries, containsTokens
   return fallbackQueries[0] || "";
 }
 
-function makeMenuConfig(localeQuestions) {
+function resolveInlineLocalAnswer(query, localeLang = "en") {
+  const useHindi = isHindiLocale(localeLang);
+  const q = normalizeText(query);
+  if (!q) return "";
+
+  const has = (...tokens) => tokens.every((token) => q.includes(normalizeText(token)));
+
+  const hasKhasraToken = has("khasra") || has("खसरा");
+  const hasMurabbaToken = has("murabba") || has("muraba") || has("मुरब्बा") || has("मुरबा");
+  const asksDifference = has("difference") || has("difference", "khasra") || has("difference", "murabba")
+    || has("फर्क") || has("अंतर");
+  const asksPrint = has("print") || has("प्रिंट");
+  const asksDownload = has("download") || has("save") || has("डाउनलोड");
+  const asksOwnerName = has("owner", "name") || has("मालिक", "नाम");
+  const asksParcelHighlight = has("parcel", "highlight")
+    || has("parcel", "highting")
+    || has("पार्सल", "हाइलाइट");
+
+  if (has("खोज", "फील्ड") || has("required", "field")) {
+    return useHindi
+      ? "खोज के लिए अनुशंसित फ़ील्ड: जिला + तहसील + गांव + (खसरा या मुरबा) + मालिक नाम।"
+      : "Recommended fields: District + Tehsil + Village + (Khasra or Murabba) + Owner name.";
+  }
+  if (asksOwnerName) {
+    return useHindi
+      ? "हाँ, मालिक के नाम से खोज संभव है। बेहतर सटीकता के लिए जिला, तहसील और गांव साथ में दें।"
+      : "Yes, owner-name search is supported. For better accuracy, include District, Tehsil, and Village.";
+  }
+  if (has("भूमि रिकॉर्ड", "कैसे") || has("search", "land", "record")) {
+    return useHindi
+      ? "भूमि रिकॉर्ड खोजने के लिए जिला, तहसील, गांव चुनें और खसरा/मुरबा जैसी जानकारी दर्ज करके खोज करें।"
+      : "To search land records, select District, Tehsil, Village and enter details like Khasra/Murabba.";
+  }
+  if (asksParcelHighlight) {
+    return useHindi
+      ? "पार्सल हाइलाइट न होने पर दर्ज किए गए फ़ील्ड गलत हो सकते हैं। विवरण दोबारा जांचें, पेज रीफ्रेश करें या कुछ समय बाद फिर कोशिश करें।"
+      : "Parcel may not highlight if entered fields are wrong. Recheck details, refresh the page, or wait for some time and try again.";
+  }
+  if (has("रिकॉर्ड", "नहीं", "मिल") || has("no", "record")) {
+    return useHindi
+      ? "रिकॉर्ड न मिलने के सामान्य कारण: गलत वर्तनी, गलत गांव/तहसील, या अधूरी जानकारी। कृपया विवरण दोबारा जाँचें।"
+      : "Common reasons for no records: spelling mismatch, wrong village/tehsil, or incomplete details. Please recheck inputs.";
+  }
+  if (has("map", "load") || has("मैप", "नहीं", "हो")) {
+    return useHindi
+      ? "मैप लोड न होने पर इंटरनेट, ब्राउज़र रीफ्रेश, और ज़ूम स्तर जाँचें। समस्या रहे तो पेज दोबारा खोलें।"
+      : "If map is not loading, check internet, refresh browser, and verify zoom level. Reopen page if needed.";
+  }
+  if (has("results", "refine") || has("ज़्यादा", "results")) {
+    return useHindi
+      ? "बहुत ज़्यादा परिणाम आने पर अधिक सटीक फ़ील्ड भरें: मुरबा, खसरा, मालिक नाम और सही गांव/तहसील।"
+      : "If too many results appear, add more precise fields: Murabba, Khasra, owner name, and correct village/tehsil.";
+  }
+  if (asksPrint && asksDownload) {
+    return useHindi
+      ? "रिकॉर्ड प्रिंट/डाउनलोड के लिए पहले रिकॉर्ड खोलें, फिर प्रिंट या डाउनलोड/एक्सपोर्ट विकल्प का उपयोग करें।"
+      : "For print/download, open the record first, then use the Print or Download/Export option.";
+  }
+  if (asksPrint) {
+    return useHindi
+      ? "रिकॉर्ड प्रिंट करने के लिए रिकॉर्ड खुला रखें और प्रिंट बटन का उपयोग करें।"
+      : "To print, keep the record open and use the Print button.";
+  }
+  if (asksDownload) {
+    return useHindi
+      ? "विवरण डाउनलोड के लिए उपलब्ध डाउनलोड/एक्सपोर्ट विकल्प का उपयोग करें।"
+      : "To download details, use the available Download/Export option.";
+  }
+  if (has("login") || has("लॉगिन")) {
+    return useHindi
+      ? "लॉगिन समस्या में यूज़र आईडी/पासवर्ड जाँचें, OTP सत्यापित करें और आवश्यकता हो तो पासवर्ड रीसेट करें।"
+      : "For login issues, verify user ID/password, check OTP, and reset password if required.";
+  }
+  if (has("otp") || has("ओटीपी")) {
+    return useHindi
+      ? "OTP न मिलने पर नेटवर्क, मोबाइल सिग्नल और DND सेटिंग जाँचें। कुछ समय बाद फिर प्रयास करें।"
+      : "If OTP is not received, check network, mobile signal, and DND settings, then retry after some time.";
+  }
+  if (has("password", "reset") || has("पासवर्ड")) {
+    return useHindi
+      ? "पासवर्ड रीसेट के लिए 'Forgot Password' विकल्प चुनें और OTP सत्यापन पूरा करें।"
+      : "For password reset, use the 'Forgot Password' option and complete OTP verification.";
+  }
+  if (has("session", "expire") || has("सेशन")) {
+    return useHindi
+      ? "सेशन समाप्त होने पर दोबारा लॉगिन करें और फिर से प्रयास करें।"
+      : "If session expires, log in again and retry.";
+  }
+  if (hasKhasraToken && hasMurabbaToken && asksDifference) {
+    return useHindi
+      ? "मुरब्बा बड़े क्षेत्रीय ग्रिड/खंड को दर्शाता है, जबकि खसरा उस ग्रिड के भीतर भूमि के विशिष्ट प्लॉट को दर्शाता है।"
+      : "Murabba is a larger land grid/block, while Khasra is a specific plot within that grid.";
+  }
+  if (hasKhasraToken) {
+    return useHindi
+      ? "खसरा नंबर भूमि के एक विशिष्ट टुकड़े की पहचान संख्या होती है।"
+      : "Khasra number is the identification number of a specific land parcel.";
+  }
+  if (hasMurabbaToken) {
+    return useHindi
+      ? "मुरब्बा बड़े क्षेत्रीय ग्रिड/खंड को दर्शाता है, जबकि खसरा उस ग्रिड के भीतर भूमि के प्लॉट को।"
+      : "Murabba represents a larger land grid/block, while Khasra refers to plots inside that grid.";
+  }
+  if ((has("district") && has("tehsil") && has("village")) || (has("जिला") && has("तहसील") && has("गांव"))) {
+    return useHindi
+      ? "जिला सबसे बड़ा प्रशासनिक स्तर है, उसके अंदर तहसील होती है, और तहसील के अंदर गांव आते हैं।"
+      : "District is the largest administrative level, Tehsil is within district, and Village is within tehsil.";
+  }
+  if (has("legal", "valid") || has("कानूनी", "वैधता")) {
+    return useHindi
+      ? "पोर्टल जानकारी संदर्भ के लिए है। कानूनी/लेन-देन के लिए संबंधित विभाग के प्रमाणित रिकॉर्ड को प्राथमिकता दें।"
+      : "Portal data is for reference. For legal/transactional use, prefer certified department records.";
+  }
+  if (has("language") || has("भाषा")) {
+    return useHindi
+      ? "यह सहायक हिंदी, अंग्रेज़ी और हिंग्लिश समझ सकता है।"
+      : "This assistant supports Hindi, English, and Hinglish.";
+  }
+  if (has("voice") || has("वॉइस")) {
+    return useHindi
+      ? "टॉप हेडर सर्च बार में माइक पर क्लिक करें और जिला, तहसील, गांव जैसे शब्द बोलकर खोज चलाएँ।"
+      : "Use the top header search voice icon, then speak terms like District, Tehsil, Village to run search.";
+  }
+  if (has("cadastral") || has("कैडस्ट्रल")) {
+    return useHindi
+      ? "कैडस्ट्रल लेयर आमतौर पर 1:4000 ज़ूम स्तर के आसपास दिखाई देती है।"
+      : "Cadastral layer usually appears around 1:4000 zoom level.";
+  }
+
+  return useHindi
+    ? "मैं आपकी मदद भूमि खोज, खसरा/मुरबा जानकारी, मैप सहायता, और लॉगिन/OTP से जुड़े सवालों में कर सकता हूँ।"
+    : "I can help with land search, Khasra/Murabba info, map help, and login/OTP-related questions.";
+}
+
+function makeMenuConfig(localeQuestions, localeLang = "en") {
+  const useHindi = isHindiLocale(localeLang);
   const faqQuestions = Array.isArray(localeQuestions) ? localeQuestions.slice(0, 6) : [];
   const faqOptions = faqQuestions.map((question, index) => ({
     label: `${index + 1} ${question}`,
@@ -628,156 +812,100 @@ function makeMenuConfig(localeQuestions) {
     query: question,
   }));
 
+  const pickLocalizedQuery = (hindiFallback, englishFallback, containsTokens = []) => (
+    resolveWebsiteFaqQuery(
+      localeQuestions,
+      useHindi ? [hindiFallback, englishFallback] : [englishFallback, hindiFallback],
+      containsTokens,
+    )
+  );
+
   const mappedQueries = {
-    requiredFields: resolveWebsiteFaqQuery(
-      localeQuestions,
-      ["What fields are required to search?"],
-      ["required", "search"],
-    ),
-    ownerName: resolveWebsiteFaqQuery(
-      localeQuestions,
-      ["Can I search by owner name?"],
-      ["owner", "search"],
-    ),
-    searchLandRecords: resolveWebsiteFaqQuery(
-      localeQuestions,
-      ["How to search land records?"],
-      ["search", "land", "record"],
-    ),
-    noRecords: resolveWebsiteFaqQuery(
-      localeQuestions,
-      ["Why am I getting no records?"],
-      ["no", "record"],
-    ),
-    mapNotLoading: resolveWebsiteFaqQuery(
-      localeQuestions,
-      ["The map is not loading. What should I do?"],
-      ["map", "loading"],
-    ),
-    refineResults: resolveWebsiteFaqQuery(
-      localeQuestions,
-      ["Too many results aa rahe hain, refine kaise kare?"],
-      ["too", "many", "result"],
-    ),
-    printRecord: resolveWebsiteFaqQuery(
-      localeQuestions,
-      ["Record details download ya print kaise kare?"],
-      ["print", "record"],
-    ),
-    downloadDetails: resolveWebsiteFaqQuery(
-      localeQuestions,
-      ["Can I download or save Khasra details?"],
-      ["download", "khasra"],
-    ),
-    loginIssue: resolveWebsiteFaqQuery(
-      localeQuestions,
-      ["Login nahi ho raha, kya kare?"],
-      ["login"],
-    ),
-    otpIssue: resolveWebsiteFaqQuery(
-      localeQuestions,
-      ["I am not receiving OTP. What should I do?"],
-      ["otp"],
-    ),
-    passwordReset: resolveWebsiteFaqQuery(
-      localeQuestions,
-      ["Password bhool gaya, reset kaise kare?"],
-      ["password", "reset"],
-    ),
-    sessionExpired: resolveWebsiteFaqQuery(
-      localeQuestions,
-      ["Session expire ho gaya, ab kya kare?"],
-      ["session", "expire"],
-    ),
-    khasraMeaning: resolveWebsiteFaqQuery(
-      localeQuestions,
-      ["What is Khasra number?"],
-      ["khasra"],
-    ),
-    murabbaMeaning: resolveWebsiteFaqQuery(
-      localeQuestions,
-      ["What is Muraba/Murabba?"],
-      ["murabba"],
-    ),
-    districtTehsilVillage: resolveWebsiteFaqQuery(
-      localeQuestions,
-      ["District, Tehsil, Village me kya difference hai?"],
-      ["district", "tehsil", "village"],
-    ),
-    legalValidity: resolveWebsiteFaqQuery(
-      localeQuestions,
-      ["Is portal data legally valid for transactions?"],
-      ["legal", "valid"],
-    ),
+    requiredFields: pickLocalizedQuery("खोज के लिए कौन-कौन से फ़ील्ड जरूरी हैं?", "What fields are required to search?", ["required", "search", "फील्ड", "खोज"]),
+    ownerName: pickLocalizedQuery("क्या मैं owner name से search कर सकता/सकती हूँ?", "Can I search by owner name?", ["owner", "search", "मालिक", "नाम"]),
+    searchLandRecords: pickLocalizedQuery("भूमि रिकॉर्ड कैसे खोजें?", "How to search land records?", ["search", "land", "record", "भूमि", "रिकॉर्ड"]),
+    noRecords: pickLocalizedQuery("रिकॉर्ड नहीं मिल रहे, क्यों?", "Why am I getting no records?", ["no", "record", "रिकॉर्ड"]),
+    mapNotLoading: pickLocalizedQuery("Map load नहीं हो रहा, क्या करें?", "The map is not loading. What should I do?", ["map", "loading", "मैप"]),
+    refineResults: pickLocalizedQuery("बहुत ज़्यादा results आ रहे हैं, refine कैसे करें?", "Too many results aa rahe hain, refine kaise kare?", ["too", "many", "result", "results", "refine"]),
+    printRecord: pickLocalizedQuery("रिकॉर्ड details download या print कैसे करें?", "Record details download ya print kaise kare?", ["print", "record", "डाउनलोड"]),
+    downloadDetails: pickLocalizedQuery("क्या मैं Khasra details download या save कर सकता/सकती हूँ?", "Can I download or save Khasra details?", ["download", "khasra", "save", "डाउनलोड"]),
+    loginIssue: pickLocalizedQuery("लॉगिन नहीं हो रहा, क्या करें?", "Login nahi ho raha, kya kare?", ["login", "लॉगिन"]),
+    otpIssue: pickLocalizedQuery("OTP नहीं मिल रहा, क्या करें?", "I am not receiving OTP. What should I do?", ["otp", "ओटीपी"]),
+    passwordReset: pickLocalizedQuery("पासवर्ड भूल गया/गई, reset कैसे करें?", "Password bhool gaya, reset kaise kare?", ["password", "reset", "पासवर्ड"]),
+    sessionExpired: pickLocalizedQuery("Session expire हो गया, अब क्या करें?", "Session expire ho gaya, ab kya kare?", ["session", "expire", "सेशन"]),
+    khasraMeaning: pickLocalizedQuery("खसरा नंबर क्या होता है?", "What is Khasra number?", ["khasra", "खसरा"]),
+    murabbaMeaning: pickLocalizedQuery("मुरब्बा क्या होता है?", "What is Muraba/Murabba?", ["murabba", "muraba", "मुरब्बा", "मुरबा"]),
+    districtTehsilVillage: pickLocalizedQuery("District, Tehsil, Village में क्या अंतर है?", "District, Tehsil, Village me kya difference hai?", ["district", "tehsil", "village", "जिला", "तहसील", "गांव"]),
+    legalValidity: pickLocalizedQuery("क्या portal data transactions के लिए legally valid है?", "Is portal data legally valid for transactions?", ["legal", "valid", "कानूनी"]),
   };
 
   return {
     main: {
-      title: "Main Menu",
+      title: useHindi ? "मुख्य मेनू" : "Main Menu",
       options: [
-        { label: "1 Search Land Record", action: "menu", target: "search-land-record" },
-        { label: "2 Map & Parcel Help", action: "menu", target: "map-parcel-help" },
-        { label: "3 Print / Download Help", action: "menu", target: "print-download-help" },
-        { label: "4 Login / OTP / Password Help", action: "menu", target: "login-otp-password-help" },
-        { label: "5 Portal Terms", action: "menu", target: "portal-terms" },
-        { label: "6 FAQ", action: "menu", target: "faq" },
+        { label: useHindi ? "1 भूमि रिकॉर्ड खोज" : "1 Search Land Record", action: "menu", target: "search-land-record" },
+        { label: useHindi ? "2 मैप और पार्सल सहायता" : "2 Map & Parcel Help", action: "menu", target: "map-parcel-help" },
+        { label: useHindi ? "3 प्रिंट / डाउनलोड सहायता" : "3 Print / Download Help", action: "menu", target: "print-download-help" },
+        { label: useHindi ? "4 लॉगिन / OTP / पासवर्ड सहायता" : "4 Login / OTP / Password Help", action: "menu", target: "login-otp-password-help" },
+        { label: useHindi ? "5 पोर्टल शब्दावली" : "5 Portal Terms", action: "menu", target: "portal-terms" },
+        { label: useHindi ? "6 सामान्य प्रश्न" : "6 FAQ", action: "menu", target: "faq" },
       ],
     },
     "search-land-record": {
-      title: "Search Land Record",
+      title: useHindi ? "भूमि रिकॉर्ड खोज" : "Search Land Record",
       options: [
-        { label: "1 Owner details (Instant Search)", action: "owner-api", query: mappedQueries.ownerName },
-        { label: "2 Search by District/Tehsil/Village/Khasra", action: "ask", query: mappedQueries.requiredFields },
-        { label: "3 Search by Owner Name", action: "ask", query: mappedQueries.ownerName },
-        { label: "4 Voice Search Help", action: "voice-help", query: VOICE_SEARCH_HELP_QUESTION },
-        { label: "5 What languages are supported?", action: "language-help", query: LANGUAGE_SUPPORT_QUESTION },
-        { label: "9 Back to Main Menu", action: "menu", target: "main" },
+        { label: useHindi ? "1 ओनर विवरण (तुरंत खोज)" : "1 Owner details (Instant Search)", action: "owner-api", query: mappedQueries.ownerName },
+        { label: useHindi ? "2 जिला/तहसील/गांव/खसरा से खोज" : "2 Search by District/Tehsil/Village/Khasra", action: "ask", query: mappedQueries.requiredFields },
+        { label: useHindi ? "3 मालिक के नाम से खोज" : "3 Search by Owner Name", action: "ask", query: mappedQueries.ownerName },
+        { label: useHindi ? "4 वॉइस सर्च सहायता" : "4 Voice Search Help", action: "voice-help", query: VOICE_SEARCH_HELP_QUESTION[localeLang] || VOICE_SEARCH_HELP_QUESTION.en },
+        { label: useHindi ? "5 कौन-कौन सी भाषाएँ समर्थित हैं?" : "5 What languages are supported?", action: "language-help", query: LANGUAGE_SUPPORT_QUESTION[localeLang] || LANGUAGE_SUPPORT_QUESTION.en },
+        { label: useHindi ? "9 मुख्य मेनू पर वापस जाएँ" : "9 Back to Main Menu", action: "menu", target: "main" },
       ],
     },
     "map-parcel-help": {
-      title: "Map & Parcel Help",
+      title: useHindi ? "मैप और पार्सल सहायता" : "Map & Parcel Help",
       options: [
-        { label: "1 How to select parcel on map", action: "ask", query: mappedQueries.searchLandRecords },
-        { label: "2 Why parcel not highlighted", action: "ask", query: mappedQueries.noRecords },
-        { label: "3 Map zoom / layer help", action: "ask", query: mappedQueries.mapNotLoading },
-        { label: "4 Service linked meaning", action: "ask", query: mappedQueries.refineResults },
-        { label: "5 When does cadastral layer appear?", action: "cadastral-help", query: CADASTRAL_LAYER_QUESTION },
-        { label: "9 Back to Main Menu", action: "menu", target: "main" },
+        { label: useHindi ? "1 मैप पर पार्सल कैसे चुनें" : "1 How to select parcel on map", action: "ask", query: mappedQueries.searchLandRecords },
+        { label: useHindi ? "2 पार्सल हाइलाइट क्यों नहीं हो रहा" : "2 Why parcel not highlighted", action: "ask", query: PARCEL_NOT_HIGHLIGHTED_QUESTION[localeLang] || PARCEL_NOT_HIGHLIGHTED_QUESTION.en },
+        { label: useHindi ? "3 मैप ज़ूम / लेयर सहायता" : "3 Map zoom / layer help", action: "ask", query: mappedQueries.mapNotLoading },
+        { label: useHindi ? "4 Service linked का मतलब" : "4 Service linked meaning", action: "ask", query: mappedQueries.refineResults },
+        { label: useHindi ? "5 कैडस्ट्रल लेयर कब दिखती है?" : "5 When does cadastral layer appear?", action: "cadastral-help", query: CADASTRAL_LAYER_QUESTION[localeLang] || CADASTRAL_LAYER_QUESTION.en },
+        { label: useHindi ? "9 मुख्य मेनू पर वापस जाएँ" : "9 Back to Main Menu", action: "menu", target: "main" },
       ],
     },
     "print-download-help": {
-      title: "Print / Download Help",
+      title: useHindi ? "प्रिंट / डाउनलोड सहायता" : "Print / Download Help",
       options: [
-        { label: "1 Print current record", action: "ask", query: mappedQueries.printRecord },
-        { label: "2 Download details", action: "ask", query: mappedQueries.downloadDetails },
-        { label: "9 Back to Main Menu", action: "menu", target: "main" },
+        { label: useHindi ? "1 वर्तमान रिकॉर्ड प्रिंट करें" : "1 Print current record", action: "ask", query: mappedQueries.printRecord },
+        { label: useHindi ? "2 विवरण डाउनलोड करें" : "2 Download details", action: "ask", query: mappedQueries.downloadDetails },
+        { label: useHindi ? "9 मुख्य मेनू पर वापस जाएँ" : "9 Back to Main Menu", action: "menu", target: "main" },
       ],
     },
     "login-otp-password-help": {
-      title: "Login / OTP / Password Help",
+      title: useHindi ? "लॉगिन / OTP / पासवर्ड सहायता" : "Login / OTP / Password Help",
       options: [
-        { label: "1 Login issue", action: "ask", query: mappedQueries.loginIssue },
-        { label: "2 OTP not received", action: "ask", query: mappedQueries.otpIssue },
-        { label: "3 Password reset", action: "ask", query: mappedQueries.passwordReset },
-        { label: "4 Session expired", action: "ask", query: mappedQueries.sessionExpired },
-        { label: "9 Back to Main Menu", action: "menu", target: "main" },
+        { label: useHindi ? "1 लॉगिन समस्या" : "1 Login issue", action: "ask", query: mappedQueries.loginIssue },
+        { label: useHindi ? "2 OTP प्राप्त नहीं हुआ" : "2 OTP not received", action: "ask", query: mappedQueries.otpIssue },
+        { label: useHindi ? "3 पासवर्ड रीसेट" : "3 Password reset", action: "ask", query: mappedQueries.passwordReset },
+        { label: useHindi ? "4 सेशन समाप्त" : "4 Session expired", action: "ask", query: mappedQueries.sessionExpired },
+        { label: useHindi ? "9 मुख्य मेनू पर वापस जाएँ" : "9 Back to Main Menu", action: "menu", target: "main" },
       ],
     },
     "portal-terms": {
-      title: "Portal Terms",
+      title: useHindi ? "पोर्टल शब्दावली" : "Portal Terms",
       options: [
-        { label: "1 What is Khasra", action: "ask", query: mappedQueries.khasraMeaning },
-        { label: "2 What is Murabba", action: "ask", query: mappedQueries.murabbaMeaning },
-        { label: "3 District/Tehsil/Village difference", action: "ask", query: mappedQueries.districtTehsilVillage },
-        { label: "4 Portal legal validity note", action: "ask", query: mappedQueries.legalValidity },
-        { label: "9 Back to Main Menu", action: "menu", target: "main" },
+        { label: useHindi ? "1 खसरा क्या है" : "1 What is Khasra", action: "ask", query: mappedQueries.khasraMeaning },
+        { label: useHindi ? "2 मुरब्बा क्या है" : "2 What is Murabba", action: "ask", query: mappedQueries.murabbaMeaning },
+        { label: useHindi ? "3 जिला/तहसील/गांव में अंतर" : "3 District/Tehsil/Village difference", action: "ask", query: mappedQueries.districtTehsilVillage },
+        { label: useHindi ? "4 पोर्टल की कानूनी वैधता" : "4 Portal legal validity note", action: "ask", query: mappedQueries.legalValidity },
+        { label: useHindi ? "9 मुख्य मेनू पर वापस जाएँ" : "9 Back to Main Menu", action: "menu", target: "main" },
       ],
     },
     faq: {
-      title: "FAQ",
+      title: useHindi ? "सामान्य प्रश्न" : "FAQ",
       options: [
         ...faqOptions,
-        { label: "9 Back to Main Menu", action: "menu", target: "main" },
+        { label: useHindi ? "9 मुख्य मेनू पर वापस जाएँ" : "9 Back to Main Menu", action: "menu", target: "main" },
       ],
     },
   };
@@ -952,7 +1080,8 @@ function pushInlineMessage(session, sender, text) {
   });
 }
 
-function upsertOwnerStatus(frameDoc, session) {
+function upsertOwnerStatus(frameDoc, session, localeLang = "en") {
+  const useHindi = isHindiLocale(localeLang);
   const menuRoot = frameDoc.querySelector(".saarthi-inline-menu");
   if (!menuRoot) return;
 
@@ -969,15 +1098,15 @@ function upsertOwnerStatus(frameDoc, session) {
   }
 
   statusNode.textContent = session.ownerApiBusy
-    ? "Live Owner Search mode is active (processing...)."
-    : "Live Owner Search mode is active.";
+    ? (useHindi ? "लाइव ओनर सर्च मोड सक्रिय है (प्रोसेसिंग...)." : "Live Owner Search mode is active (processing...).")
+    : (useHindi ? "लाइव ओनर सर्च मोड सक्रिय है।" : "Live Owner Search mode is active.");
 }
 
-function renderInlineMenu(frameDoc, session, localeQuestions) {
+function renderInlineMenu(frameDoc, session, localeQuestions, localeLang = "en") {
   const chatContainer = frameDoc.querySelector(".chat-container");
   if (!chatContainer) return;
 
-  const menuConfig = makeMenuConfig(localeQuestions);
+  const menuConfig = makeMenuConfig(localeQuestions, localeLang);
   const activeMenu = menuConfig[session.menuState] || menuConfig.main;
 
   let menuNode = frameDoc.querySelector(".saarthi-inline-menu");
@@ -1022,10 +1151,11 @@ function renderInlineMenu(frameDoc, session, localeQuestions) {
     chatContainer.insertBefore(menuNode, chatContainer.firstChild);
   }
 
-  upsertOwnerStatus(frameDoc, session);
+  upsertOwnerStatus(frameDoc, session, localeLang);
 }
 
-function ensureJumpToMenuButton(frameDoc, session) {
+function ensureJumpToMenuButton(frameDoc, session, localeLang = "en") {
+  const useHindi = isHindiLocale(localeLang);
   const chatBox = frameDoc.querySelector(".chat-box");
   const chatContainer = frameDoc.querySelector(".chat-container");
   const menuNode = frameDoc.querySelector(".saarthi-inline-menu");
@@ -1036,10 +1166,12 @@ function ensureJumpToMenuButton(frameDoc, session) {
     jumpButton = frameDoc.createElement("button");
     jumpButton.type = "button";
     jumpButton.className = "saarthi-inline-menu__jump";
-    jumpButton.textContent = "Jump to Menu";
+    jumpButton.textContent = useHindi ? "मेनू पर जाएँ" : "Jump to Menu";
     chatBox.appendChild(jumpButton);
   } else if (jumpButton.parentElement !== chatBox) {
     chatBox.appendChild(jumpButton);
+  } else {
+    jumpButton.textContent = useHindi ? "मेनू पर जाएँ" : "Jump to Menu";
   }
 
   jumpButton.onclick = () => {
@@ -1088,7 +1220,7 @@ function buildInlineRenderKey(lang, session) {
   ].join("::");
 }
 
-function resetInlineMenuSession(frameDoc, session, localeQuestions, iconUrl) {
+function resetInlineMenuSession(frameDoc, session, localeQuestions, iconUrl, localeLang = "en") {
   session.ownerApiMode = false;
   session.ownerApiBusy = false;
   session.menuState = "main";
@@ -1111,9 +1243,9 @@ function resetInlineMenuSession(frameDoc, session, localeQuestions, iconUrl) {
   frameDoc.querySelector(".saarthi-inline-status")?.remove();
   frameDoc.querySelectorAll(".saarthi-menu-qa-row").forEach((row) => row.remove());
 
-  renderInlineMenu(frameDoc, session, localeQuestions);
+  renderInlineMenu(frameDoc, session, localeQuestions, localeLang);
   renderInjectedMessages(frameDoc, session, iconUrl);
-  ensureJumpToMenuButton(frameDoc, session);
+  ensureJumpToMenuButton(frameDoc, session, localeLang);
 }
 
 function clearChatHistoryRows(frameDoc) {
@@ -1225,6 +1357,79 @@ body {
 }
 .saarthi-inline-owner-action:disabled {
   opacity: 0.65 !important;
+  cursor: not-allowed !important;
+}
+.input-area button[type='submit'] {
+  width: 44px !important;
+  height: 44px !important;
+  min-width: 44px !important;
+  border-radius: 50% !important;
+  padding: 0 !important;
+  background: ${gradient} !important;
+  color: #ffffff !important;
+  border: none !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-shadow: none !important;
+}
+.input-area .saarthi-owner-mic-btn {
+  position: relative !important;
+  width: 44px !important;
+  height: 44px !important;
+  min-width: 44px !important;
+  border: none !important;
+  border-radius: 50% !important;
+  background: ${gradient} !important;
+  color: #ffffff !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  margin-right: 8px !important;
+  padding: 0 !important;
+  cursor: pointer !important;
+  box-shadow: none !important;
+  transition: transform 160ms ease, opacity 160ms ease !important;
+}
+.input-area .saarthi-owner-mic-btn svg {
+  width: 16px !important;
+  height: 16px !important;
+  fill: currentColor !important;
+}
+.input-area .saarthi-owner-mic-btn .mic-slash {
+  display: none !important;
+}
+.input-area .saarthi-owner-mic-btn.is-listening .mic-slash {
+  display: block !important;
+}
+.input-area .saarthi-owner-mic-btn:hover {
+  opacity: 0.92 !important;
+}
+.input-area .saarthi-owner-mic-btn.is-listening {
+  background: ${gradient} !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 0 2px rgba(47, 141, 93, 0.22) !important;
+}
+.input-area .saarthi-owner-mic-btn.is-listening::before {
+  content: "" !important;
+  position: absolute !important;
+  inset: -8px !important;
+  border-radius: 50% !important;
+  border: 2px solid rgba(47, 141, 93, 0.36) !important;
+  pointer-events: none !important;
+  animation: saarthiOwnerMicWave 1.35s ease-out infinite !important;
+}
+.input-area .saarthi-owner-mic-btn.is-listening::after {
+  content: "" !important;
+  position: absolute !important;
+  inset: -4px !important;
+  border-radius: 50% !important;
+  border: 2px solid rgba(167, 243, 208, 0.86) !important;
+  pointer-events: none !important;
+  animation: saarthiOwnerMicPulse 1.35s ease-in-out infinite !important;
+}
+.input-area .saarthi-owner-mic-btn:disabled {
+  opacity: 0.5 !important;
   cursor: not-allowed !important;
 }
 .app.dark .helper-bubble {
@@ -1434,6 +1639,30 @@ body {
     opacity: 0;
   }
 }
+@keyframes saarthiOwnerMicPulse {
+  0% {
+    transform: scale(0.92);
+    opacity: 0.82;
+  }
+  60% {
+    transform: scale(1.06);
+    opacity: 0.26;
+  }
+  100% {
+    transform: scale(1.12);
+    opacity: 0;
+  }
+}
+@keyframes saarthiOwnerMicWave {
+  0% {
+    transform: scale(1);
+    opacity: 0.7;
+  }
+  100% {
+    transform: scale(1.28);
+    opacity: 0;
+  }
+}
 @media (max-width: 640px) {
   .floating-btn {
     width: 46px !important;
@@ -1477,6 +1706,11 @@ export default function SaarthiChatbotWidget({ lang = "en", blurred = false, hid
     menuActionHandler: null,
     inlineTypingTimers: new Map(),
     pendingCadastralStatusMessageId: null,
+    speechRecognition: null,
+    speechListening: false,
+    speechAutoSubmitTimer: null,
+    micPermissionState: "unknown",
+    lastVoicePermissionNotice: "",
   });
   const [isOpen, setIsOpen] = useState(false);
   const [bottomOffset, setBottomOffset] = useState(28);
@@ -1709,7 +1943,272 @@ export default function SaarthiChatbotWidget({ lang = "en", blurred = false, hid
       scrollChatToBottom(frameDoc);
     };
 
-    const handleOwnerApiSubmit = async (frameDoc, session) => {
+    const setInputNodeValue = (frameWindow, inputNode, nextValue) => {
+      if (!inputNode) return;
+      const nativeValueSetter = Object.getOwnPropertyDescriptor(
+        frameWindow.HTMLInputElement?.prototype || HTMLInputElement.prototype,
+        "value",
+      )?.set;
+      if (typeof nativeValueSetter === "function") {
+        nativeValueSetter.call(inputNode, nextValue);
+      } else {
+        inputNode.value = nextValue;
+      }
+      inputNode.dispatchEvent(new Event("input", { bubbles: true }));
+      inputNode.dispatchEvent(new Event("change", { bubbles: true }));
+    };
+
+    const stopOwnerSpeechRecognition = (session) => {
+      const recognition = session.speechRecognition;
+      session.speechListening = false;
+      if (!recognition) return;
+      try {
+        recognition.onresult = null;
+        recognition.onerror = null;
+        recognition.onend = null;
+        recognition.stop();
+      } catch {
+        // no-op
+      }
+      session.speechRecognition = null;
+    };
+
+    const queryOwnerMicPermissionState = async (targetNavigator) => {
+      if (!targetNavigator?.permissions?.query) return "unknown";
+      try {
+        const permission = await targetNavigator.permissions.query({ name: "microphone" });
+        return permission?.state || "unknown";
+      } catch {
+        return "unknown";
+      }
+    };
+
+    const showOwnerVoicePermissionNotice = (frameDoc, session, noticeText) => {
+      const text = String(noticeText || "").trim();
+      if (!text) return;
+      if (session.lastVoicePermissionNotice === text) return;
+      session.lastVoicePermissionNotice = text;
+      pushInlineMessage(session, "bot", text);
+      renderInjectedMessages(frameDoc, session, iconUrl);
+      session.lastInlineRenderKey = buildInlineRenderKey(lang, session);
+      scrollChatToBottom(frameDoc);
+    };
+
+    const ensureOwnerMicPermission = async (frameDoc, session) => {
+      const frameWindow = frameDoc.defaultView || iframe.contentWindow || window;
+      const targetNavigator = frameWindow.navigator || window.navigator;
+      if (!targetNavigator?.mediaDevices?.getUserMedia) {
+        session.micPermissionState = "unsupported";
+        return { ok: false, reason: "unsupported" };
+      }
+
+      try {
+        // Always invoke browser-level mic access flow on tap.
+        // If permission is prompt, browser will show permission popup.
+        const stream = await targetNavigator.mediaDevices.getUserMedia({ audio: true });
+        stream.getTracks().forEach((track) => track.stop());
+        session.micPermissionState = "granted";
+        return { ok: true, reason: "granted" };
+      } catch (error) {
+        const latestPermission = await queryOwnerMicPermissionState(targetNavigator);
+        if (latestPermission && latestPermission !== "unknown") {
+          session.micPermissionState = latestPermission;
+        }
+        if (error?.name === "NotAllowedError" || error?.name === "SecurityError") {
+          const refreshed = await queryOwnerMicPermissionState(targetNavigator);
+          session.micPermissionState = refreshed && refreshed !== "unknown" ? refreshed : "prompt";
+          return { ok: false, reason: session.micPermissionState === "denied" ? "denied" : "prompt" };
+        }
+        if (error?.name === "NotFoundError") {
+          session.micPermissionState = "unavailable";
+          return { ok: false, reason: "unavailable" };
+        }
+        return { ok: false, reason: "failed" };
+      }
+    };
+
+    const ensureOwnerVoiceButton = (frameDoc, session) => {
+      const frameWindow = frameDoc.defaultView || iframe.contentWindow || window;
+      const inputArea = frameDoc.querySelector(".input-area");
+      const inputNode = frameDoc.querySelector(".input-area input");
+      if (!(inputArea && inputNode)) return;
+
+      let micButton = inputArea.querySelector(".saarthi-owner-mic-btn");
+      if (!micButton) {
+        micButton = frameDoc.createElement("button");
+        micButton.type = "button";
+        micButton.className = "saarthi-owner-mic-btn";
+        micButton.innerHTML = `
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="M12 15a3 3 0 0 0 3-3V7a3 3 0 0 0-6 0v5a3 3 0 0 0 3 3zm5-3a1 1 0 1 1 2 0 7 7 0 0 1-6 6.93V21h3a1 1 0 1 1 0 2H8a1 1 0 1 1 0-2h3v-2.07A7 7 0 0 1 5 12a1 1 0 1 1 2 0 5 5 0 1 0 10 0z"></path>
+            <path class="mic-slash" d="M4.5 4.5a1 1 0 0 1 1.4 0l13.6 13.6a1 1 0 1 1-1.4 1.4L4.5 5.9a1 1 0 0 1 0-1.4z"></path>
+          </svg>
+        `;
+        const submitButton = inputArea.querySelector("button[type='submit']");
+        if (submitButton && submitButton.parentElement === inputArea) {
+          inputArea.insertBefore(micButton, submitButton);
+        } else {
+          inputArea.appendChild(micButton);
+        }
+      }
+
+      const getPrimarySendButton = () => {
+        const buttons = Array.from(inputArea.querySelectorAll("button"))
+          .filter((button) => !button.classList.contains("saarthi-owner-mic-btn"));
+        if (!buttons.length) return null;
+        const submit = buttons.find((button) => String(button.getAttribute("type") || "").toLowerCase() === "submit");
+        return submit || buttons[buttons.length - 1];
+      };
+
+      const syncMicAppearanceToSend = () => {
+        const sendButton = getPrimarySendButton();
+        if (!sendButton) return;
+
+        // Keep requested order: mic first, then send.
+        if (micButton.nextElementSibling !== sendButton) {
+          inputArea.insertBefore(micButton, sendButton);
+        }
+
+        const styles = frameWindow.getComputedStyle(sendButton);
+        const applyStyle = (prop, value) => {
+          if (!value) return;
+          micButton.style.setProperty(prop, value, "important");
+        };
+
+        applyStyle("width", styles.width);
+        applyStyle("height", styles.height);
+        applyStyle("min-width", styles.minWidth);
+        applyStyle("border-radius", styles.borderRadius);
+        applyStyle("border", styles.border);
+        applyStyle("padding", styles.padding);
+        applyStyle("background", styles.background);
+        applyStyle("background-color", styles.backgroundColor);
+        applyStyle("color", styles.color);
+        applyStyle("box-shadow", styles.boxShadow);
+      };
+
+      syncMicAppearanceToSend();
+
+      const SpeechRecognitionCtor =
+        frameWindow.SpeechRecognition
+        || frameWindow.webkitSpeechRecognition
+        || window.SpeechRecognition
+        || window.webkitSpeechRecognition;
+      const speechSupported = typeof SpeechRecognitionCtor === "function";
+
+      if (!speechSupported && session.speechListening) {
+        stopOwnerSpeechRecognition(session);
+      }
+
+      micButton.disabled = !speechSupported || session.ownerApiBusy;
+      micButton.classList.toggle("is-listening", Boolean(session.speechListening));
+      const buttonHint = !speechSupported
+        ? "Voice input is not supported in this browser."
+        : (session.speechListening ? "Stop Hindi voice input" : "Start Hindi voice input");
+      micButton.setAttribute("title", buttonHint);
+      micButton.setAttribute("aria-label", buttonHint);
+
+      if (micButton.dataset.bound === "1") return;
+      micButton.dataset.bound = "1";
+      micButton.addEventListener("click", async () => {
+        if (!speechSupported) return;
+        if (session.ownerApiBusy) return;
+
+        if (session.speechListening) {
+          stopOwnerSpeechRecognition(session);
+          ensureOwnerVoiceButton(frameDoc, session);
+          return;
+        }
+
+        const permission = await ensureOwnerMicPermission(frameDoc, session);
+        if (!permission.ok) {
+          if (permission.reason === "denied") {
+            showOwnerVoicePermissionNotice(frameDoc, session, "Microphone blocked. Please allow microphone in browser site settings.");
+          } else if (permission.reason === "unsupported") {
+            showOwnerVoicePermissionNotice(frameDoc, session, "Voice input needs HTTPS and microphone support in this browser.");
+          } else if (permission.reason === "unavailable") {
+            showOwnerVoicePermissionNotice(frameDoc, session, "No microphone device found.");
+          } else {
+            showOwnerVoicePermissionNotice(frameDoc, session, "Please allow microphone access when the browser asks for permission.");
+          }
+          ensureOwnerVoiceButton(frameDoc, session);
+          return;
+        }
+        session.lastVoicePermissionNotice = "";
+
+        const recognition = new SpeechRecognitionCtor();
+        let finalText = "";
+        session.speechRecognition = recognition;
+        session.speechListening = false;
+
+        recognition.lang = "hi-IN";
+        recognition.continuous = false;
+        recognition.interimResults = true;
+        recognition.maxAlternatives = 1;
+
+        recognition.onstart = () => {
+          session.speechListening = true;
+          ensureOwnerVoiceButton(frameDoc, session);
+        };
+
+        recognition.onresult = (event) => {
+          let interimText = "";
+          for (let i = event.resultIndex; i < event.results.length; i += 1) {
+            const result = event.results[i];
+            const transcript = String(result?.[0]?.transcript || "");
+            if (!transcript) continue;
+            if (result.isFinal) {
+              finalText = `${finalText} ${transcript}`.trim();
+            } else {
+              interimText += transcript;
+            }
+          }
+          const combinedText = `${finalText} ${interimText}`.trim();
+          const liveInputNode = frameDoc.querySelector(".input-area input");
+          setInputNodeValue(frameWindow, liveInputNode, combinedText);
+        };
+
+        recognition.onerror = () => {
+          session.speechListening = false;
+          session.speechRecognition = null;
+          ensureOwnerVoiceButton(frameDoc, session);
+        };
+
+        recognition.onend = () => {
+          session.speechListening = false;
+          session.speechRecognition = null;
+          ensureOwnerVoiceButton(frameDoc, session);
+        };
+
+        try {
+          recognition.start();
+        } catch (error) {
+          if (error?.name === "InvalidStateError") {
+            try {
+              recognition.stop();
+            } catch {
+              // no-op
+            }
+            window.setTimeout(() => {
+              try {
+                recognition.start();
+              } catch {
+                session.speechListening = false;
+                session.speechRecognition = null;
+                ensureOwnerVoiceButton(frameDoc, session);
+              }
+            }, 120);
+          } else {
+            session.speechListening = false;
+            session.speechRecognition = null;
+          }
+        }
+        ensureOwnerVoiceButton(frameDoc, session);
+      });
+    };
+
+      const handleOwnerApiSubmit = async (frameDoc, session) => {
+      const useHindi = isHindiLocale(lang);
       if (!session.ownerApiMode || session.ownerApiBusy) return;
       const inputNode = frameDoc.querySelector(".input-area input");
       if (!inputNode) return;
@@ -1724,14 +2223,15 @@ export default function SaarthiChatbotWidget({ lang = "en", blurred = false, hid
       session.injectedMessages.push({
         id: loadingMessageId,
         sender: "bot",
-        text: "Processing Instant Search request...",
+        text: useHindi ? "तुरंत खोज अनुरोध प्रोसेस हो रहा है..." : "Processing Instant Search request...",
         time: getCurrentTimeLabel(),
         typed: false,
         typingIndex: 0,
       });
     session.ownerApiBusy = true;
+    ensureOwnerVoiceButton(frameDoc, session);
 
-    upsertOwnerStatus(frameDoc, session);
+    upsertOwnerStatus(frameDoc, session, lang);
     renderInjectedMessages(frameDoc, session, iconUrl);
     session.lastInlineRenderKey = buildInlineRenderKey(lang, session);
     scrollChatToBottom(frameDoc);
@@ -1742,7 +2242,9 @@ export default function SaarthiChatbotWidget({ lang = "en", blurred = false, hid
           message.id === loadingMessageId
             ? {
               ...message,
-              text: "Live Owner Search currently supports Hindi query input only.\nPlease type your full query in Hindi.\nEnglish support will be added in a future update.",
+              text: useHindi
+                ? "लाइव ओनर सर्च फिलहाल केवल हिंदी इनपुट सपोर्ट करता है।\nकृपया अपना पूरा प्रश्न हिंदी में लिखें।"
+                : "Live Owner Search currently supports Hindi query input only.\nPlease type your full query in Hindi.\nEnglish support will be added in a future update.",
               typed: false,
               typingIndex: 0,
             }
@@ -1758,7 +2260,9 @@ export default function SaarthiChatbotWidget({ lang = "en", blurred = false, hid
           message.id === loadingMessageId
             ? {
               ...message,
-              text: `Please include all required fields.\nMissing: ${missingFields.join(", ")}\nExample: नाम XYZ जिला XYZ तहसील XYZ गांव XYZ मुरबा 00 खसरा 00`,
+              text: useHindi
+                ? `कृपया सभी आवश्यक फ़ील्ड शामिल करें।\nछूटे हुए फ़ील्ड: ${missingFields.join(", ")}\nउदाहरण: नाम XYZ जिला XYZ तहसील XYZ गांव XYZ मुरबा 00 खसरा 00`
+                : `Please include all required fields.\nMissing: ${missingFields.join(", ")}\nExample: नाम XYZ जिला XYZ तहसील XYZ गांव XYZ मुरबा 00 खसरा 00`,
               typed: false,
               typingIndex: 0,
             }
@@ -1768,7 +2272,7 @@ export default function SaarthiChatbotWidget({ lang = "en", blurred = false, hid
       }
 
       const response = await requestOwnerApiResult(query, iframe.contentWindow);
-      const resultText = formatOwnerApiResult(response, queryHints);
+      const resultText = formatOwnerApiResult(response, queryHints, lang);
       const selectionPayload = extractOwnerCadastralSelectionPayload(response, queryHints);
         session.injectedMessages = session.injectedMessages.map((message) => (
           message.id === loadingMessageId
@@ -1780,7 +2284,7 @@ export default function SaarthiChatbotWidget({ lang = "en", blurred = false, hid
               action: selectionPayload
                 ? {
                   kind: "open-cadastral",
-                  label: "Show on Cadastral Map",
+                  label: useHindi ? "कैडस्ट्रल मैप पर दिखाएँ" : "Show on Cadastral Map",
                   payload: selectionPayload,
                 }
                 : null,
@@ -1793,7 +2297,7 @@ export default function SaarthiChatbotWidget({ lang = "en", blurred = false, hid
           message.id === loadingMessageId
             ? {
               ...message,
-              text: `Owner details request failed.\n${errorMessage}`,
+              text: useHindi ? `ओनर विवरण अनुरोध असफल रहा।\n${errorMessage}` : `Owner details request failed.\n${errorMessage}`,
               typed: false,
               typingIndex: 0,
             }
@@ -1801,7 +2305,8 @@ export default function SaarthiChatbotWidget({ lang = "en", blurred = false, hid
         ));
       } finally {
         session.ownerApiBusy = false;
-        upsertOwnerStatus(frameDoc, session);
+        ensureOwnerVoiceButton(frameDoc, session);
+        upsertOwnerStatus(frameDoc, session, lang);
         renderInjectedMessages(frameDoc, session, iconUrl);
         session.lastInlineRenderKey = buildInlineRenderKey(lang, session);
         scrollChatToBottom(frameDoc);
@@ -1835,18 +2340,7 @@ export default function SaarthiChatbotWidget({ lang = "en", blurred = false, hid
       const forceClearInlineInput = () => {
         const inputNode = frameDoc.querySelector(".input-area input");
         if (!inputNode) return;
-
-        const nativeValueSetter = Object.getOwnPropertyDescriptor(
-          frameWindow.HTMLInputElement?.prototype || HTMLInputElement.prototype,
-          "value",
-        )?.set;
-        if (typeof nativeValueSetter === "function") {
-          nativeValueSetter.call(inputNode, "");
-        } else {
-          inputNode.value = "";
-        }
-        inputNode.dispatchEvent(new Event("input", { bubbles: true }));
-        inputNode.dispatchEvent(new Event("change", { bubbles: true }));
+        setInputNodeValue(frameWindow, inputNode, "");
       };
 
       const shouldSkipDuplicateMenuDispatch = (dispatchKey) => {
@@ -1869,6 +2363,7 @@ export default function SaarthiChatbotWidget({ lang = "en", blurred = false, hid
         }
 
         if (action === "menu") {
+          stopOwnerSpeechRecognition(session);
           session.ownerApiMode = false;
           session.ownerApiBusy = false;
           session.menuState = targetMenu || "main";
@@ -1882,29 +2377,59 @@ export default function SaarthiChatbotWidget({ lang = "en", blurred = false, hid
           }
           session.askLockKey = askKey;
           session.askLockUntil = now + 1800;
+          stopOwnerSpeechRecognition(session);
           session.ownerApiMode = false;
           session.ownerApiBusy = false;
-          runAskQuery(frameDoc, session, query);
+          const localAnswer = resolveInlineLocalAnswer(query, lang);
+          if (localAnswer) {
+            addSpecialQAPair(frameDoc, session, query, localAnswer);
+          } else {
+            runAskQuery(frameDoc, session, query);
+          }
         } else if (action === "language-help") {
+          stopOwnerSpeechRecognition(session);
           session.ownerApiMode = false;
           session.ownerApiBusy = false;
-          addSpecialQAPair(frameDoc, session, LANGUAGE_SUPPORT_QUESTION, LANGUAGE_SUPPORT_TEXT);
+          addSpecialQAPair(
+            frameDoc,
+            session,
+            LANGUAGE_SUPPORT_QUESTION[lang] || LANGUAGE_SUPPORT_QUESTION.en,
+            LANGUAGE_SUPPORT_TEXT[lang] || LANGUAGE_SUPPORT_TEXT.en,
+          );
         } else if (action === "voice-help") {
+          stopOwnerSpeechRecognition(session);
           session.ownerApiMode = false;
           session.ownerApiBusy = false;
-          addSpecialQAPair(frameDoc, session, VOICE_SEARCH_HELP_QUESTION, VOICE_SEARCH_HELP_TEXT);
+          addSpecialQAPair(
+            frameDoc,
+            session,
+            VOICE_SEARCH_HELP_QUESTION[lang] || VOICE_SEARCH_HELP_QUESTION.en,
+            VOICE_SEARCH_HELP_TEXT[lang] || VOICE_SEARCH_HELP_TEXT.en,
+          );
         } else if (action === "cadastral-help") {
+          stopOwnerSpeechRecognition(session);
           session.ownerApiMode = false;
           session.ownerApiBusy = false;
-          addSpecialQAPair(frameDoc, session, CADASTRAL_LAYER_QUESTION, CADASTRAL_LAYER_ANSWER);
+          addSpecialQAPair(
+            frameDoc,
+            session,
+            CADASTRAL_LAYER_QUESTION[lang] || CADASTRAL_LAYER_QUESTION.en,
+            CADASTRAL_LAYER_ANSWER[lang] || CADASTRAL_LAYER_ANSWER.en,
+          );
         } else if (action === "owner-api") {
           session.ownerApiMode = true;
           session.ownerApiBusy = false;
-          addSpecialQAPair(frameDoc, session, query || "Can I search by owner name?", OWNER_SEARCH_HELP_TEXT);
+          addSpecialQAPair(
+            frameDoc,
+            session,
+            query || (isHindiLocale(lang) ? "क्या मैं मालिक के नाम से खोज कर सकता/सकती हूँ?" : "Can I search by owner name?"),
+            OWNER_SEARCH_HELP_TEXT[lang] || OWNER_SEARCH_HELP_TEXT.en,
+          );
         }
 
-        renderInlineMenu(frameDoc, session, activeLocale.questions);
-        ensureJumpToMenuButton(frameDoc, session);
+        renderInlineMenu(frameDoc, session, activeLocale.questions, lang);
+        ensureJumpToMenuButton(frameDoc, session, lang);
+        ensureOwnerVoiceButton(frameDoc, session);
         session.lastInlineRenderKey = buildInlineRenderKey(lang, session);
         event.preventDefault();
         event.stopPropagation();
@@ -1952,14 +2477,14 @@ export default function SaarthiChatbotWidget({ lang = "en", blurred = false, hid
           session.clearResetTimer = null;
         }
         session.clearResetTimer = window.setTimeout(() => {
-          resetInlineMenuSession(frameDoc, session, activeLocale.questions, iconUrl);
+          resetInlineMenuSession(frameDoc, session, activeLocale.questions, iconUrl, lang);
           clearChatHistoryRows(frameDoc);
           forceClearInlineInput();
           window.setTimeout(forceClearInlineInput, 140);
           window.setTimeout(forceClearInlineInput, 360);
           session.clearResetTimer = window.setTimeout(() => {
             session.clearResetTimer = null;
-            resetInlineMenuSession(frameDoc, session, activeLocale.questions, iconUrl);
+            resetInlineMenuSession(frameDoc, session, activeLocale.questions, iconUrl, lang);
             clearChatHistoryRows(frameDoc);
             forceClearInlineInput();
           }, 240);
@@ -2005,7 +2530,7 @@ export default function SaarthiChatbotWidget({ lang = "en", blurred = false, hid
             session.injectedMessages.push({
               id: pendingMessageId,
               sender: "bot",
-              text: "Opening cadastral parcel on map...",
+              text: isHindiLocale(lang) ? "मैप पर कैडस्ट्रल पार्सल खोला जा रहा है..." : "Opening cadastral parcel on map...",
               time: getCurrentTimeLabel(),
               typed: false,
               typingIndex: 0,
@@ -2035,6 +2560,10 @@ export default function SaarthiChatbotWidget({ lang = "en", blurred = false, hid
 
         const sendButton = target.closest(".input-area button");
         if (sendButton && session.ownerApiMode) {
+          const micButton = target.closest(".saarthi-owner-mic-btn");
+          if (micButton) {
+            return;
+          }
           if (session.bypassOwnerModeOnce) {
             session.bypassOwnerModeOnce = false;
             return;
@@ -2107,6 +2636,7 @@ export default function SaarthiChatbotWidget({ lang = "en", blurred = false, hid
       if (inputNode && inputNode.getAttribute("placeholder") !== activeLocale.inputPlaceholder) {
         inputNode.setAttribute("placeholder", activeLocale.inputPlaceholder);
       }
+      ensureOwnerVoiceButton(frameDoc, menuSessionRef.current);
 
       frameDoc.querySelectorAll(".faq-suggestion-item").forEach((node, index) => {
         if (!(node instanceof HTMLElement)) return;
@@ -2130,7 +2660,7 @@ export default function SaarthiChatbotWidget({ lang = "en", blurred = false, hid
             && current.includes("ask your question in english or hinglish")
           )
           || (
-            current.includes("स्वागत है")
+            current.includes("à¤¸à¥à¤µà¤¾à¤—à¤¤ à¤¹à¥ˆ")
             && current.includes("eodb saarthi")
           );
         if (looksLikeWelcome && welcomeNode.textContent?.trim() !== activeLocale.welcomeMessage) {
@@ -2174,9 +2704,9 @@ export default function SaarthiChatbotWidget({ lang = "en", blurred = false, hid
         || session.lastInlineRenderKey !== inlineRenderKey;
 
       if (needsInlineRender) {
-        renderInlineMenu(frameDoc, session, activeLocale.questions);
+        renderInlineMenu(frameDoc, session, activeLocale.questions, lang);
         renderInjectedMessages(frameDoc, session, iconUrl);
-        ensureJumpToMenuButton(frameDoc, session);
+        ensureJumpToMenuButton(frameDoc, session, lang);
         session.lastInlineRenderKey = inlineRenderKey;
       }
 
@@ -2275,7 +2805,9 @@ export default function SaarthiChatbotWidget({ lang = "en", blurred = false, hid
       const detail = event?.detail || {};
       const resultText = safeText(
         detail?.message,
-        detail?.ok ? "Opened cadastral parcel on map." : "Could not open cadastral parcel on map.",
+        detail?.ok
+          ? (isHindiLocale(lang) ? "कैडस्ट्रल पार्सल मैप पर खोल दिया गया है।" : "Opened cadastral parcel on map.")
+          : (isHindiLocale(lang) ? "कैडस्ट्रल पार्सल मैप पर नहीं खोला जा सका।" : "Could not open cadastral parcel on map."),
       );
       const pendingId = session.pendingCadastralStatusMessageId;
       session.pendingCadastralStatusMessageId = null;
@@ -2332,6 +2864,11 @@ export default function SaarthiChatbotWidget({ lang = "en", blurred = false, hid
         clearTimeout(session.pendingAskTimer);
         session.pendingAskTimer = null;
       }
+      if (session.speechAutoSubmitTimer) {
+        clearTimeout(session.speechAutoSubmitTimer);
+        session.speechAutoSubmitTimer = null;
+      }
+      stopOwnerSpeechRecognition(session);
       if (session.clearResetTimer) {
         clearTimeout(session.clearResetTimer);
         session.clearResetTimer = null;
@@ -2399,3 +2936,6 @@ export default function SaarthiChatbotWidget({ lang = "en", blurred = false, hid
     </div>
   );
 }
+
+
+
