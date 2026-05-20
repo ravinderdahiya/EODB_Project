@@ -975,14 +975,15 @@
   font-weight: 500;
   letter-spacing: 0.05em;
   color: #ffffff;
-  background: rgba(0, 0, 0, 0.32);
+  background: transparent;
   padding: 2px 7px;
   border-radius: 4px;
   pointer-events: none;
   user-select: none;
   white-space: nowrap;
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.55);
 }
 
 /* ── Map Loading Overlay ──────────────────────────────────── */
@@ -1202,14 +1203,12 @@
 
 /* ── Responsive ───────────────────────────────────────────── */
 
-/* Tablet and below: map fills the full workspace column */
 @media (max-width: 1024px) {
+  /* Tablet and below: map fills the full workspace column */
   .map-stage {
     height: 100%;
   }
-}
 
-@media (max-width: 1024px) {
   .record-panel {
     left: 1rem;
     right: 1rem;
@@ -1328,5 +1327,32 @@
 
   .parcel-table-panel__header h2 {
     font-size: 0.84rem;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1024px) and (orientation: landscape) {
+  .map-stage__status {
+    top: 0.75rem;
+    font-size: 0.82rem;
+  }
+
+  .map-scale-badge {
+    top: 58px;
+    right: 10px;
+  }
+}
+
+@media (max-height: 500px) and (orientation: landscape) {
+  .map-stage__status {
+    top: 0.65rem;
+    font-size: 0.78rem;
+    padding: 0.45rem 0.62rem;
+  }
+
+  .map-scale-badge {
+    top: calc(0.75rem + 40px + 0.4rem + 40px + 0.3rem);
+    right: 0.75rem;
+    font-size: 8px;
+    padding: 2px 5px;
   }
 }

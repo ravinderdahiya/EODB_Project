@@ -12,6 +12,18 @@ function HealthDot({ status }) {
   );
 }
 
+function LayerToggleRow({ title, description, checked, onChange }) {
+  return (
+    <label className="toggle-row">
+      <span className="toggle-row__copy">
+        <strong>{title}</strong>
+        <small>{description}</small>
+      </span>
+      <input type="checkbox" checked={checked} onChange={onChange} />
+    </label>
+  );
+}
+
 export default function LayerPanel({
   isOpen,
   layerVisibility,
@@ -39,62 +51,45 @@ export default function LayerPanel({
         </button>
       </div>
 
-      {/* ── Cadastral ────────────────────────���────────────────────────────── */}
       <div className="layer-panel__section">
         <span className="layer-panel__section-label eyebrow">{t("layerPanel.cadastral")}</span>
 
-        <label className="toggle-row">
-          <span className="toggle-row__copy">
-            <strong>{t("layerPanel.cadastralLayerTitle")}</strong>
-            <small>{t("layerPanel.cadastralLayerDesc")}</small>
-          </span>
-          <input
-            type="checkbox"
-            checked={layerVisibility.cadastral}
-            onChange={() => onToggleLayer("cadastral")}
-          />
-        </label>
+        <LayerToggleRow
+          title={t("layerPanel.cadastralLayerTitle")}
+          description={t("layerPanel.cadastralLayerDesc")}
+          checked={layerVisibility.cadastral}
+          onChange={() => onToggleLayer("cadastral")}
+        />
       </div>
 
-      {/* ── Administrative Boundaries ─────────────────────────────────────── */}
       <div className="layer-panel__section">
         <span className="layer-panel__section-label eyebrow">{t("layerPanel.boundaries")}</span>
 
         {arcgisPortalConfig.boundarySublayers.map((layer) => (
-          <label key={layer.key} className="toggle-row">
-            <span className="toggle-row__copy">
-              <strong>{layer.title}</strong>
-              <small>{layer.description}</small>
-            </span>
-            <input
-              type="checkbox"
-              checked={layerVisibility[layer.key]}
-              onChange={() => onToggleLayer(layer.key)}
-            />
-          </label>
+          <LayerToggleRow
+            key={layer.key}
+            title={layer.title}
+            description={layer.description}
+            checked={layerVisibility[layer.key]}
+            onChange={() => onToggleLayer(layer.key)}
+          />
         ))}
       </div>
 
-      {/* ── Operational overlays ──────────────────────────────────────────── */}
       <div className="layer-panel__section">
         <span className="layer-panel__section-label eyebrow">{t("layerPanel.overlays")}</span>
 
         {arcgisPortalConfig.operationalLayers.map((layer) => (
-          <label key={layer.key} className="toggle-row">
-            <span className="toggle-row__copy">
-              <strong>{layer.title}</strong>
-              <small>{layer.description}</small>
-            </span>
-            <input
-              type="checkbox"
-              checked={layerVisibility[layer.key] ?? false}
-              onChange={() => onToggleLayer(layer.key)}
-            />
-          </label>
+          <LayerToggleRow
+            key={layer.key}
+            title={layer.title}
+            description={layer.description}
+            checked={layerVisibility[layer.key] ?? false}
+            onChange={() => onToggleLayer(layer.key)}
+          />
         ))}
       </div>
 
-      {/* ── Service health ────────────────────────────────────────────────── */}
       <div className="layer-panel__footer">
         <div className="layer-panel__health">
           <span>

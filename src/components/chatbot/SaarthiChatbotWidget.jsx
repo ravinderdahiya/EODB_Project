@@ -1,4 +1,5 @@
 ﻿import { useEffect, useRef, useState } from "react";
+import { getRuntimeConfigValue } from "@/config/runtimeConfig";
 import "./SaarthiChatbotWidget.css";
 
 const CHATBOT_LOCALE = {
@@ -95,6 +96,7 @@ const VOICE_SEARCH_HELP_QUESTION = {
 const VOICE_SEARCH_HELP_TEXT = {
   en: `Voice search steps (Top Header Search Bar):
 1. Click the voice icon.
+
 2. Speak search terms like District, Tehsil, Village.
 3. Your spoken query is filled and search runs.`,
   hi: `वॉइस सर्च के चरण:
@@ -576,6 +578,7 @@ async function requestOwnerApiResult(query, frameWindow) {
   if (typeof fetchFn !== "function") {
     throw new Error("Fetch API is not available.");
   }
+  const ownerApiEndpoint = getRuntimeConfigValue("VITE_OWNER_API_ENDPOINT", "/api-url/owner-search");
 
   let lastError = null;
   let lastPayload = null;
@@ -584,34 +587,13 @@ async function requestOwnerApiResult(query, frameWindow) {
   for (const queryVariant of queryVariants) {
     const attempts = [
       {
-        url: OWNER_API_ENDPOINT,
-        init: {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Accept: "application/json, text/plain, */*",
-          },
-          body: JSON.stringify({ speech: queryVariant }),
-        },
-      },
-      {
-        url: OWNER_API_ENDPOINT,
-        init: {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/x-www-form-urlencoded",
-            Accept: "application/json, text/plain, */*",
-          },
-          body: `speech=${encodeURIComponent(queryVariant)}`,
-        },
-      },
-      {
-        url: `${OWNER_API_ENDPOINT}?query=${encodeURIComponent(queryVariant)}`,
+        url: `${ownerApiEndpoint}?query=${encodeURIComponent(queryVariant)}`,
         init: {
           method: "GET",
           headers: {
             Accept: "application/json, text/plain, */*",
           },
+          credentials: "include",
         },
       },
     ];
