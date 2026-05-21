@@ -17,6 +17,7 @@ import { DISTRICT_SUBLAYERS } from "@/config/arcgis";
 import { useDashboardPreferences } from "@/hooks/useDashboardPreferences";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { useMeasurement } from "@/hooks/useMeasurement";
+import useMandatoryLocationPermission from "@/hooks/useMandatoryLocationPermission";
 import { useSelectFeatures } from "@/hooks/useSelectFeatures";
 import useDisableDevTools from "@/hooks/useDisableDevTools";
 import { useLanguage } from "@/context/LanguageContext";
@@ -43,6 +44,7 @@ import {
 } from "@/voice-addon/voiceAdminMatcher";
 
 import { useAnalytics } from "@/services/analyticsService";
+import { removeSplash } from "./splash";
 
 const cadastralLayerVisibility = Object.fromEntries(
   DISTRICT_SUBLAYERS.map((entry) => [`cadastral_${entry.id}`, true]),
@@ -68,6 +70,8 @@ const initialLayers = {
 export default function App() {
   const navigate = useNavigate();
   const { trackPageView, trackUserInteraction, trackMapInteraction, trackSearch, trackFeatureUsage } = useAnalytics();
+
+  useMandatoryLocationPermission();
 
   // Disable developer tools in production
   useDisableDevTools();
@@ -100,6 +104,15 @@ export default function App() {
   const [voiceVillages, setVoiceVillages] = useState([]);
   const hasSelectedParcel = selectedParcel.registryRef !== "DLR-UNAVAILABLE";
   const adminSuggestionRequestIdRef = useRef(0);
+
+  useEffect(() => {
+    // If the map route mounted a splash screen, remove it once the app has painted.
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        removeSplash();
+      });
+    });
+  }, []);
 
   // Track initial page load
   useEffect(() => {

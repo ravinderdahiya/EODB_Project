@@ -78,7 +78,7 @@ const en = {
     panelTitleDetails:         "Land Information Details",
     panelTitleSelection:       "Selected Features",
     panelTitleSelectionCount:  "Selected Features ({count} parcel{s})",
-    disclaimer: "All the revenue information displayed on these maps is based on the data provided by Haryana Revenue Department. HARSAC is not responsible for any discrepancy in the data, if any. This information on the map is not for any dispute in the court of law. It is for viewing purposes only. The map scale is 1:4,000.",
+    disclaimer: "All the revenue information displayed on these maps is based on the data provided by Haryana Revenue Department. HARSAC is not responsible for any discrepancy in the data, if any. This information on the map is not for any dispute in the court of law. It is for viewing purposes only. The map scale is 1:10,00,000.",
     showTable:       "Show land information table",
     hideTable:       "Hide land information table",
     printDetails:    "Print land information details",

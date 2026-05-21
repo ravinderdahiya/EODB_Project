@@ -6,6 +6,7 @@ import axiosInstance from "../utils/axiosInstance";
 import LanguageToggle from "@/components/LanguageToggle";
 import { encrypt } from "../utils/crypto";
 import { reloadRuntimeConfig } from "@/config/runtimeConfig";
+import { mountSplash } from "../splash";
 
 const GOOGLE_GSI_SCRIPT_ID = "google-gsi-client";
 
@@ -96,6 +97,7 @@ export default function Login() {
       localStorage.setItem("isAdmin", "false");
       sessionStorage.setItem("isAuthenticated", "true");
       await reloadRuntimeConfig();
+      mountSplash();
       navigate("/map");
     } catch (err) {
       setError(err.response?.data?.message || t("login.errOtpFailed"));
@@ -216,6 +218,7 @@ export default function Login() {
       localStorage.setItem("isAdmin", user.role === "admin" || user.role === "superadmin" ? "true" : "false");
       sessionStorage.setItem("isAuthenticated", "true");
       await reloadRuntimeConfig();
+      mountSplash();
       navigate("/map");
     } catch (err) {
       console.error(err);

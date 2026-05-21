@@ -10,8 +10,6 @@ import { decrypt } from "./utils/crypto";
 import "./styles/global.css";
 import { mountSplash, removeSplash } from "./splash";
 
-// Show the splash immediately — runs synchronously before the async bootstrap
-mountSplash();
 
 function normalizeBaseUrl(baseUrl) {
   if (!baseUrl) return "/";
@@ -33,6 +31,17 @@ function resolveRouterBase() {
   );
 
   return matchedBase || envBase || "/";
+}
+
+function shouldShowInitialSplash() {
+  const routerBase = resolveRouterBase();
+  const pathname = window.location.pathname;
+  const routePath = pathname.startsWith(routerBase)
+    ? pathname.slice(routerBase.length) || "/"
+    : pathname;
+
+  // Skip splash for the login entry screen, but keep it for the map route.
+  return routePath === "/map";
 }
 
 function getArcgisAssetsPath() {
@@ -138,6 +147,7 @@ async function bootstrap() {
                 
               )}
             />
+            {/* <Route path="/map" element={<ProtectedRoute><App /></ProtectedRoute>} />  */}
             <Route
               path="/admin"
               element={(
@@ -154,13 +164,13 @@ async function bootstrap() {
     </React.StrictMode>,
   );
 
-  // Fade out splash after React's first paint
-  // Double-RAF ensures the browser has committed at least one rendered frame
-  requestAnimationFrame(() => { requestAnimationFrame(removeSplash); });
+}
+
+if (shouldShowInitialSplash()) {
+  mountSplash();
 }
 
 bootstrap().catch(() => {
-  // Remove splash immediately so the error message is visible
   removeSplash();
   ReactDOM.createRoot(document.getElementById("root")).render(
     <div style={{ padding: "1rem", fontFamily: "sans-serif" }}>
