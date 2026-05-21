@@ -14,8 +14,10 @@ import GraphicsLayer from "@arcgis/core/layers/GraphicsLayer.js";
 import MapImageLayer from "@arcgis/core/layers/MapImageLayer.js";
 import MapView from "@arcgis/core/views/MapView.js";
 import * as locator from "@arcgis/core/rest/locator.js";
+import * as restQuery from "@arcgis/core/rest/query.js";
 import * as reactiveUtils from "@arcgis/core/core/reactiveUtils.js";
 import * as urlUtils from "@arcgis/core/core/urlUtils.js";
+import Query from "@arcgis/core/rest/support/Query.js";
 import {
   arcgisPortalConfig,
   DISTRICT_SUBLAYERS,
@@ -81,6 +83,53 @@ const getEffectiveLayerVisibility = (layerVisibility = {}) => {
     roads: Boolean(layerVisibility.roads),
   };
 };
+
+const BOUNDARY_SELECTION_PADDING = {
+  left: 36,
+  right: 36,
+  top: 36,
+  bottom: 36,
+};
+const DRAWING_BLOCK_STALE_MS = 45000;
+
+const findSublayerById = (layer, id) =>
+  layer?.findSublayerById?.(id) ?? layer?.findSublayerById?.(String(id));
+
+const syncStateBoundaryAndNearbyPlacesVisibility = ({
+  layers,
+  effective,
+  currentScale,
+}) => {
+  const shouldShowStateBoundary =
+    effective.stateBoundary &&
+    isScaleInRange(
+      currentScale,
+      STATE_BOUNDARY_MIN_VISIBLE_SCALE,
+      STATE_BOUNDARY_MAX_VISIBLE_SCALE,
+    );
+
+  if (layers.hsacStateBoundaryLayer) {
+    // Visibility sync rule: checkbox is required, and scale must be within configured range.
+    layers.hsacStateBoundaryLayer.visible = shouldShowStateBoundary;
+    const stateSublayer = findSublayerById(layers.hsacStateBoundaryLayer, HSAC_LAYER.STATE_BOUNDARY);
+    if (stateSublayer) {
+      stateSublayer.visible = shouldShowStateBoundary;
+    } else if (import.meta.env.DEV) {
+      console.warn("[useArcGISMap] Missing state boundary sublayer (id 31).");
+    }
+  }
+
+  if (layers.nearbyPlacesLayer) {
+    layers.nearbyPlacesLayer.visible = effective.nearbyPlacesPoi;
+    const poiSublayer = findSublayerById(layers.nearbyPlacesLayer, HSAC_LAYER.POI);
+    if (poiSublayer) {
+      poiSublayer.visible = effective.nearbyPlacesPoi;
+    } else if (import.meta.env.DEV) {
+      console.warn("[useArcGISMap] Missing POI sublayer (id 24) in Nearby Places layer.");
+    }
+  }
+};
+
 export function useArcGISMap({
   activeBasemap,
   layerVisibility,
@@ -416,64 +465,159 @@ export function useArcGISMap({
       let boundaryQueryCounter = 0;
       let cadastralPopupRequestCounter = 0;
 
+      const getBoundarySelectionCandidates = (currentLayers, zoom) => {
+        const effective = getEffectiveLayerVisibility(layerVisibilityRef.current);
+        const layerPlan = currentLayers?.layerPlan;
+
+        const allCandidates = [
+          { key: "village", id: layerPlan?.villageLayerId, enabled: effective.village },
+          { key: "tehsil", id: layerPlan?.tehsilLayerId, enabled: effective.tehsil },
+          { key: "district", id: layerPlan?.districtLayerId, enabled: effective.district },
+        ].filter(({ id, enabled }) => id != null && enabled);
+
+        let preferredKey = null;
+        if (zoom <= CLICK_ZOOM.DISTRICT_MAX) preferredKey = "district";
+        else if (zoom <= CLICK_ZOOM.TEHSIL_MAX) preferredKey = "tehsil";
+        else if (zoom <= CLICK_ZOOM.VILLAGE_MAX) preferredKey = "village";
+
+        // In cadastral zoom zone, boundary click-selection must stay disabled.
+        if (!preferredKey) return [];
+
+        const preferred = allCandidates.filter((entry) => entry.key === preferredKey);
+        const fallback = allCandidates.filter((entry) => entry.key !== preferredKey);
+        return [...preferred, ...fallback];
+      };
+
+      const getBoundaryHitResult = ({ hitTestResponse, boundaryLayerIds }) =>
+        hitTestResponse?.results?.find((result) => {
+          const sourceLayerId = Number(result?.graphic?.sourceLayer?.id);
+          if (sourceLayerId == null || !boundaryLayerIds.has(sourceLayerId)) return false;
+          return result?.graphic?.geometry != null;
+        });
+
+      const queryBoundaryFeatureAtPoint = async ({
+        mapPoint,
+        orderedLayerIds,
+        spatialReference,
+      }) => {
+        for (const layerId of orderedLayerIds) {
+          const result = await restQuery
+            .executeQueryJSON(
+              `${arcgisPortalConfig.serviceUrls.hsacMain}/${layerId}`,
+              new Query({
+                geometry: mapPoint,
+                spatialRelationship: "intersects",
+                returnGeometry: true,
+                outFields: ["*"],
+                distance: 8,
+                units: "meters",
+                outSpatialReference: spatialReference,
+                num: 1,
+              }),
+            )
+            .catch(() => null);
+
+          const feature = result?.features?.[0];
+          if (feature?.geometry) {
+            return feature;
+          }
+        }
+
+        return null;
+      };
+
       clickHandle = view.on("click", async (event) => {
         const currentLayers = layersRef.current;
+        const now = Date.now();
+        const selectionFlagStale =
+          Boolean(currentLayers?.__selectionDrawing) &&
+          Number.isFinite(currentLayers?.__selectionDrawingSince) &&
+          now - currentLayers.__selectionDrawingSince > DRAWING_BLOCK_STALE_MS;
+        const measurementFlagStale =
+          Boolean(currentLayers?.__measurementDrawing) &&
+          Number.isFinite(currentLayers?.__measurementDrawingSince) &&
+          now - currentLayers.__measurementDrawingSince > DRAWING_BLOCK_STALE_MS;
+
+        if (selectionFlagStale) {
+          currentLayers.__selectionDrawing = false;
+          currentLayers.__selectionDrawingSince = null;
+        }
+        if (measurementFlagStale) {
+          currentLayers.__measurementDrawing = false;
+          currentLayers.__measurementDrawingSince = null;
+        }
+
         if (currentLayers?.__selectionDrawing || currentLayers?.__measurementDrawing) {
           return;
         }
-
-        const zoom = Math.round(view.zoom);
 
         // Clear the previous boundary highlight and any open popup on every click
         currentLayers.selectionLayer?.removeAll();
         closeLandRecordMiniPopup(popupStateRef);
         view.closePopup();
 
-        // Resolve which boundary level the current zoom targets
-        const layerPlan = currentLayers.layerPlan;
-        let boundaryLayerId = null;
-        if (zoom <= CLICK_ZOOM.DISTRICT_MAX) {
-          boundaryLayerId = layerPlan?.districtLayerId;
-        } else if (zoom <= CLICK_ZOOM.TEHSIL_MAX) {
-          boundaryLayerId = layerPlan?.tehsilLayerId;
-        } else if (zoom <= CLICK_ZOOM.VILLAGE_MAX) {
-          boundaryLayerId = layerPlan?.villageLayerId;
-        }
-
-        if (boundaryLayerId != null) {
-          // Boundary selection mode: highlight clicked polygon + zoom to fit, no popup
+        const zoom = Math.round(view.zoom);
+        const selectableBoundaries = getBoundarySelectionCandidates(currentLayers, zoom);
+        if (
+          zoom <= CLICK_ZOOM.VILLAGE_MAX &&
+          selectableBoundaries.length > 0 &&
+          currentLayers.hsacBoundariesLayer?.visible
+        ) {
           const queryId = ++boundaryQueryCounter;
-          const result = await restQuery
-            .executeQueryJSON(
-              `${arcgisPortalConfig.serviceUrls.hsacMain}/${boundaryLayerId}`,
-              new Query({
-                geometry: event.mapPoint,
-                spatialRelationship: "intersects",
-                returnGeometry: true,
-                outFields: [],
-                outSpatialReference: view.spatialReference,
-                num: 1,
-              }),
-            )
+          const boundaryHitTest = await view
+            .hitTest(event, { include: [currentLayers.hsacBoundariesLayer] })
             .catch(() => null);
 
           if (boundaryQueryCounter !== queryId) return;
 
-          const feature = result?.features?.[0];
-          if (feature?.geometry) {
-            currentLayers.selectionLayer?.removeAll();
-            currentLayers.selectionLayer?.add(
-              new Graphic({ geometry: feature.geometry, symbol: BOUNDARY_FILL_SYMBOL }),
-            );
+          const isBoundarySublayerVisible = (id) => {
+            const sublayer = findSublayerById(currentLayers.hsacBoundariesLayer, id);
+            return Boolean(sublayer && sublayer.visible !== false);
+          };
+          const boundaryLayerIds = new Set(
+            selectableBoundaries
+              .filter(({ id }) => isBoundarySublayerVisible(id))
+              .map(({ id }) => Number(id)),
+          );
 
-            const extent = feature.geometry.extent;
-            if (extent) {
-              await view
-                .goTo({ target: extent.expand(1.25) }, { duration: 820, easing: "ease-in-out" })
-                .catch(() => undefined);
+          if (boundaryLayerIds.size > 0) {
+            const boundaryHit = getBoundaryHitResult({
+              hitTestResponse: boundaryHitTest,
+              boundaryLayerIds,
+            });
+            let boundaryGeometry = boundaryHit?.graphic?.geometry;
+
+            if (!boundaryGeometry) {
+              const orderedLayerIds = selectableBoundaries
+                .map(({ id }) => Number(id))
+                .filter((id) => boundaryLayerIds.has(id));
+
+              const queriedFeature = await queryBoundaryFeatureAtPoint({
+                mapPoint: event.mapPoint,
+                orderedLayerIds,
+                spatialReference: view.spatialReference,
+              });
+              if (boundaryQueryCounter !== queryId) return;
+              boundaryGeometry = queriedFeature?.geometry ?? null;
+            }
+
+            if (boundaryGeometry) {
+              currentLayers.selectionLayer?.add(
+                new Graphic({ geometry: boundaryGeometry, symbol: BOUNDARY_FILL_SYMBOL }),
+              );
+
+              const extent = boundaryGeometry.extent;
+              if (extent) {
+                await view
+                  .goTo(
+                    { target: extent.expand(1.2) },
+                    { duration: 820, easing: "ease-in-out", padding: BOUNDARY_SELECTION_PADDING },
+                  )
+                  .catch(() => undefined);
+              }
+              return;
             }
           }
-          return;
         }
 
         // Cadastral zone (zoom > VILLAGE_MAX): show popup only when Cadastral layer is visible
@@ -601,7 +745,7 @@ export function useArcGISMap({
     });
 
     visibilityByBoundaryLayerId.forEach((visible, id) => {
-      const sublayer = layers.hsacBoundariesLayer?.findSublayerById(id);
+      const sublayer = findSublayerById(layers.hsacBoundariesLayer, id);
       if (sublayer) {
         sublayer.visible = visible;
       } else if (import.meta.env.DEV) {
@@ -613,35 +757,11 @@ export function useArcGISMap({
       const hasVisibleBoundary = Array.from(visibilityByBoundaryLayerId.values()).some(Boolean);
       layers.hsacBoundariesLayer.visible = hasVisibleBoundary;
     }
-    const currentScale = viewRef.current?.scale;
-    const shouldShowStateBoundary =
-      effective.stateBoundary &&
-      isScaleInRange(
-        currentScale,
-        STATE_BOUNDARY_MIN_VISIBLE_SCALE,
-        STATE_BOUNDARY_MAX_VISIBLE_SCALE,
-      );
-
-    if (layers.hsacStateBoundaryLayer) {
-      // Visibility sync rule: checkbox is required, and scale must be within configured range.
-      layers.hsacStateBoundaryLayer.visible = shouldShowStateBoundary;
-      const stateSublayer = layers.hsacStateBoundaryLayer.findSublayerById?.(HSAC_LAYER.STATE_BOUNDARY);
-      if (stateSublayer) {
-        stateSublayer.visible = shouldShowStateBoundary;
-      } else if (import.meta.env.DEV) {
-        console.warn("[useArcGISMap] Missing state boundary sublayer (id 31).");
-      }
-    }
-
-    if (layers.nearbyPlacesLayer) {
-      layers.nearbyPlacesLayer.visible = effective.nearbyPlacesPoi;
-      const poiSublayer = layers.nearbyPlacesLayer.findSublayerById?.(HSAC_LAYER.POI);
-      if (poiSublayer) {
-        poiSublayer.visible = effective.nearbyPlacesPoi;
-      } else if (import.meta.env.DEV) {
-        console.warn("[useArcGISMap] Missing POI sublayer (id 24) in Nearby Places layer.");
-      }
-    }
+    syncStateBoundaryAndNearbyPlacesVisibility({
+      layers,
+      effective,
+      currentScale: viewRef.current?.scale,
+    });
 
     // Visibility sync rule: do not auto-enable from zoom; zoom only constrains toggled-on layers.
     const currentZoom = viewRef.current?.zoom;
@@ -650,7 +770,7 @@ export function useArcGISMap({
     if (layers.highlightLayer)     layers.highlightLayer.visible     = cadastralVisible;
     if (layers.hsacCadastralLayer) {
       (layerPlan?.cadastralLayerIds ?? DISTRICT_SUBLAYERS.map((entry) => entry.id)).forEach((id) => {
-        const sublayer = layers.hsacCadastralLayer.findSublayerById?.(id);
+        const sublayer = findSublayerById(layers.hsacCadastralLayer, id);
         if (sublayer) {
           sublayer.visible = effective.cadastral && Boolean(layerVisibility[`cadastral_${id}`] ?? true);
         } else if (import.meta.env.DEV) {
@@ -758,24 +878,11 @@ export function useArcGISMap({
 
     // Re-apply UI-driven visibility immediately after refresh so server/layer reload never overrides toggles.
     const effective = getEffectiveLayerVisibility(layerVisibilityRef.current);
-    const currentScale = viewRef.current?.scale;
-    const shouldShowStateBoundary =
-      effective.stateBoundary &&
-      isScaleInRange(
-        currentScale,
-        STATE_BOUNDARY_MIN_VISIBLE_SCALE,
-        STATE_BOUNDARY_MAX_VISIBLE_SCALE,
-      );
-    if (layers.hsacStateBoundaryLayer) {
-      layers.hsacStateBoundaryLayer.visible = shouldShowStateBoundary;
-      const stateSublayer = layers.hsacStateBoundaryLayer.findSublayerById?.(HSAC_LAYER.STATE_BOUNDARY);
-      if (stateSublayer) stateSublayer.visible = shouldShowStateBoundary;
-    }
-    if (layers.nearbyPlacesLayer) {
-      layers.nearbyPlacesLayer.visible = effective.nearbyPlacesPoi;
-      const poiSublayer = layers.nearbyPlacesLayer.findSublayerById?.(HSAC_LAYER.POI);
-      if (poiSublayer) poiSublayer.visible = effective.nearbyPlacesPoi;
-    }
+    syncStateBoundaryAndNearbyPlacesVisibility({
+      layers,
+      effective,
+      currentScale: viewRef.current?.scale,
+    });
 
     return { ok: true, message: "HSAC map layers refreshed." };
   };

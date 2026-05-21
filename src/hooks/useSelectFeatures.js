@@ -44,7 +44,9 @@ export function useSelectFeatures({ viewRef, layersRef }) {
 
   const setSelectionDrawingFlag = useCallback((value) => {
     if (layersRef.current) {
-      layersRef.current.__selectionDrawing = Boolean(value);
+      const next = Boolean(value);
+      layersRef.current.__selectionDrawing = next;
+      layersRef.current.__selectionDrawingSince = next ? Date.now() : null;
     }
   }, [layersRef]);
 
@@ -304,7 +306,11 @@ export function useSelectFeatures({ viewRef, layersRef }) {
       tool === "rectangle" ? "rectangle" :
       tool === "polygon"   ? "polygon"   : "polyline";
 
-    vm.create(drawTool).catch(() => {});
+    vm.create(drawTool).catch(() => {
+      setActiveTool(null);
+      setStatusMessage("Unable to start selection drawing. Please try again.");
+      setSelectionDrawingFlag(false);
+    });
 
     createHandleRef.current = vm.on("create", async (event) => {
       if (event.state === "cancel") {
