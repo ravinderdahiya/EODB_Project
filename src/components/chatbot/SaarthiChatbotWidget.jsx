@@ -96,7 +96,6 @@ const VOICE_SEARCH_HELP_QUESTION = {
 const VOICE_SEARCH_HELP_TEXT = {
   en: `Voice search steps (Top Header Search Bar):
 1. Click the voice icon.
-
 2. Speak search terms like District, Tehsil, Village.
 3. Your spoken query is filled and search runs.`,
   hi: `वॉइस सर्च के चरण:
@@ -1160,6 +1159,15 @@ function ensureJumpToMenuButton(frameDoc, session, localeLang = "en") {
   };
 
   const updateVisibility = () => {
+    frameDoc.querySelectorAll("button, [role='button']").forEach((node) => {
+      if (node.classList?.contains("saarthi-inline-menu__jump")) return;
+      const text = String(node.textContent || "").trim().toLowerCase();
+      const ariaLabel = String(node.getAttribute?.("aria-label") || "").trim().toLowerCase();
+      if (text === "jump to latest" || ariaLabel === "jump to latest") {
+        node.style.setProperty("display", "none", "important");
+      }
+    });
+
     const inputAreaNode = frameDoc.querySelector(".input-area");
     const inputHeight = Math.ceil(inputAreaNode?.getBoundingClientRect?.().height || 62);
     const shouldShow = chatContainer.scrollTop > 120;
@@ -1565,7 +1573,8 @@ body {
 }
 .saarthi-inline-menu__jump {
   position: absolute !important;
-  right: 84px !important;
+  left: 50% !important;
+  right: auto !important;
   bottom: 78px !important;
   z-index: 4 !important;
   border: none !important;
@@ -1581,7 +1590,7 @@ body {
   box-shadow: 0 8px 18px rgba(20, 184, 166, 0.24) !important;
   cursor: pointer !important;
   max-width: 120px !important;
-  transform: translateY(2px) !important;
+  transform: translate(-50%, 2px) !important;
 }
 .message-bubble {
   font-size: 11.5px !important;

@@ -564,7 +564,7 @@ export default function App() {
         openTable: true,
         statusMessage: `Loaded Khasra ${parcel.khasraNo} from chatbot owner result.`,
       });
-      return { ok: true, message: "Opened cadastral parcel on map." };
+      return { ok: true, message: lang === "hi" ? "कैडस्ट्रल पार्सल मैप पर खोल दिया गया है।" : "Opened cadastral parcel on map." };
     } catch (error) {
       const message = error?.message || "Failed to open cadastral parcel from chatbot result.";
       setSystemMessage(message);
