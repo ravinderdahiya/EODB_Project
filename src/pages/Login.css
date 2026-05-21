@@ -48,6 +48,8 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
+    position: relative;
+    z-index: 30;
     padding: 10px 40px;
     backdrop-filter: blur(14px);
     -webkit-backdrop-filter: blur(14px);
@@ -171,7 +173,9 @@
 
 .lp-nav-right {
     display: flex;
+    align-items: center;
     gap: 7px;
+    position: relative;
 }
 
 .lp-nav-btn {
@@ -476,14 +480,14 @@
 }
 
 .lp-lock-circle {
-    width: 52px;
-    height: 52px;
+    width: 72px;
+    height: 72px;
     /* background: linear-gradient(135deg, #16a34a 0%, #0f7a36 100%); */
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    margin: 0 auto 10px;
+    margin: 0 auto 12px;
     font-size: 22px;
     /* box-shadow: 0 6px 18px rgba(22, 163, 74, 0.36); */
 }
@@ -499,16 +503,15 @@
     text-align: center;
     opacity: 0.70;
     font-size: 11.5px;
-    margin: 0 0 13px;
+    margin: 0 0 16px;
     line-height: 1.45;
 }
-
 
 /* ── Tabs ── */
 
 .lp-tabs {
     display: flex;
-    margin-bottom: 13px;
+    margin-bottom: 16px;
     background: rgba(255, 255, 255, 0.05);
     border-radius: 12px;
     padding: 3px;
@@ -540,6 +543,15 @@
     font-weight: 700;
 }
 
+.lp-tabs--single .lp-tab {
+    cursor: default;
+}
+
+.lp-tabs--single .lp-tab:hover {
+    background: linear-gradient(90deg, #00ff88, #00cc66);
+    color: #001a0a;
+}
+
 
 /* ── Form fields ── */
 
@@ -555,7 +567,7 @@
     display: flex;
     align-items: stretch;
     gap: 7px;
-    margin-bottom: 11px;
+    margin-bottom: 14px;
     min-width: 0;
 }
 
@@ -653,7 +665,7 @@
     font-family: inherit;
     color: #001a0a;
     cursor: pointer;
-    margin-top: 4px;
+    margin-top: 8px;
     box-shadow: 0 6px 18px rgba(0, 255, 136, 0.20);
     transition: opacity 160ms ease, transform 160ms ease, box-shadow 160ms ease;
 }
@@ -740,6 +752,26 @@
     opacity: 0.70;
 }
 
+/* Desktop: match login card height with left-side content column */
+@media (min-width: 821px) {
+    .lp-card {
+        align-self: stretch;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .lp-card-main {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .lp-terms {
+        margin-top: auto;
+        padding-top: 14px;
+    }
+}
+
 
 /* ── FOOTER: flex-shrink: 0, compact ───────────────────────────── */
 
@@ -817,6 +849,76 @@
 .lp-chat-btn:hover {
     opacity: 0.85;
     transform: translateY(-1px);
+}
+
+.lp-admin-dropdown {
+    position: absolute;
+    top: calc(100% + 10px);
+    right: 0;
+    width: 248px;
+    padding: 9px;
+    border-radius: 12px;
+    border: 1px solid rgba(0, 255, 136, 0.24);
+    background: rgba(0, 24, 12, 0.95);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+    transform-origin: top right;
+    animation: lp-admin-expand 180ms ease-out;
+    z-index: 60;
+}
+
+@keyframes lp-admin-expand {
+    from {
+        opacity: 0;
+        transform: scale(0.96) translateY(-4px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+.lp-admin-dropdown-form {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.lp-admin-dropdown-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.lp-admin-dropdown-input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 7px 9px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.08);
+    color: #ffffff;
+    font-size: 12px;
+    font-family: inherit;
+    outline: none;
+}
+
+.lp-admin-dropdown-input:focus {
+    border-color: rgba(0, 255, 136, 0.5);
+    background: rgba(0, 255, 136, 0.06);
+}
+
+.lp-admin-dropdown .lp-btn-green {
+    margin-top: 1px;
+    padding: 8px;
+    font-size: 12px;
+}
+
+.lp-admin-error {
+    margin: 0;
+    font-size: 11px;
+    color: #ff8585;
 }
 
 .lp-footer-bottom {
@@ -911,6 +1013,10 @@
     .lp-footer-top {
         flex-wrap: wrap;
     }
+    .lp-admin-dropdown {
+        width: min(248px, calc(100vw - 40px));
+        right: 0;
+    }
 }
 
 
@@ -921,8 +1027,8 @@
         padding: 14px 18px 12px;
     }
     .lp-lock-circle {
-        width: 42px;
-        height: 42px;
+        width: 50px;
+        height: 50px;
         font-size: 18px;
         margin-bottom: 7px;
     }
@@ -1033,8 +1139,8 @@
     }
 
     .lp-lock-circle {
-        width: 42px;
-        height: 42px;
+        width: 50px;
+        height: 50px;
         margin-bottom: 8px;
     }
 
@@ -1168,8 +1274,8 @@
     }
 
     .lp-lock-circle {
-        width: 36px;
-        height: 36px;
+        width: 42px;
+        height: 42px;
         margin-bottom: 6px;
         font-size: 16px;
     }
@@ -1403,8 +1509,8 @@
     }
 
     .lp-lock-circle {
-        width: 34px;
-        height: 34px;
+        width: 40px;
+        height: 40px;
         font-size: 15px;
         margin-bottom: 5px;
     }
