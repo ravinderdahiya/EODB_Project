@@ -93,7 +93,7 @@ export default function Login() {
     previewIntervalRef.current = window.setInterval(() => {
       previewLangRef.current = previewLangRef.current === "en" ? "hi" : "en";
       setPreviewLang(previewLangRef.current);
-    }, 8000);
+    }, 6000);
 
     return () => {
       if (previewIntervalRef.current) {
