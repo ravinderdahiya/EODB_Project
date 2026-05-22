@@ -801,10 +801,25 @@ export function useArcGISMap({
 
     highlightLayer.add(graphic);
 
+    const rawExtent = graphic.geometry?.extent;
+    if (!rawExtent) return;
+    const targetExtent = rawExtent.clone ? rawExtent.clone() : rawExtent;
+    const zoomTarget = targetExtent.expand ? targetExtent.expand(1.8) : targetExtent;
+    const minimumCadastralZoom = CLICK_ZOOM.VILLAGE_MAX + 1;
+
     view
-      .goTo({ target: graphic.geometry.extent.expand(7) }, { duration: 950, easing: "ease-in-out" })
+      .goTo({ target: zoomTarget }, { duration: 950, easing: "ease-in-out" })
+      .then(() => {
+        if ((view.zoom ?? 0) > CLICK_ZOOM.VILLAGE_MAX) return undefined;
+        return view
+          .goTo(
+            { target: zoomTarget, zoom: minimumCadastralZoom },
+            { duration: 520, easing: "ease-in-out" },
+          )
+          .catch(() => undefined);
+      })
       .catch(() => undefined);
-  }, [selectedParcel]);
+  }, [selectedParcel, mapReady]);
 
   // ── Exported functions ───────────────────────────────────────────────────────
 

@@ -8,6 +8,11 @@ const CHATBOT_LOCALE = {
     welcomeMessage: "Welcome! I am EODB Saarthi.\nAsk your question in English or Hinglish.",
     faqTitle: "FAQ Questions (Click to Ask)",
     inputPlaceholder: "Ask in English or Hinglish...",
+    launcherHints: [
+      "Hi! Ask EODB Saarthi.",
+      "Need GIS help?",
+      "Need FAQ help",
+    ],
     questions: [
       "How to search land records?",
       "What fields are required to search?",
@@ -46,6 +51,11 @@ const CHATBOT_LOCALE = {
     welcomeMessage: "स्वागत है! मैं EODB सारथी हूँ।\nअपना सवाल हिंदी में पूछें।",
     faqTitle: "सामान्य प्रश्न (पूछने के लिए क्लिक करें)",
     inputPlaceholder: "यहाँ हिंदी में लिखें...",
+    launcherHints: [
+      "नमस्ते! EODB सारथी से पूछें।",
+      "GIS मदद चाहिए?",
+      "भूमि रिकॉर्ड जल्दी खोजें।",
+    ],
     questions: [
       "भूमि रिकॉर्ड कैसे खोजें?",
       "खोज के लिए कौन-कौन से फ़ील्ड जरूरी हैं?",
@@ -1704,10 +1714,15 @@ export default function SaarthiChatbotWidget({ lang = "en", blurred = false, hid
   });
   const [isOpen, setIsOpen] = useState(false);
   const [bottomOffset, setBottomOffset] = useState(28);
+  const [launcherHintIndex, setLauncherHintIndex] = useState(0);
+  const [showLauncherHint, setShowLauncherHint] = useState(false);
   const chatbotCssPath = `${import.meta.env.BASE_URL}chatbot/assets/index-CleebXl6.css`;
   const chatbotJsPath = `${import.meta.env.BASE_URL}chatbot/assets/index-h95SWGsY.js`;
   const chatbotIconPath = `${import.meta.env.BASE_URL}chatbot/assets/eodb-saarthi-_EV4f2aO.png`;
   const activeLocale = CHATBOT_LOCALE[lang] || CHATBOT_LOCALE.en;
+  const launcherHints = Array.isArray(activeLocale.launcherHints) && activeLocale.launcherHints.length
+    ? activeLocale.launcherHints
+    : CHATBOT_LOCALE.en.launcherHints;
 
   const closeBottomPanelIfOpen = () => {
     const tableOpen = Boolean(document.querySelector(".map-stage__viewport--table-open"));
@@ -1746,6 +1761,44 @@ export default function SaarthiChatbotWidget({ lang = "en", blurred = false, hid
     floatingButton.click();
     window.setTimeout(clearInlineInput, 80);
   };
+
+  useEffect(() => {
+    if (isOpen || hidden || blurred || !launcherHints.length) {
+      setShowLauncherHint(false);
+      return undefined;
+    }
+
+    const cycleDurationMs = 10000;
+    const stepMs = 3000;
+    const cycleTimers = [];
+
+    const runCycle = () => {
+      setLauncherHintIndex(0);
+      setShowLauncherHint(true);
+
+      const visibleCount = Math.min(launcherHints.length, 3);
+      for (let i = 1; i < visibleCount; i += 1) {
+        const timer = window.setTimeout(() => {
+          setLauncherHintIndex(i);
+          setShowLauncherHint(true);
+        }, i * stepMs);
+        cycleTimers.push(timer);
+      }
+
+      const hideTimer = window.setTimeout(() => {
+        setShowLauncherHint(false);
+      }, cycleDurationMs - 1000);
+      cycleTimers.push(hideTimer);
+    };
+
+    runCycle();
+    const cycleInterval = window.setInterval(runCycle, cycleDurationMs);
+
+    return () => {
+      window.clearInterval(cycleInterval);
+      cycleTimers.forEach((timerId) => window.clearTimeout(timerId));
+    };
+  }, [blurred, hidden, isOpen, launcherHints, lang]);
 
   useEffect(() => {
     const iframe = iframeRef.current;
@@ -2530,7 +2583,11 @@ export default function SaarthiChatbotWidget({ lang = "en", blurred = false, hid
 
             window.dispatchEvent(
               new CustomEvent("eodb-chatbot-open-cadastral", {
-                detail: actionPayload,
+                detail: {
+                  ...actionPayload,
+                  __requestSource: "chatbot",
+                  __requestId: pendingMessageId,
+                },
               }),
             );
           } finally {
@@ -2793,6 +2850,10 @@ export default function SaarthiChatbotWidget({ lang = "en", blurred = false, hid
 
       const session = menuSessionRef.current;
       const detail = event?.detail || {};
+      const resultSource = `${detail?.source ?? ""}`.trim().toLowerCase();
+      if (resultSource && resultSource !== "chatbot") {
+        return;
+      }
       const resultText = safeText(
         detail?.message,
         detail?.ok
@@ -2801,6 +2862,9 @@ export default function SaarthiChatbotWidget({ lang = "en", blurred = false, hid
       );
       const pendingId = session.pendingCadastralStatusMessageId;
       session.pendingCadastralStatusMessageId = null;
+      if (!pendingId && resultSource !== "chatbot") {
+        return;
+      }
 
       if (pendingId) {
         let replaced = false;
@@ -2890,6 +2954,14 @@ export default function SaarthiChatbotWidget({ lang = "en", blurred = false, hid
         >
           <img src={chatbotIconPath} alt="EODB Saarthi" />
         </button>
+      ) : null}
+      {!isOpen && launcherHints.length ? (
+        <div
+          className={`saarthi-chatbot-widget__hint ${showLauncherHint ? "saarthi-chatbot-widget__hint--visible" : ""}`}
+          aria-live="polite"
+        >
+          {launcherHints[launcherHintIndex % launcherHints.length]}
+        </div>
       ) : null}
       <iframe
         ref={iframeRef}

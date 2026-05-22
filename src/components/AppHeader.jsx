@@ -21,6 +21,7 @@ export default function AppHeader({
   onSearchValueChange = () => {},
   onSearchSubmit = () => {},
   searchSuggestions = [],
+  forceSearchSuggestionsOpen = false,
   onSuggestionSelect = () => {},
   searchInputId = "portal-search",
   isAdmin = false,
@@ -93,7 +94,7 @@ export default function AppHeader({
             {t("header.searchSubmit")}
           </button>
 
-          {isSearchFocused && searchSuggestions.length > 0 ? (
+          {(isSearchFocused || forceSearchSuggestionsOpen) && searchSuggestions.length > 0 ? (
             <div className="search-shell__suggestions" role="listbox">
               {searchSuggestions.map((suggestion, index) => {
                 const suggestionTitle = getSuggestionTitle(suggestion);

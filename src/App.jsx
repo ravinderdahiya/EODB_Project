@@ -37,6 +37,12 @@ import {
   takeMapScreenshotWithRetry,
   waitForMapToSettle,
 } from "@/utils/printUtils";
+import {
+  extractCadastralSelectionFromAnyPayload,
+  isLikelyOwnerDetailQuery,
+  requestCadastralHindiSearch,
+  requestOwnerApiResult,
+} from "@/services/ownerSearchService";
 import { VOICE_COMMAND_ACTIONS } from "@/voice-addon/voiceCommandRegistry";
 import {
   createVoiceAdminHandlers,
@@ -85,6 +91,7 @@ export default function App() {
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [parcelTableOpen, setParcelTableOpen] = useState(false);
   const [searchValue, setSearchValue] = useState("");
+  const [forceSearchSuggestionsOpen, setForceSearchSuggestionsOpen] = useState(false);
   const deferredSearch = useDeferredValue(searchValue);
   const [activeBasemap, setActiveBasemap] = useState("satellite");
   const [layerVisibility, setLayerVisibility] = useState(initialLayers);
@@ -200,6 +207,7 @@ export default function App() {
       setDetailsOpen(true);
     }
     setSearchValue("");
+    setForceSearchSuggestionsOpen(false);
     setSystemMessage(
       statusMessage || `Loaded ${parcel.recordType || "land record"} ${parcel.registryRef}.`,
     );
@@ -363,6 +371,7 @@ export default function App() {
     }
 
     setSearchValue("");
+    setForceSearchSuggestionsOpen(false);
     setSystemMessage(
       exactMatch
         ? `Highlighted ${target.type} boundary for ${target.label}.`
@@ -434,8 +443,78 @@ export default function App() {
     setSystemMessage,
   });
 
+  const openSuggestionsFromVoiceQuery = (rawText) => {
+    const value = `${rawText ?? ""}`.trim();
+    if (!value) return;
+
+    setSearchValue(value);
+    setForceSearchSuggestionsOpen(true);
+    setActiveNav("search");
+    setSystemMessage(`Multiple matches found for "${value}". Please select one from suggestions.`);
+    window.setTimeout(() => {
+      document.getElementById("portal-search")?.focus();
+    }, 30);
+  };
+
+  const resolveHindiLandRecordFromBackend = async (queryText) => {
+    const ownerLookup = await requestOwnerApiResult(queryText);
+    if (ownerLookup?.ok) {
+      const ownerSelection = extractCadastralSelectionFromAnyPayload(ownerLookup.payload, queryText);
+      if (ownerSelection) {
+        const openResult = await openCadastralFromChatbot(ownerSelection);
+        return {
+          ok: Boolean(openResult?.ok),
+          error: openResult?.message || "",
+          handled: true,
+        };
+      }
+    } else if (ownerLookup?.status === 401) {
+      return {
+        ok: false,
+        error: ownerLookup.error || "Session expired. Please login again.",
+        handled: true,
+      };
+    }
+
+    const cadastralLookup = await requestCadastralHindiSearch(queryText);
+    if (!cadastralLookup?.ok) {
+      const missing = Array.isArray(cadastralLookup?.payload?.missingFields)
+        ? cadastralLookup.payload.missingFields
+        : [];
+      if (missing.length) {
+        return {
+          ok: false,
+          error: `कृपया पूरा विवरण दें। छूटे हुए फ़ील्ड: ${missing.join(", ")}`,
+          handled: true,
+        };
+      }
+      return {
+        ok: false,
+        error: cadastralLookup?.error || "Hindi cadastral query could not be resolved.",
+        handled: Boolean(cadastralLookup?.status === 401),
+      };
+    }
+
+    const selection = extractCadastralSelectionFromAnyPayload(cadastralLookup.payload, queryText);
+    if (!selection?.codes?.district || !selection?.codes?.tehsil || !selection?.codes?.village) {
+      return {
+        ok: false,
+        error: "Hindi cadastral query response is incomplete.",
+        handled: false,
+      };
+    }
+
+    const openResult = await openCadastralFromChatbot(selection);
+    return {
+      ok: Boolean(openResult?.ok),
+      error: openResult?.message || "",
+      handled: true,
+    };
+  };
+
   const handleSearchSubmit = async (event) => {
     event.preventDefault();
+    setForceSearchSuggestionsOpen(false);
 
     const query = searchValue.trim();
     const normalized = query.toLowerCase();
@@ -443,6 +522,21 @@ export default function App() {
     if (!normalized) {
       setSystemMessage("Enter a Khasra number, owner, village or place to search.");
       return;
+    }
+
+    if (isLikelyOwnerDetailQuery(query)) {
+      try {
+        const hindiResult = await resolveHindiLandRecordFromBackend(query);
+        if (hindiResult?.ok) {
+          return;
+        }
+        if (hindiResult?.handled && hindiResult?.error) {
+          setSystemMessage(hindiResult.error);
+          return;
+        }
+      } catch {
+        // Continue to regular search fallbacks.
+      }
     }
 
     // Track search submission
@@ -490,6 +584,7 @@ export default function App() {
 
   const handleSuggestionSelect = async (suggestion) => {
     if (!suggestion) return;
+    setForceSearchSuggestionsOpen(false);
 
     if (suggestion.kind === "admin") {
       await highlightAdminBoundary(
@@ -508,21 +603,82 @@ export default function App() {
     });
   };
 
+  const normalizeAdminName = (value) => (
+    `${value ?? ""}`
+      .toLowerCase()
+      .replace(/[^\p{L}\p{N}]+/gu, " ")
+      .trim()
+      .replace(/\s+/g, " ")
+  );
+
+  const resolveCadastralCodesFromNames = async ({ districtName, tehsilName, villageName }) => {
+    const districtText = `${districtName ?? ""}`.trim();
+    const tehsilText = `${tehsilName ?? ""}`.trim();
+    const villageText = `${villageName ?? ""}`.trim();
+    if (!districtText || !tehsilText || !villageText) return null;
+
+    const query = `${villageText} ${tehsilText} ${districtText}`.trim();
+    const matches = await searchAdministrativeAreas(query, { limit: 60 });
+    if (!Array.isArray(matches) || !matches.length) return null;
+
+    const nd = normalizeAdminName(districtText);
+    const nt = normalizeAdminName(tehsilText);
+    const nv = normalizeAdminName(villageText);
+
+    const districtMatch = matches.find((item) => (
+      item?.type === "district" && normalizeAdminName(item?.name) === nd
+    ));
+    const tehsilMatch = matches.find((item) => (
+      item?.type === "tehsil"
+      && normalizeAdminName(item?.name) === nt
+      && (!districtMatch?.dCode || `${item?.dCode ?? ""}`.trim() === `${districtMatch?.dCode ?? ""}`.trim())
+    ));
+    const villageMatch = matches.find((item) => (
+      item?.type === "village"
+      && normalizeAdminName(item?.name) === nv
+      && (!districtMatch?.dCode || `${item?.dCode ?? ""}`.trim() === `${districtMatch?.dCode ?? ""}`.trim())
+      && (!tehsilMatch?.tCode || `${item?.tCode ?? ""}`.trim() === `${tehsilMatch?.tCode ?? ""}`.trim())
+    ));
+
+    const districtCode = `${villageMatch?.dCode ?? tehsilMatch?.dCode ?? districtMatch?.dCode ?? ""}`.trim();
+    const tehsilCode = `${villageMatch?.tCode ?? tehsilMatch?.tCode ?? ""}`.trim();
+    const villageCode = `${villageMatch?.vCode ?? ""}`.trim();
+
+    if (!districtCode || !tehsilCode || !villageCode) return null;
+    return { district: districtCode, tehsil: tehsilCode, village: villageCode };
+  };
+
   const openCadastralFromChatbot = async (payload = {}) => {
     const codes = payload?.codes ?? {};
     const names = payload?.names ?? {};
 
-    const district = `${codes.district ?? ""}`.trim();
-    const tehsil = `${codes.tehsil ?? ""}`.trim();
-    const village = `${codes.village ?? ""}`.trim();
+    let district = `${codes.district ?? ""}`.trim();
+    let tehsil = `${codes.tehsil ?? ""}`.trim();
+    let village = `${codes.village ?? ""}`.trim();
     const murabba = `${codes.murabba ?? ""}`.trim();
     const khasra = `${codes.khasra ?? ""}`.trim();
 
     if (!district || !tehsil || !village) {
-      const message =
-        "Could not open cadastral parcel from chatbot result. Please include district, tehsil and village in query.";
-      setSystemMessage(message);
-      return { ok: false, message };
+      try {
+        const resolvedCodes = await resolveCadastralCodesFromNames({
+          districtName: `${names.district ?? ""}`.trim(),
+          tehsilName: `${names.tehsil ?? ""}`.trim(),
+          villageName: `${names.village ?? ""}`.trim(),
+        });
+        if (resolvedCodes) {
+          district = resolvedCodes.district;
+          tehsil = resolvedCodes.tehsil;
+          village = resolvedCodes.village;
+        }
+      } catch {
+        // Continue to user-facing error below when code resolution fails.
+      }
+      if (!district || !tehsil || !village) {
+        const message =
+          "Could not open cadastral parcel from query result. Please include district, tehsil and village in query.";
+        setSystemMessage(message);
+        return { ok: false, message };
+      }
     }
 
     try {
@@ -560,6 +716,16 @@ export default function App() {
         },
       });
 
+      // Some HSAC responses can resolve record fields without parcel geometry.
+      // In that case, still zoom user to village boundary instead of staying at state view.
+      if (!parcel?.geometry) {
+        await drawBoundary(
+          "village",
+          { dCode: district, tCode: tehsil, vCode: village },
+          { expandFactor: 1.2 },
+        );
+      }
+
       applyParcelSelection(parcel, {
         openTable: true,
         statusMessage: `Loaded Khasra ${parcel.khasraNo} from chatbot owner result.`,
@@ -574,10 +740,17 @@ export default function App() {
 
   useEffect(() => {
     const onOpenFromChatbot = async (event) => {
-      const result = await openCadastralFromChatbot(event?.detail);
+      const requestPayload = event?.detail || {};
+      const requestSource = `${requestPayload?.__requestSource ?? ""}`.trim().toLowerCase();
+      const requestId = `${requestPayload?.__requestId ?? ""}`.trim();
+      const result = await openCadastralFromChatbot(requestPayload);
       window.dispatchEvent(
         new CustomEvent("eodb-chatbot-cadastral-open-result", {
-          detail: result || { ok: false, message: "Could not open cadastral parcel on map." },
+          detail: {
+            ...(result || { ok: false, message: "Could not open cadastral parcel on map." }),
+            source: requestSource || "unknown",
+            requestId,
+          },
         }),
       );
     };
@@ -748,6 +921,23 @@ export default function App() {
       nextEntries.forEach(([key, value]) => {
         next[key] = Boolean(value);
       });
+
+      // Keep group toggles consistent so voice "district/tehsil/village on"
+      // actually becomes visible even if the parent group was off.
+      const touchesBoundaries =
+        Object.prototype.hasOwnProperty.call(layerPatch, "district")
+        || Object.prototype.hasOwnProperty.call(layerPatch, "tehsil")
+        || Object.prototype.hasOwnProperty.call(layerPatch, "village");
+      if (touchesBoundaries) {
+        const anyBoundaryOn = Boolean(next.district || next.tehsil || next.village);
+        next.boundariesGroup = anyBoundaryOn;
+      }
+
+      const touchesMurabba = Object.prototype.hasOwnProperty.call(layerPatch, "murabba");
+      if (touchesMurabba && next.murabba) {
+        next.murrabaGrid = true;
+      }
+
       return next;
     });
     setSystemMessage(message || "Layer visibility updated from voice command.");
@@ -844,8 +1034,43 @@ export default function App() {
       runVillageVoiceFocus({ transcript, normalizedTranscript, strictIntent: true }),
     [VOICE_COMMAND_ACTIONS.GO_TO_ADMIN_BOUNDARY_BY_NAME]: ({ command, transcript }) =>
       runNamedAdminBoundaryFocus({ command, transcript }),
-    [VOICE_COMMAND_ACTIONS.HANDLE_FALLBACK_TRANSCRIPT]: ({ transcript, normalizedTranscript }) =>
-      runAdministrativeVoiceFallback({ transcript, normalizedTranscript }),
+    [VOICE_COMMAND_ACTIONS.HANDLE_FALLBACK_TRANSCRIPT]: async ({ transcript, normalizedTranscript }) => {
+      const rawText = `${transcript ?? ""}`.trim();
+      const normalizedText = `${normalizedTranscript ?? transcript ?? ""}`.toLowerCase();
+      const tokens = normalizedText.split(/\s+/).filter(Boolean);
+      const explicitIntentWords = [
+        "district", "tehsil", "village", "gaon", "gram",
+        "जिला", "तहसील", "गांव", "गाँव", "ग्राम",
+        "map", "boundary", "dikhao", "zoom",
+      ];
+      const hasExplicitIntent = explicitIntentWords.some((word) => normalizedText.includes(word));
+      const shouldPreferSuggestion = rawText.length >= 2 && tokens.length <= 3 && !hasExplicitIntent;
+
+      if (shouldPreferSuggestion) {
+        openSuggestionsFromVoiceQuery(rawText);
+        return {
+          ok: true,
+          pendingSelection: true,
+          message: `Suggestions shown for "${rawText}". Please select one.`,
+        };
+      }
+
+      const outcome = await runAdministrativeVoiceFallback({ transcript, normalizedTranscript });
+      if (outcome?.ok) {
+        return outcome;
+      }
+
+      if (rawText.length >= 2) {
+        openSuggestionsFromVoiceQuery(rawText);
+        return {
+          ok: true,
+          pendingSelection: true,
+          message: `Suggestions shown for "${rawText}". Please select one.`,
+        };
+      }
+
+      return { ok: false };
+    },
   };
 
   return (
@@ -870,9 +1095,13 @@ export default function App() {
           navigate("/login");
         }}
         searchValue={searchValue}
-        onSearchValueChange={setSearchValue}
+        onSearchValueChange={(nextValue) => {
+          setSearchValue(nextValue);
+          setForceSearchSuggestionsOpen(false);
+        }}
         onSearchSubmit={handleSearchSubmit}
         searchSuggestions={searchSuggestions}
+        forceSearchSuggestionsOpen={forceSearchSuggestionsOpen}
         onSuggestionSelect={handleSuggestionSelect}
       />
       <VoiceAssistantPopup
