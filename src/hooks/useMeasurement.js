@@ -48,7 +48,9 @@ export function useMeasurement({ viewRef, layersRef }) {
 
   const setMeasurementDrawingFlag = useCallback((value) => {
     if (layersRef.current) {
-      layersRef.current.__measurementDrawing = Boolean(value);
+      const next = Boolean(value);
+      layersRef.current.__measurementDrawing = next;
+      layersRef.current.__measurementDrawingSince = next ? Date.now() : null;
     }
   }, [layersRef]);
 
@@ -106,7 +108,10 @@ export function useMeasurement({ viewRef, layersRef }) {
     setIsDrawing(true);
     setMeasurementDrawingFlag(true);
 
-    vm.create(type === "distance" ? "polyline" : "polygon").catch(() => {});
+    vm.create(type === "distance" ? "polyline" : "polygon").catch(() => {
+      setIsDrawing(false);
+      setMeasurementDrawingFlag(false);
+    });
 
     createHandleRef.current = vm.on("create", (event) => {
       if (event.state === "cancel") {

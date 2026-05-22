@@ -27,10 +27,15 @@ const serviceUrls = {
 };
 
 export const HSAC_LAYER = {
+  NEARBY_PLACES_GROUP: 23,
+  POI: 24,
+  BOUNDARIES_GROUP: 25,
   DISTRICT: 26,
   TEHSIL: 27,
   VILLAGE: 28,
+  MURABBA_GROUP: 29,
   MURABBA: 30,
+  STATE_BOUNDARY: 31,
 };
 
 export const DISTRICT_SUBLAYERS = [

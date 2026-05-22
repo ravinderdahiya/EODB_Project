@@ -3,19 +3,22 @@ import * as reactiveUtils from '@arcgis/core/core/reactiveUtils.js';
 import './ZoomWheelSlider.css';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
-const MIN_ZOOM = 7;
+// Keep lower bound wide enough so right-side drag can reach ~1:70,00,000 scale.
+const MIN_ZOOM = 6;
 const MAX_ZOOM = 19;
 const TICKS_PER_ZOOM = 8;   // sub-tick marks per zoom level
 const TICK_SPACING   = 9;   // px width of each tick cell (must match CSS .zws__tick width)
 const PADDING        = 32;  // phantom ticks on each side so the track never runs empty
 const REAL_TICKS     = (MAX_ZOOM - MIN_ZOOM) * TICKS_PER_ZOOM + 1; // 97
 const ALL_TICKS      = PADDING * 2 + REAL_TICKS;                    // 161
+const STATE_BUTTON_TARGET_SCALE = 7354296; // > 1:50,00,000 and within state-boundary visible range
 
 const LAYERS = [
-  { key: 'district',  label: 'District',  min: 7,  max: 10.9  },
+  { key: 'state',     label: 'State',     min: 7,  max: 8.9   },
+  { key: 'district',  label: 'District',  min: 9,  max: 10.9  },
   { key: 'tehsil',    label: 'Tehsil',    min: 11, max: 12.9 },
   { key: 'village',   label: 'Village',   min: 13, max: 16.9 },
-  { key: 'cadastral', label: 'Cadastral', min: 17, max: 19 },
+  { key: 'cadastral', label: 'Murraba', min: 17, max: 19 },
 ];
 
 function getActiveKey(zoom) {
@@ -25,7 +28,7 @@ function getActiveKey(zoom) {
 function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
 
 // ── Component ─────────────────────────────────────────────────────────────────
-export default function ZoomWheelSlider({ viewRef, layersRef }) {
+export default function ZoomWheelSlider({ viewRef, layerVisibility, mapScale }) {
   const [zoom,     setZoom]     = useState(MIN_ZOOM);
   const [dragging, setDragging] = useState(false);
 
@@ -54,33 +57,16 @@ export default function ZoomWheelSlider({ viewRef, layersRef }) {
     } catch { /* navigation cancelled or view disposed */ }
   }, [viewRef, commitZoom]);
 
-  /**
-   * Auto-toggle boundary sublayers by zoom range.
-   * - District sublayer shown at zoom 7–9
-   * - Tehsil sublayer shown at zoom 10–12
-   * - Village sublayer shown at zoom 13–15
-   * - Cadastral visibility is already handled by useArcGISMap's zoomWatchHandle
-   * Silently skips if layersRef is not provided or layer plan is missing.
-   */
-  const syncLayers = useCallback((z) => {
-    const ls = layersRef?.current;
-    if (!ls?.layerPlan || !ls?.hsacBoundariesLayer) return;
-    const { layerPlan, hsacBoundariesLayer } = ls;
-    const show = {
-      district: z <= 9,
-      tehsil:   z >= 10 && z <= 12,
-      village:  z >= 13 && z <= 15,
-    };
-    [
-      [layerPlan.districtLayerId, show.district],
-      [layerPlan.tehsilLayerId,   show.tehsil  ],
-      [layerPlan.villageLayerId,  show.village ],
-    ].forEach(([id, visible]) => {
-      if (id == null) return;
-      const sub = hsacBoundariesLayer.findSublayerById?.(id);
-      if (sub) sub.visible = visible;
-    });
-  }, [layersRef]);
+  const goToScale = useCallback(async (scale) => {
+    const view = viewRef.current;
+    if (!view) return;
+    try {
+      await view.goTo({ scale }, { duration: 360, easing: 'ease-in-out' });
+    } catch { /* navigation cancelled or view disposed */ }
+  }, [viewRef]);
+
+  // UI rule: zoom slider must never auto-enable/disable map layers.
+  // Operational Layer card checkboxes are the single source of truth for layer visibility.
 
   // ── Attach ArcGIS zoom watcher (retries until MapView is ready) ────────────
   useEffect(() => {
@@ -154,14 +140,13 @@ export default function ZoomWheelSlider({ viewRef, layersRef }) {
       // Apply final fractional zoom with smooth finish animation
       const finalZoom = zoomRef.current;
       await goToZoom(finalZoom);
-      syncLayers(finalZoom);
     };
 
     window.addEventListener('mousemove', onMove);
     window.addEventListener('mouseup',   onUp);
     window.addEventListener('touchmove', onMove, { passive: false });
     window.addEventListener('touchend',  onUp);
-  }, [commitZoom, goToZoom, syncLayers, viewRef]);
+  }, [commitZoom, goToZoom, viewRef]);
 
   // ── Track-position math ───────────────────────────────────────────────────
   // The tick at index (PADDING + fractionalZoomTick) sits at 50% of the tick-zone.
@@ -170,7 +155,19 @@ export default function ZoomWheelSlider({ viewRef, layersRef }) {
   const fractionalTick = (zoom - MIN_ZOOM) * TICKS_PER_ZOOM;
   const trackTranslate  = -((PADDING + fractionalTick) * TICK_SPACING);
 
-  const activeKey = getActiveKey(zoom);
+  const zoomActiveKey = getActiveKey(zoom);
+  const layerEnabled = {
+    state: Boolean(layerVisibility?.stateBoundary),
+    district: Boolean(layerVisibility?.boundariesGroup && layerVisibility?.district),
+    tehsil: Boolean(layerVisibility?.boundariesGroup && layerVisibility?.tehsil),
+    village: Boolean(layerVisibility?.boundariesGroup && layerVisibility?.village),
+    cadastral: Boolean(layerVisibility?.cadastral),
+  };
+  const isStateScaleEligible = Number.isFinite(mapScale) && mapScale > 5000000;
+  const isMurrabaZoomLabelEligible =
+    Boolean(layerVisibility?.murrabaGrid) &&
+    Boolean(layerVisibility?.murabba) &&
+    Boolean(layerVisibility?.cadastral);
 
   return (
     <div className="zws" role="region" aria-label="Map zoom level">
@@ -219,11 +216,26 @@ export default function ZoomWheelSlider({ viewRef, layersRef }) {
               {idx > 0 && <span className="zws__sep" aria-hidden="true" />}
               <button
                 type="button"
-                className={`zws__label${activeKey === layer.key ? ' is-active' : ''}`}
-                aria-pressed={activeKey === layer.key}
+                className={`zws__label${
+                  layer.key === 'state'
+                    ? (layerEnabled.state && isStateScaleEligible ? ' is-active' : '')
+                    : layer.key === 'cadastral'
+                      ? (zoomActiveKey === layer.key && isMurrabaZoomLabelEligible ? ' is-active' : '')
+                    : (zoomActiveKey === layer.key && layerEnabled[layer.key] ? ' is-active' : '')
+                }`}
+                aria-pressed={
+                  layer.key === 'state'
+                    ? (layerEnabled.state && isStateScaleEligible)
+                    : layer.key === 'cadastral'
+                      ? (zoomActiveKey === layer.key && isMurrabaZoomLabelEligible)
+                    : (zoomActiveKey === layer.key && layerEnabled[layer.key])
+                }
                 onClick={() => {
+                  if (layer.key === 'state') {
+                    goToScale(STATE_BUTTON_TARGET_SCALE);
+                    return;
+                  }
                   goToZoom(layer.min);
-                  syncLayers(layer.min);
                 }}
               >
                 {layer.label}

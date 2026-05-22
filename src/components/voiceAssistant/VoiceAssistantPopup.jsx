@@ -17,11 +17,146 @@ import {
 import "./VoiceAssistantPopup.css";
 import { useLanguage } from "@/context/LanguageContext";
 import {
+  extractCadastralSelectionFromAnyPayload,
+  requestCadastralHindiSearch,
+  requestOwnerApiResult,
+} from "@/services/ownerSearchService";
+import {
   VOICE_COMMAND_ACTIONS,
   executeVoiceCommand,
   normalizeVoiceTranscript,
   resolveVoiceCommand,
 } from "@/voice-addon/voiceCommandRegistry";
+
+const HINDI_VILLAGE_TOKENS = ["\u0917\u093e\u0902\u0935", "\u0917\u093e\u0901\u0935", "\u0917\u094d\u0930\u093e\u092e"];
+const HINDI_MURABBA_TOKENS = ["\u092e\u0941\u0930\u092c\u093e", "\u092e\u0941\u0930\u092c\u094d\u092c\u093e"];
+const HINDI_KHASRA_TOKENS = ["\u0916\u0938\u0930\u093e"];
+const HINDI_DISTRICT_TOKENS = ["\u091c\u093f\u0932\u093e"];
+const HINDI_TEHSIL_TOKENS = ["\u0924\u0939\u0938\u0940\u0932"];
+const HINDI_NAME_TOKENS = ["\u0928\u093e\u092e"];
+const LATIN_DISTRICT_TOKENS = ["district", "jila", "zilla"];
+const LATIN_TEHSIL_TOKENS = ["tehsil", "tahsil", "tehseel"];
+const LATIN_VILLAGE_TOKENS = ["village", "gaon", "gaav", "gav", "gram"];
+const LATIN_MURABBA_TOKENS = ["murabba", "muraba", "murraba"];
+const LATIN_KHASRA_TOKENS = ["khasra", "khasara", "kasra"];
+const LATIN_NAME_TOKENS = ["name", "naam"];
+
+function asCleanText(value) {
+  return String(value ?? "").trim();
+}
+
+function hasAnyToken(text, tokens) {
+  return tokens.some((token) => text.includes(token));
+}
+
+function analyzeHindiOwnerDetailQuery(value) {
+  const text = asCleanText(value);
+  if (!text) {
+    return { isCandidate: false, isComplete: false, missingLabels: [] };
+  }
+
+  const hasDevanagari = /[\u0900-\u097F]/.test(text);
+  const lowerText = text.toLowerCase();
+
+  const hasDistrict = hasAnyToken(text, HINDI_DISTRICT_TOKENS) || hasAnyToken(lowerText, LATIN_DISTRICT_TOKENS);
+  const hasTehsil = hasAnyToken(text, HINDI_TEHSIL_TOKENS) || hasAnyToken(lowerText, LATIN_TEHSIL_TOKENS);
+  const hasVillage = hasAnyToken(text, HINDI_VILLAGE_TOKENS) || hasAnyToken(lowerText, LATIN_VILLAGE_TOKENS);
+  const hasMurabba = hasAnyToken(text, HINDI_MURABBA_TOKENS) || hasAnyToken(lowerText, LATIN_MURABBA_TOKENS);
+  const hasKhasra = hasAnyToken(text, HINDI_KHASRA_TOKENS) || hasAnyToken(lowerText, LATIN_KHASRA_TOKENS);
+  const hasName = hasAnyToken(text, HINDI_NAME_TOKENS) || hasAnyToken(lowerText, LATIN_NAME_TOKENS);
+
+  const isCandidate = hasDistrict || hasTehsil || hasVillage || hasMurabba || hasKhasra || hasName;
+  if (!isCandidate) {
+    return { isCandidate: false, isComplete: false, missingLabels: [] };
+  }
+
+  if (!hasDevanagari && !(hasDistrict && hasTehsil && hasVillage && hasMurabba && hasKhasra)) {
+    return { isCandidate: false, isComplete: false, missingLabels: [] };
+  }
+
+  const missingLabels = [];
+  if (!hasDistrict) missingLabels.push("\u091c\u093f\u0932\u093e");
+  if (!hasTehsil) missingLabels.push("\u0924\u0939\u0938\u0940\u0932");
+  if (!hasVillage) missingLabels.push("\u0917\u093e\u0901\u0935");
+  if (!hasMurabba) missingLabels.push("\u092e\u0941\u0930\u092c\u094d\u092c\u093e");
+  if (!hasKhasra) missingLabels.push("\u0916\u0938\u0930\u093e");
+
+  return {
+    isCandidate: true,
+    isComplete: missingLabels.length === 0,
+    missingLabels,
+  };
+}
+
+async function resolveHindiOwnerSelectionFromBackend(queryText) {
+  const ownerLookup = await requestOwnerApiResult(queryText);
+  if (!ownerLookup?.ok) {
+    return {
+      ok: false,
+      handled: true,
+      message: ownerLookup?.error || "Owner details request failed.",
+      payload: ownerLookup?.payload,
+    };
+  }
+  const selection = extractCadastralSelectionFromAnyPayload(ownerLookup.payload);
+  if (!selection) {
+    return { ok: false, handled: true, message: "Hindi owner details could not be mapped to cadastral codes.", payload: ownerLookup.payload };
+  }
+  return { ok: true, handled: true, selection, payload: ownerLookup.payload };
+}
+
+async function resolveHindiSelectionFromCadastralBackend(queryText) {
+  const cadastralLookup = await requestCadastralHindiSearch(queryText);
+  if (!cadastralLookup?.ok) {
+    return {
+      ok: false,
+      handled: true,
+      message: cadastralLookup?.error || "Cadastral lookup failed.",
+      payload: cadastralLookup?.payload,
+    };
+  }
+
+  const selection = extractCadastralSelectionFromAnyPayload(cadastralLookup.payload);
+  if (!selection) {
+    return { ok: false, handled: true, message: "Cadastral lookup returned incomplete parcel codes.", payload: cadastralLookup.payload };
+  }
+  return { ok: true, handled: true, selection, payload: cadastralLookup.payload };
+}
+
+function requestOpenCadastralOnMap(selectionPayload) {
+  return new Promise((resolve) => {
+    const requestId = `voice-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const cleanup = (handler) => {
+      window.removeEventListener("eodb-chatbot-cadastral-open-result", handler);
+    };
+
+    const timeoutId = window.setTimeout(() => {
+      cleanup(onResult);
+      resolve({ ok: false, message: "Map did not respond in time." });
+    }, 12000);
+
+    const onResult = (event) => {
+      const detail = event?.detail || {};
+      if (detail?.requestId !== requestId) {
+        return;
+      }
+      window.clearTimeout(timeoutId);
+      cleanup(onResult);
+      resolve(detail || { ok: false, message: "Could not open cadastral parcel on map." });
+    };
+
+    window.addEventListener("eodb-chatbot-cadastral-open-result", onResult);
+    window.dispatchEvent(
+      new CustomEvent("eodb-chatbot-open-cadastral", {
+        detail: {
+          ...selectionPayload,
+          __requestSource: "voice-assistant",
+          __requestId: requestId,
+        },
+      }),
+    );
+  });
+}
 
 // Icon mapping for suggestion chips — keyed on the phrase string
 const CHIP_ICON = {
@@ -126,6 +261,7 @@ export default function VoiceAssistantPopup({
   const speechRetryTimerRef   = useRef(null);
   const isProcessingRef       = useRef(false);
   const transcriptRef         = useRef("");
+  const interimRef            = useRef("");
   const heardSpeechRef        = useRef(false);
   const noSpeechTimedOutRef   = useRef(false);
   const micPromptDismissedRef = useRef(false);
@@ -189,6 +325,7 @@ export default function VoiceAssistantPopup({
   // ── Timer helpers ─────────────────────────────────────────────────
   useEffect(() => { actionHandlersRef.current = actionHandlers; }, [actionHandlers]);
   useEffect(() => { transcriptRef.current = transcriptText; },    [transcriptText]);
+  useEffect(() => { interimRef.current = interimText; },          [interimText]);
 
   const closePanelLater = (ms = 1200) => {
     if (autoCloseTimerRef.current) {
@@ -332,6 +469,61 @@ export default function VoiceAssistantPopup({
       setVoicePanelStatus("No command heard. Please try again.");
       return;
     }
+
+    const hindiOwnerQuery = analyzeHindiOwnerDetailQuery(commandText);
+    if (hindiOwnerQuery.isCandidate) {
+      if (!hindiOwnerQuery.isComplete) {
+        const missing = hindiOwnerQuery.missingLabels.join(", ");
+        const message = missing
+          ? `Hindi land query detected. Missing fields: ${missing}.`
+          : "Hindi land query detected, but details are incomplete.";
+        setVoicePanelStatus(message);
+        onStatusChange(message);
+        return;
+      }
+
+      setVoicePanelStatus("Hindi land query detected. Checking backend...");
+      onStatusChange("Hindi land-details query detected. Fetching from backend...");
+      try {
+        const ownerLookup = await resolveHindiOwnerSelectionFromBackend(commandText);
+        let resolvedSelection = ownerLookup?.selection || null;
+
+        if (!resolvedSelection) {
+          setVoicePanelStatus("Owner API did not return full parcel. Trying cadastral resolver...");
+          onStatusChange("Trying cadastral resolver with spoken query...");
+          const cadastralLookup = await resolveHindiSelectionFromCadastralBackend(commandText);
+          if (cadastralLookup?.ok && cadastralLookup?.selection) {
+            resolvedSelection = cadastralLookup.selection;
+          }
+        }
+
+        if (resolvedSelection) {
+          setVoicePanelStatus("Owner details matched. Opening cadastral parcel...");
+          onStatusChange("Owner details matched. Opening parcel on map...");
+          const openResult = await requestOpenCadastralOnMap(resolvedSelection);
+          if (openResult?.ok) {
+            setVoicePanelStatus("Hindi cadastral parcel opened on map.");
+            onStatusChange(openResult?.message || "Opened cadastral parcel on map.");
+            closePanelLater(1000);
+            return;
+          }
+          const failMessage = openResult?.message || "Could not open cadastral parcel on map.";
+          setVoicePanelStatus(failMessage);
+          onStatusChange(failMessage);
+          return;
+        }
+
+        const failMessage = ownerLookup?.message || "Hindi query processed, but parcel details were not found.";
+        setVoicePanelStatus(failMessage);
+        onStatusChange(failMessage);
+        return;
+      } catch {
+        setVoicePanelStatus("Hindi query failed while calling backend.");
+        onStatusChange("Hindi query failed while calling backend.");
+        return;
+      }
+    }
+
     const command = forcedCommand || resolveVoiceCommand(commandText);
     if (!command) {
       const norm = normalizeVoiceTranscript(commandText);
@@ -343,9 +535,16 @@ export default function VoiceAssistantPopup({
           { transcript: commandText, normalizedTranscript: norm },
         ));
       } catch { fb = { ok: false }; }
+      if (fb?.pendingSelection) {
+        const message = fb?.message || "Suggestions are ready. Please select one from the search list.";
+        setVoicePanelStatus(message);
+        onStatusChange(message);
+        stopAndClosePanel();
+        return;
+      }
       if (fb?.ok === false) {
-        setVoicePanelStatus(`Unknown command: "${commandText}"`);
-        onStatusChange(`Unknown command: "${commandText}".`);
+        setVoicePanelStatus("Command not recognized. Please try again.");
+        onStatusChange("Command not recognized. Please try again.");
         return;
       }
       setVoicePanelStatus(`Command recognized: "${commandText}"`);
@@ -362,7 +561,8 @@ export default function VoiceAssistantPopup({
       }));
     } catch { outcome = { ok: false }; }
     if (outcome?.ok === false) {
-      setVoicePanelStatus(`Command action failed for: "${commandText}"`);
+      setVoicePanelStatus("Command action failed. Please try again.");
+      onStatusChange("Command action failed. Please try again.");
       return;
     }
     closePanelLater(1000);
@@ -430,6 +630,8 @@ export default function VoiceAssistantPopup({
       setIsListening(true);
       setIsProcessingCmd(false);
       isProcessingRef.current = false;
+      transcriptRef.current = "";
+      interimRef.current = "";
       clearTypingTimers();
       clearNoSpeechTimer();
       heardSpeechRef.current = false;
@@ -446,6 +648,11 @@ export default function VoiceAssistantPopup({
       clearNoSpeechTimer();
       if (noSpeechTimedOutRef.current) { noSpeechTimedOutRef.current = false; return; }
       if (isProcessingRef.current) return;
+      const fallbackTranscript = `${interimRef.current || ""}`.trim();
+      if (!transcriptRef.current.trim() && fallbackTranscript) {
+        animateTypingThenRunCommand(fallbackTranscript);
+        return;
+      }
       if (!transcriptRef.current.trim()) {
         setVoicePanelStatus(
           heardSpeechRef.current
@@ -487,10 +694,12 @@ export default function VoiceAssistantPopup({
     r.onresult = (event) => {
       if (isProcessingRef.current) return;
       const { finalText, interimText: nextInterim } = extractLiveTranscript(event);
+      interimRef.current = nextInterim;
       setInterimText(nextInterim);
       if (finalText || nextInterim) { heardSpeechRef.current = true; clearNoSpeechTimer(); setListenCountdown(0); }
       if (finalText) setTranscriptText(finalText);
       const allFinal = extractTranscript(event);
+      transcriptRef.current = allFinal.trim();
       const latest = event.results[event.resultIndex];
       if (latest?.isFinal && allFinal.trim()) animateTypingThenRunCommand(allFinal.trim());
     };
@@ -606,6 +815,8 @@ export default function VoiceAssistantPopup({
     setVoicePanelOpen(true);
     setTranscriptText("");
     setInterimText("");
+    transcriptRef.current = "";
+    interimRef.current = "";
     setTypedPreview("");
     if (micPermissionState === "granted") setVoicePanelStatus(promptText.saySomething);
     else if (micPermissionState === "denied") setVoicePanelStatus("Microphone blocked. Allow mic in browser settings.");

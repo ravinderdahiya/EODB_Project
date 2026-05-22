@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Login.css";
 import { useLanguage } from "@/context/LanguageContext";
@@ -6,49 +6,27 @@ import axiosInstance from "../utils/axiosInstance";
 import LanguageToggle from "@/components/LanguageToggle";
 import { encrypt } from "../utils/crypto";
 import { reloadRuntimeConfig } from "@/config/runtimeConfig";
-
-const GOOGLE_GSI_SCRIPT_ID = "google-gsi-client";
-
-function loadGoogleIdentityScript() {
-  return new Promise((resolve, reject) => {
-    if (window.google?.accounts?.id) {
-      resolve();
-      return;
-    }
-
-    const existing = document.getElementById(GOOGLE_GSI_SCRIPT_ID);
-    if (existing) {
-      existing.addEventListener("load", () => resolve(), { once: true });
-      existing.addEventListener("error", () => reject(new Error("Failed to load Google GSI")), { once: true });
-      return;
-    }
-
-    const script = document.createElement("script");
-    script.id = GOOGLE_GSI_SCRIPT_ID;
-    script.src = "https://accounts.google.com/gsi/client";
-    script.async = true;
-    script.defer = true;
-    script.onload = () => resolve();
-    script.onerror = () => reject(new Error("Failed to load Google GSI"));
-    document.head.appendChild(script);
-  });
-}
+import { mountSplash } from "../splash";
 
 export default function Login() {
   const navigate = useNavigate();
-  const { t } = useLanguage();
+  const { t, hasPersistedLanguage, setPreviewLang, ensureLanguage } = useLanguage();
+  const previewIntervalRef = useRef(null);
+  const previewLangRef = useRef("en");
 
-  const [tab, setTab] = useState("otp");
   const [phone, setPhone] = useState("");
   const [adminId, setAdminId] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [adminError, setAdminError] = useState("");
+  const [showAdminPanel, setShowAdminPanel] = useState(false);
   const [showOtpInput, setShowOtpInput] = useState(false);
   const [otp, setOtp] = useState(["", "", "", ""]);
   const [otpTimer, setOtpTimer] = useState(0);
   const [isSendingOtp, setIsSendingOtp] = useState(false);
   const [isResendingOtp, setIsResendingOtp] = useState(false);
   const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
+  const [isAdminLoggingIn, setIsAdminLoggingIn] = useState(false);
 
   const isOtpExpired = showOtpInput && otpTimer === 0;
   const canResendOtp = showOtpInput && otpTimer === 0 && !isResendingOtp && !isSendingOtp;
@@ -70,6 +48,30 @@ export default function Login() {
 
     return () => clearInterval(intervalId);
   }, [showOtpInput, otpTimer]);
+
+  useEffect(() => {
+    if (hasPersistedLanguage) {
+      if (previewIntervalRef.current) {
+        clearInterval(previewIntervalRef.current);
+        previewIntervalRef.current = null;
+      }
+      return undefined;
+    }
+
+    if (previewIntervalRef.current) return undefined;
+
+    previewIntervalRef.current = window.setInterval(() => {
+      previewLangRef.current = previewLangRef.current === "en" ? "hi" : "en";
+      setPreviewLang(previewLangRef.current);
+    }, 10000);
+
+    return () => {
+      if (previewIntervalRef.current) {
+        clearInterval(previewIntervalRef.current);
+        previewIntervalRef.current = null;
+      }
+    };
+  }, [hasPersistedLanguage, setPreviewLang]);
 
   const handleVerifyOtp = async () => {
     const enteredOtp = otp.join("");
@@ -95,7 +97,9 @@ export default function Login() {
       localStorage.setItem("user", JSON.stringify(res.data.user));
       localStorage.setItem("isAdmin", "false");
       sessionStorage.setItem("isAuthenticated", "true");
+      ensureLanguage("en");
       await reloadRuntimeConfig();
+      mountSplash();
       navigate("/map");
     } catch (err) {
       setError(err.response?.data?.message || t("login.errOtpFailed"));
@@ -122,50 +126,51 @@ export default function Login() {
     }
   };
 
-  const handleLogin = async (e) => {
+  const handlePublicLogin = async (e) => {
     e.preventDefault();
     setError("");
 
-    if (tab === "otp") {
-      if (showOtpInput) {
-        await handleVerifyOtp();
-        return;
-      }
-
-      if (!phone.trim()) {
-        setError(t("login.errNoPhone"));
-        return;
-      }
-
-      if (!/^\d{10}$/.test(phone)) {
-        setError(t("login.errBadPhone"));
-        return;
-      }
-
-      try {
-        setIsSendingOtp(true);
-        const res = await axiosInstance.post("/otp/send-otp", { phone });
-        if (res.data.message) {
-          setShowOtpInput(true);
-          setOtp(["", "", "", ""]);
-          setOtpTimer(120);
-        }
-      } catch (err) {
-        setError(err.response?.data?.message || t("login.errSendFailed"));
-      } finally {
-        setIsSendingOtp(false);
-      }
-
+    if (showOtpInput) {
+      await handleVerifyOtp();
       return;
     }
 
-    // Admin login via API
-    if (!adminId.trim() || !password.trim()) {
-      setError(t("login.errBadAdmin"));
+    if (!phone.trim()) {
+      setError(t("login.errNoPhone"));
+      return;
+    }
+
+    if (!/^\d{10}$/.test(phone)) {
+      setError(t("login.errBadPhone"));
       return;
     }
 
     try {
+      setIsSendingOtp(true);
+      const res = await axiosInstance.post("/otp/send-otp", { phone });
+      if (res.data.message) {
+        setShowOtpInput(true);
+        setOtp(["", "", "", ""]);
+        setOtpTimer(120);
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || t("login.errSendFailed"));
+    } finally {
+      setIsSendingOtp(false);
+    }
+  };
+
+  const handleAdminLogin = async (e) => {
+    e.preventDefault();
+    setAdminError("");
+
+    if (!adminId.trim() || !password.trim()) {
+      setAdminError(t("login.errBadAdmin"));
+      return;
+    }
+
+    try {
+      setIsAdminLoggingIn(true);
       const res = await axiosInstance.post("/user/admin-login", {
         adminId,
         password
@@ -176,101 +181,20 @@ export default function Login() {
       localStorage.setItem("user", JSON.stringify(res.data.user));
       localStorage.setItem("isAdmin", "true");
       sessionStorage.setItem("isAuthenticated", "true");
+      ensureLanguage("en");
       await reloadRuntimeConfig();
+      setShowAdminPanel(false);
       navigate("/admin");
     } catch (err) {
-      setError(err.response?.data?.message || t("login.errBadAdmin"));
+      setAdminError(err.response?.data?.message || t("login.errBadAdmin"));
+    } finally {
+      setIsAdminLoggingIn(false);
     }
   };
 
-  const switchTab = (next) => {
-    setTab(next);
-    setError("");
-    if (next !== "otp") {
-      setShowOtpInput(false);
-      setOtp(["", "", "", ""]);
-      setOtpTimer(0);
-    }
-  };
-
-  const handleGoogleSignIn = async (response) => {
-    if (!response?.credential) {
-      setError(t("login.errGoogleFailed"));
-      return;
-    }
-
-    try {
-      const res = await axiosInstance.post("/user/google-login", {
-        credential: response.credential,
-      });
-
-      const token = res.data?.token;
-      const user = res.data?.user;
-
-      if (!token || !user) {
-        throw new Error("Google login failed");
-      }
-
-      localStorage.setItem("token", encrypt(token));
-      localStorage.setItem("user", JSON.stringify(user));
-      localStorage.setItem("isAdmin", user.role === "admin" || user.role === "superadmin" ? "true" : "false");
-      sessionStorage.setItem("isAuthenticated", "true");
-      await reloadRuntimeConfig();
-      navigate("/map");
-    } catch (err) {
-      console.error(err);
-      setError(err.response?.data?.message || t("login.errGoogleFailed"));
-    }
-  };
-
-  const initializeGoogle = () => {
-    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-    if (!clientId || !window.google?.accounts?.id) return;
-
-    window.google.accounts.id.initialize({
-      client_id: clientId,
-      callback: handleGoogleSignIn,
-      ux_mode: "popup",
-    });
-  };
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    let disposed = false;
-
-    loadGoogleIdentityScript()
-      .then(() => {
-        if (disposed) return;
-        initializeGoogle();
-      })
-      .catch(() => {
-        if (disposed) return;
-        setError(t("login.errGoogleNotReady"));
-      });
-
-    return () => {
-      disposed = true;
-    };
-  }, []);
-
-  const handleGoogleLoginClick = () => {
-    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-    if (!clientId) {
-      setError("Google client ID is not configured. Add VITE_GOOGLE_CLIENT_ID.");
-      return;
-    }
-
-    if (!window.google?.accounts?.id) {
-      setError(t("login.errGoogleNotReady"));
-      return;
-    }
-
-    window.google.accounts.id.prompt((notification) => {
-      if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-        setError(t("login.errGooglePrompt"));
-      }
-    });
+  const toggleAdminPanel = () => {
+    setShowAdminPanel((prev) => !prev);
+    setAdminError("");
   };
 
   return (
@@ -297,7 +221,49 @@ export default function Login() {
             btnClass="lp-lang-btn"
             activeClass="lp-lang-btn--active"
           />
-          <button type="button" className="lp-chat-btn">{t("login.chatBtn")}</button>
+          <button
+            type="button"
+            className="lp-chat-btn"
+            onClick={toggleAdminPanel}
+            aria-expanded={showAdminPanel}
+            aria-controls="lp-admin-dropdown"
+          >
+            {t("login.tabAdmin")}
+          </button>
+
+          {showAdminPanel && (
+            <div id="lp-admin-dropdown" className="lp-admin-dropdown" role="dialog" aria-label={t("login.tabAdmin")}>
+              <form className="lp-admin-dropdown-form" onSubmit={handleAdminLogin} noValidate>
+                <label className="lp-admin-dropdown-label" htmlFor="lp-admin-id">
+                  {t("login.adminIdLabel")}
+                </label>
+                <input
+                  id="lp-admin-id"
+                  className="lp-admin-dropdown-input"
+                  type="text"
+                  value={adminId}
+                  onChange={(e) => setAdminId(e.target.value)}
+                />
+
+                <label className="lp-admin-dropdown-label" htmlFor="lp-admin-password">
+                  {t("login.passwordLabel")}
+                </label>
+                <input
+                  id="lp-admin-password"
+                  className="lp-admin-dropdown-input"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+
+                {adminError && <p className="lp-admin-error">{adminError}</p>}
+
+                <button type="submit" className="lp-btn-green" disabled={isAdminLoggingIn}>
+                  {t("login.adminLoginBtn")}
+                </button>
+              </form>
+            </div>
+          )}
         </div>
       </header>
 
@@ -318,185 +284,134 @@ export default function Login() {
 
           <div className="lp-stats">
             <div className="lp-stat-card"><h3>23</h3><p>{t("login.statsDistricts")}</p></div>
-            <div className="lp-stat-card"><h3>94</h3><p>{t("login.statsTehsils")}</p></div>
-            <div className="lp-stat-card"><h3>6,812</h3><p>{t("login.statsVillages")}</p></div>
-            <div className="lp-stat-card"><h3>3.2Cr+</h3><p>{t("login.statsParcels")}</p></div>
+            <div className="lp-stat-card"><h3>143</h3><p>{t("login.statsTehsils")}</p></div>
+            <div className="lp-stat-card"><h3>7,103</h3><p>{t("login.statsVillages")}</p></div>
+            <div className="lp-stat-card"><h3>1.7Cr+</h3><p>{t("login.statsParcels")}</p></div>
           </div>
 
         </section>
 
         {/* RIGHT — Login Card */}
         <aside className="lp-card">
-          <div className="lp-logo-flip lp-lock-circle" aria-hidden="true">
-            <img src={import.meta.env.BASE_URL + "branding/Emblem_of_Haryana.svg"} alt="Haryana Logo" />
-            <img src={import.meta.env.BASE_URL + "branding/harsac.png"}   alt="HARSAC Logo" />
-          </div>
+          <div className="lp-card-main">
+            <div className="lp-logo-flip lp-lock-circle" aria-hidden="true">
+              <img src={import.meta.env.BASE_URL + "branding/Emblem_of_Haryana.svg"} alt="Haryana Logo" />
+              <img src={import.meta.env.BASE_URL + "branding/harsac.png"}   alt="HARSAC Logo" />
+            </div>
 
-          <h2 className="lp-card-title">{t("login.cardTitle")}</h2>
-          <p className="lp-subtext">{t("login.cardSubtitle")}</p>
+            <h2 className="lp-card-title">{t("login.cardTitle")}</h2>
+            <p className="lp-subtext">{t("login.cardSubtitle")}</p>
 
-          {/* Tabs */}
-          <div className="lp-tabs" role="tablist">
-            <button
-              type="button"
-              role="tab"
-              aria-selected={tab === "otp"}
-              className={`lp-tab${tab === "otp" ? " lp-tab--active" : ""}`}
-              onClick={() => switchTab("otp")}
-            >
-              {t("login.tabOtp")}
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={tab === "admin"}
-              className={`lp-tab${tab === "admin" ? " lp-tab--active" : ""}`}
-              onClick={() => switchTab("admin")}
-            >
-              {t("login.tabAdmin")}
-            </button>
-          </div>
+            {/* Public login marker (admin login moved to header) */}
+            <div className="lp-tabs lp-tabs--single" role="tablist">
+              <button type="button" role="tab" aria-selected={true} className="lp-tab lp-tab--active">
+                {t("login.tabOtp")}
+              </button>
+            </div>
 
-          {/* Form */}
-          <form onSubmit={handleLogin} noValidate>
-            {tab === "otp" ? (
-              <>
-                <label className="lp-label" htmlFor="lp-phone">
-                  {t("login.phoneLabel")}
-                </label>
+            {/* Form */}
+            <form onSubmit={handlePublicLogin} noValidate>
+              {!showOtpInput ? (
+                <>
+                  <label className="lp-label" htmlFor="lp-phone">
+                    {t("login.phoneLabel")}
+                  </label>
 
-                <div className="lp-input-row">
-                  <div className="lp-country">+91 ▾</div>
-                  <input
-                    id="lp-phone"
-                    className="lp-phone-input"
-                    type="tel"
-                    inputMode="numeric"
-                    pattern="[0-9]*"
-                    maxLength={10}
-                    placeholder={t("login.phonePlaceholder")}
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
-                    onKeyDown={(e) => {
-                      const allowed = ["Backspace","Delete","Tab","Escape","Enter","ArrowLeft","ArrowRight","Home","End"];
-                      if (!allowed.includes(e.key) && !/^\d$/.test(e.key)) e.preventDefault();
-                    }}
-                    onPaste={(e) => {
-                      e.preventDefault();
-                      const digits = e.clipboardData.getData("text").replace(/\D/g, "");
-                      setPhone(digits.slice(0, 10));
-                    }}
-                  />
-                </div>
+                  <div className="lp-input-row">
+                    <div className="lp-country">+91 ▾</div>
+                    <input
+                      id="lp-phone"
+                      className="lp-phone-input"
+                      type="tel"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      maxLength={10}
+                      placeholder={t("login.phonePlaceholder")}
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
+                      onKeyDown={(e) => {
+                        const allowed = ["Backspace","Delete","Tab","Escape","Enter","ArrowLeft","ArrowRight","Home","End"];
+                        if (!allowed.includes(e.key) && !/^\d$/.test(e.key)) e.preventDefault();
+                      }}
+                      onPaste={(e) => {
+                        e.preventDefault();
+                        const digits = e.clipboardData.getData("text").replace(/\D/g, "");
+                        setPhone(digits.slice(0, 10));
+                      }}
+                    />
+                  </div>
 
-                {!showOtpInput ? (
                   <button type="submit" className="lp-btn-green" disabled={isSendingOtp}>
                     {t("login.sendOtp")}
                   </button>
-                ) : (
-                  <>
-                    <label className="lp-label">{t("login.enterOtp")}</label>
+                </>
+              ) : (
+                <>
+                  <label className="lp-label">{t("login.enterOtp")}</label>
 
-                    <div className="otp-container">
-                      {otp.map((digit, index) => (
-                        <input
-                          key={index}
-                          id={`otp-${index}`}
-                          type="tel"
-                          inputMode="numeric"
-                          pattern="[0-9]*"
-                          maxLength="1"
-                          className="otp-input"
-                          value={digit}
-                          autoComplete={index === 0 ? "one-time-code" : "off"}
-                          onChange={(e) => {
-                            const value = e.target.value.replace(/\D/, "");
-                            const newOtp = [...otp];
-                            newOtp[index] = value;
-                            setOtp(newOtp);
-                            if (value && index < 3) {
-                              document.getElementById(`otp-${index + 1}`).focus();
-                            }
-                          }}
-                          onKeyDown={(e) => {
-                            const allowed = ["Tab","Escape","Enter","ArrowLeft","ArrowRight"];
-                            if (!allowed.includes(e.key) && !/^\d$/.test(e.key) && e.key !== "Backspace" && e.key !== "Delete") {
-                              e.preventDefault();
-                              return;
-                            }
-                            if (e.key === "Backspace" && !otp[index] && index > 0) {
-                              document.getElementById(`otp-${index - 1}`).focus();
-                            }
-                          }}
-                          onPaste={(e) => e.preventDefault()}
-                        />
-                      ))}
-                    </div>
+                  <div className="otp-container">
+                    {otp.map((digit, index) => (
+                      <input
+                        key={index}
+                        id={`otp-${index}`}
+                        type="tel"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        maxLength="1"
+                        className="otp-input"
+                        value={digit}
+                        autoComplete={index === 0 ? "one-time-code" : "off"}
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/\D/, "");
+                          const newOtp = [...otp];
+                          newOtp[index] = value;
+                          setOtp(newOtp);
+                          if (value && index < 3) {
+                            document.getElementById(`otp-${index + 1}`).focus();
+                          }
+                        }}
+                        onKeyDown={(e) => {
+                          const allowed = ["Tab","Escape","Enter","ArrowLeft","ArrowRight"];
+                          if (!allowed.includes(e.key) && !/^\d$/.test(e.key) && e.key !== "Backspace" && e.key !== "Delete") {
+                            e.preventDefault();
+                            return;
+                          }
+                          if (e.key === "Backspace" && !otp[index] && index > 0) {
+                            document.getElementById(`otp-${index - 1}`).focus();
+                          }
+                        }}
+                        onPaste={(e) => e.preventDefault()}
+                      />
+                    ))}
+                  </div>
 
-                    <div className="lp-otp-meta">
-                      <p className={`lp-otp-timer${isOtpExpired ? " is-expired" : ""}`}>
-                        {isOtpExpired
-                          ? t("login.otpExpiredNow")
-                          : `${t("login.otpExpiresIn")} ${timerText}`}
-                      </p>
-                      <button
-                        type="button"
-                        className="lp-resend-btn"
-                        disabled={!canResendOtp}
-                        onClick={handleResendOtp}
-                      >
-                        {canResendOtp
-                          ? t("login.resendOtp")
-                          : `${t("login.resendOtpIn")} ${timerText}`}
-                      </button>
-                    </div>
-
-                    <button type="submit" className="lp-btn-green" disabled={!canVerifyOtp}>
-                      {t("login.verifyOtp")}
+                  <div className="lp-otp-meta">
+                    <p className={`lp-otp-timer${isOtpExpired ? " is-expired" : ""}`}>
+                      {isOtpExpired
+                        ? t("login.otpExpiredNow")
+                        : `${t("login.otpExpiresIn")} ${timerText}`}
+                    </p>
+                    <button
+                      type="button"
+                      className="lp-resend-btn"
+                      disabled={!canResendOtp}
+                      onClick={handleResendOtp}
+                    >
+                      {canResendOtp
+                        ? t("login.resendOtp")
+                        : `${t("login.resendOtpIn")} ${timerText}`}
                     </button>
-                  </>
-                )}
-              </>
-            ) : (
-              <>
-                <label className="lp-label">{t("login.adminIdLabel")}</label>
-                <input
-                  className="lp-full-input"
-                  type="text"
-                  value={adminId}
-                  onChange={(e) => setAdminId(e.target.value)}
-                />
+                  </div>
 
-                <label className="lp-label">{t("login.passwordLabel")}</label>
-                <input
-                  className="lp-full-input"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
+                  <button type="submit" className="lp-btn-green" disabled={!canVerifyOtp}>
+                    {t("login.verifyOtp")}
+                  </button>
+                </>
+              )}
 
-                <button type="submit" className="lp-btn-green">
-                  {t("login.adminLoginBtn")}
-                </button>
-              </>
-            )}
-
-            {error && <p className="lp-error">{error}</p>}
-
-           
-          </form>
-
-          <div className="lp-divider" aria-hidden="true">
-            <span /><span>{t("login.or")}</span><span />
+              {error && <p className="lp-error">{error}</p>}
+            </form>
           </div>
-
-          <button
-            type="button"
-            className="lp-btn-outline"
-            onClick={handleGoogleLoginClick}
-          >
-            {t("login.loginGoogle")}
-          </button>
 
           <p className="lp-terms">
             {t("login.termsText")}{" "}

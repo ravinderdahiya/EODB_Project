@@ -1,5 +1,5 @@
 export const PRINT_DISCLAIMER =
-  "All the revenue information displayed on these maps is based on the data provided by Haryana Revenue Department. HARSAC is not responsible for any discrepancy in the data, if any. This information on the map is not for any dispute in the court of law. It is for viewing purposes only. The map scale is 1:4,000.";
+  "All the revenue information displayed on these maps is based on the data provided by Haryana Revenue Department. HARSAC is not responsible for any discrepancy in the data, if any. This information on the map is not for any dispute in the court of law. It is for viewing purposes only. The map scale is 1:10,00,000.";
 
 let _lastBaseName = null;
 let _counter = 1;
@@ -31,4 +31,47 @@ export function triggerPrint() {
   window.addEventListener("afterprint", () => {
     document.title = prevTitle;
   }, { once: true });
+}
+
+export async function waitForMapToSettle(view, maxWaitMs = 3500) {
+  const start = Date.now();
+  while (view?.updating && Date.now() - start < maxWaitMs) {
+    await new Promise((resolve) => setTimeout(resolve, 120));
+  }
+}
+
+export async function takeMapScreenshotWithRetry(view) {
+  try {
+    const shot = await view.takeScreenshot({ format: "png" });
+    return shot?.dataUrl ?? null;
+  } catch (firstErr) {
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    try {
+      const retryShot = await view.takeScreenshot({ format: "png" });
+      return retryShot?.dataUrl ?? null;
+    } catch (retryErr) {
+      console.warn("Map screenshot retry failed:", retryErr.message);
+      console.warn("Map screenshot initial failure:", firstErr.message);
+      return null;
+    }
+  }
+}
+
+export async function runPrintViewLifecycle({
+  zoomForPrint,
+  restoreExtentAfterPrint,
+  beforePrintDelayMs = 1400,
+}) {
+  document.body.classList.add("print-parcel-view");
+  const savedExtent = await zoomForPrint();
+  await new Promise((resolve) => setTimeout(resolve, beforePrintDelayMs));
+  triggerPrint();
+  window.addEventListener(
+    "afterprint",
+    async () => {
+      document.body.classList.remove("print-parcel-view");
+      await restoreExtentAfterPrint(savedExtent);
+    },
+    { once: true },
+  );
 }

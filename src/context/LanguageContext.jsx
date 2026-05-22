@@ -4,27 +4,60 @@ import hi from "@/i18n/hi";
 
 const STORAGE_KEY = "eodb-lang";
 const DICTS = { en, hi };
+const SUPPORTED_LANGS = new Set(["en", "hi"]);
 
 function getStoredLang() {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored === "en" || stored === "hi") return stored;
+    if (SUPPORTED_LANGS.has(stored)) return stored;
   } catch {
     // localStorage unavailable
   }
-  return "en";
+  return null;
+}
+
+function getInitialLanguageState() {
+  const storedLang = getStoredLang();
+  return {
+    lang: storedLang ?? "en",
+    hasPersistedLanguage: Boolean(storedLang),
+  };
 }
 
 const LanguageContext = createContext(null);
 
 export function LanguageProvider({ children }) {
-  const [lang, setLangState] = useState(getStoredLang);
+  const [lang, setLangState] = useState(() => getInitialLanguageState().lang);
+  const [hasPersistedLanguage, setHasPersistedLanguage] = useState(
+    () => getInitialLanguageState().hasPersistedLanguage,
+  );
 
-  const setLang = useCallback((next) => {
-    if (next !== "en" && next !== "hi") return;
-    setLangState(next);
-    try { localStorage.setItem(STORAGE_KEY, next); } catch { /* ignore */ }
+  const persistLang = useCallback((next) => {
+    setHasPersistedLanguage(true);
+    try {
+      localStorage.setItem(STORAGE_KEY, next);
+    } catch {
+      // localStorage unavailable
+    }
   }, []);
+
+  const setLang = useCallback((next, options = {}) => {
+    if (!SUPPORTED_LANGS.has(next)) return;
+    const { persist = true } = options;
+    setLangState((prev) => (prev === next ? prev : next));
+    if (persist) persistLang(next);
+  }, [persistLang]);
+
+  const setPreviewLang = useCallback((next) => {
+    setLang(next, { persist: false });
+  }, [setLang]);
+
+  const ensureLanguage = useCallback((fallback = "en") => {
+    const next = SUPPORTED_LANGS.has(fallback) ? fallback : "en";
+    if (hasPersistedLanguage) return;
+    setLangState((prev) => (prev === next ? prev : next));
+    persistLang(next);
+  }, [hasPersistedLanguage, persistLang]);
 
   // Apply data-lang attribute for CSS font targeting and no-flicker on hydration
   useEffect(() => {
@@ -47,7 +80,16 @@ export function LanguageProvider({ children }) {
   );
 
   return (
-    <LanguageContext.Provider value={{ lang, setLang, t }}>
+    <LanguageContext.Provider
+      value={{
+        lang,
+        setLang,
+        setPreviewLang,
+        hasPersistedLanguage,
+        ensureLanguage,
+        t,
+      }}
+    >
       {children}
     </LanguageContext.Provider>
   );

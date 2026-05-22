@@ -1,7 +1,7 @@
 import { useLanguage } from "@/context/LanguageContext";
 
 /**
- * Segmented EN / हि language toggle button pair.
+ * Segmented ENG / हि language toggle button pair.
  * Reads and writes lang via LanguageContext — no props needed for state.
  *
  * @param {string} [wrapperClass]  CSS class for the container div   (default: "lang-toggle")
@@ -18,7 +18,7 @@ export default function LanguageToggle({
   const { lang, setLang } = useLanguage();
 
   return (
-    <div className={wrapperClass} aria-label={label}>
+    <div className={wrapperClass} aria-label={label} data-active-lang={lang}>
       <button
         type="button"
         className={`${btnClass}${lang === "en" ? ` ${activeClass}` : ""}`}
@@ -26,7 +26,7 @@ export default function LanguageToggle({
         aria-pressed={lang === "en"}
         title="English"
       >
-        EN
+        ENG
       </button>
       <button
         type="button"
@@ -35,7 +35,7 @@ export default function LanguageToggle({
         aria-pressed={lang === "hi"}
         title="हिंदी"
       >
-        हि
+        हिन्दी
       </button>
     </div>
   );

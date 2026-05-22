@@ -97,6 +97,7 @@ const DEFAULT_RUNTIME_CONFIG = {
   VITE_NHAI_ROADS_URL: withBasePath(fallbackBackendBasePath, "/mapserver/service/nhaiRoads"),
   VITE_HARYANA_ROADS_URL: withBasePath(fallbackBackendBasePath, "/mapserver/service/haryanaRoads"),
   VITE_OWNER_API_ENDPOINT: withBasePath(fallbackBackendBasePath, "/api-url/owner-search"),
+  VITE_CADASTRAL_HINDI_SEARCH_ENDPOINT: withBasePath(fallbackBackendBasePath, "/api-url/cadastral-hindi-search"),
   VITE_ARCGIS_API_KEY: import.meta.env.VITE_ARCGIS_API_KEY || "",
   VITE_GA_MEASUREMENT_ID: import.meta.env.VITE_GA_MEASUREMENT_ID || "",
 };
