@@ -1,5 +1,4 @@
 import axios from "axios";
-import { decrypt } from "./crypto";
 
 function normalizeBasePath(value) {
   const raw = `${value || ""}`.trim();
@@ -89,38 +88,18 @@ const apiBaseUrl = resolveApiBaseUrl();
 
 const axiosInstance = axios.create({
   baseURL: apiBaseUrl,
-  withCredentials: true, // Send httpOnly auth_token cookie automatically
+  withCredentials: true,
 });
 
-// ✅ Request Interceptor (Attach decrypted token)
-axiosInstance.interceptors.request.use((config) => {
-  const encryptedToken = localStorage.getItem("token");
-
-  if (encryptedToken) {
-    try {
-      const token = decrypt(encryptedToken);
-      config.headers = config.headers || {};
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-      } else if (encryptedToken.split(".").length === 3) {
-        // Fallback: token may already be a plain JWT string.
-        config.headers.Authorization = `Bearer ${encryptedToken}`;
-      }
-    } catch {
-      // Ignore malformed local token and continue with cookie auth fallback.
-    }
-  }
-
-  return config;
-});
-
-// ✅ Response Interceptor (Handle 401 Unauthorized)
+// Handle 401 globally and bounce user to login.
 axiosInstance.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
       sessionStorage.clear();
       localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      localStorage.removeItem("isAdmin");
       const appBase = `${import.meta.env.BASE_URL || "/"}`.replace(/\/+$/, "");
       const loginPath = appBase ? `${appBase}/login` : "/login";
       window.location.href = loginPath;

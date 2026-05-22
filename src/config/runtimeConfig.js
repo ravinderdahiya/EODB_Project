@@ -1,5 +1,3 @@
-import { decrypt } from "@/utils/crypto";
-
 function normalizeBasePath(value) {
   const raw = `${value || ""}`.trim();
   if (!raw) return "";
@@ -134,23 +132,6 @@ function resolveFrontendConfigEndpoint() {
   return `${configuredApiBaseUrl.replace(/\/+$/, "")}${endpointPath}`;
 }
 
-function getAuthorizationHeaderFromLocalToken() {
-  const encryptedToken = localStorage.getItem("token");
-  if (!encryptedToken) return null;
-
-  try {
-    const token = decrypt(encryptedToken);
-    if (token) return `Bearer ${token}`;
-    // Fallback: in some environments token may be stored as plain JWT.
-    if (encryptedToken.split(".").length === 3) {
-      return `Bearer ${encryptedToken}`;
-    }
-    return null;
-  } catch {
-    return null;
-  }
-}
-
 function mergeRuntimeConfig(incomingConfig) {
   if (!incomingConfig || typeof incomingConfig !== "object") {
     return runtimeConfig;
@@ -186,13 +167,11 @@ export async function loadRuntimeConfig() {
   loadRuntimeConfigPromise = (async () => {
     try {
       const endpoint = resolveFrontendConfigEndpoint();
-      const authHeader = getAuthorizationHeaderFromLocalToken();
       const response = await fetch(endpoint, {
         method: "GET",
         credentials: "include",
         headers: {
           Accept: "application/json",
-          ...(authHeader ? { Authorization: authHeader } : {}),
         },
       });
 

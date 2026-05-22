@@ -4,7 +4,6 @@ import "./Login.css";
 import { useLanguage } from "@/context/LanguageContext";
 import axiosInstance from "../utils/axiosInstance";
 import LanguageToggle from "@/components/LanguageToggle";
-import { encrypt } from "../utils/crypto";
 import { reloadRuntimeConfig } from "@/config/runtimeConfig";
 import { mountSplash } from "../splash";
 
@@ -93,9 +92,8 @@ export default function Login() {
         otp: enteredOtp,
       });
 
-      localStorage.setItem("token", encrypt(res.data.token));
-      localStorage.setItem("user", JSON.stringify(res.data.user));
-      localStorage.setItem("isAdmin", "false");
+      sessionStorage.setItem("user", JSON.stringify(res.data.user || {}));
+      sessionStorage.setItem("isAdmin", "false");
       sessionStorage.setItem("isAuthenticated", "true");
       ensureLanguage("en");
       await reloadRuntimeConfig();
@@ -177,9 +175,8 @@ export default function Login() {
       });
 
 
-      localStorage.setItem("token", encrypt(res.data.token));
-      localStorage.setItem("user", JSON.stringify(res.data.user));
-      localStorage.setItem("isAdmin", "true");
+      sessionStorage.setItem("user", JSON.stringify(res.data.user || {}));
+      sessionStorage.setItem("isAdmin", "true");
       sessionStorage.setItem("isAuthenticated", "true");
       ensureLanguage("en");
       await reloadRuntimeConfig();
