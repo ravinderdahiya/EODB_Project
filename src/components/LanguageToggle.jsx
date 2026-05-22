@@ -18,7 +18,7 @@ export default function LanguageToggle({
   const { lang, setLang } = useLanguage();
 
   return (
-    <div className={wrapperClass} aria-label={label}>
+    <div className={wrapperClass} aria-label={label} data-active-lang={lang}>
       <button
         type="button"
         className={`${btnClass}${lang === "en" ? ` ${activeClass}` : ""}`}

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Login.css";
 import { useLanguage } from "@/context/LanguageContext";
@@ -10,7 +10,9 @@ import { mountSplash } from "../splash";
 
 export default function Login() {
   const navigate = useNavigate();
-  const { t } = useLanguage();
+  const { t, hasPersistedLanguage, setPreviewLang, ensureLanguage } = useLanguage();
+  const previewIntervalRef = useRef(null);
+  const previewLangRef = useRef("en");
 
   const [phone, setPhone] = useState("");
   const [adminId, setAdminId] = useState("");
@@ -47,6 +49,30 @@ export default function Login() {
     return () => clearInterval(intervalId);
   }, [showOtpInput, otpTimer]);
 
+  useEffect(() => {
+    if (hasPersistedLanguage) {
+      if (previewIntervalRef.current) {
+        clearInterval(previewIntervalRef.current);
+        previewIntervalRef.current = null;
+      }
+      return undefined;
+    }
+
+    if (previewIntervalRef.current) return undefined;
+
+    previewIntervalRef.current = window.setInterval(() => {
+      previewLangRef.current = previewLangRef.current === "en" ? "hi" : "en";
+      setPreviewLang(previewLangRef.current);
+    }, 10000);
+
+    return () => {
+      if (previewIntervalRef.current) {
+        clearInterval(previewIntervalRef.current);
+        previewIntervalRef.current = null;
+      }
+    };
+  }, [hasPersistedLanguage, setPreviewLang]);
+
   const handleVerifyOtp = async () => {
     const enteredOtp = otp.join("");
 
@@ -71,6 +97,7 @@ export default function Login() {
       localStorage.setItem("user", JSON.stringify(res.data.user));
       localStorage.setItem("isAdmin", "false");
       sessionStorage.setItem("isAuthenticated", "true");
+      ensureLanguage("en");
       await reloadRuntimeConfig();
       mountSplash();
       navigate("/map");
@@ -154,6 +181,7 @@ export default function Login() {
       localStorage.setItem("user", JSON.stringify(res.data.user));
       localStorage.setItem("isAdmin", "true");
       sessionStorage.setItem("isAuthenticated", "true");
+      ensureLanguage("en");
       await reloadRuntimeConfig();
       setShowAdminPanel(false);
       navigate("/admin");
