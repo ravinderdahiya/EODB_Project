@@ -31,10 +31,8 @@
 .lp-root :is(
     h1, h2, h3, h4, h5,
     p, label, a, small, strong,
-    button,
-    .lp-badge, .lp-headline, .lp-desc,
+    .lp-headline, .lp-desc,
     .lp-stat-card h3, .lp-stat-card p,
-    .lp-lang-btn, .lp-chat-btn,
     .lp-footer-bottom p
 ) {
     font-family: var(--lp-font-active);
@@ -46,10 +44,8 @@
 .lp-root.lp-font-phase-out :is(
     h1, h2, h3, h4, h5,
     p, label, a, small, strong,
-    button,
-    .lp-badge, .lp-headline, .lp-desc,
+    .lp-headline, .lp-desc,
     .lp-stat-card h3, .lp-stat-card p,
-    .lp-lang-btn, .lp-chat-btn,
     .lp-footer-bottom p
 ) {
     opacity: 0.12;
@@ -58,10 +54,8 @@
 .lp-root.lp-font-phase-in :is(
     h1, h2, h3, h4, h5,
     p, label, a, small, strong,
-    button,
-    .lp-badge, .lp-headline, .lp-desc,
+    .lp-headline, .lp-desc,
     .lp-stat-card h3, .lp-stat-card p,
-    .lp-lang-btn, .lp-chat-btn,
     .lp-footer-bottom p
 ) {
     opacity: 1;
@@ -95,6 +89,17 @@
 ) {
     font-family: var(--lp-font-active);
     transition: none;
+}
+
+.lp-root.lp-font-phase-out .lp-card,
+.lp-root.lp-font-phase-in .lp-card,
+.lp-root.lp-font-phase-out .lp-card *,
+.lp-root.lp-font-phase-in .lp-card *,
+.lp-root.lp-font-phase-out .lp-announcement,
+.lp-root.lp-font-phase-in .lp-announcement,
+.lp-root.lp-font-phase-out .lp-announcement *,
+.lp-root.lp-font-phase-in .lp-announcement * {
+    opacity: 1;
 }
 
 .lp-root::before {
@@ -248,6 +253,27 @@
     transition: none;
 }
 
+/* Badge pill — fixed box; font family follows EN/HI toggle (no fade/resize) */
+.lp-badge {
+    font-family: var(--lp-font-active);
+    transition: none;
+}
+
+/* Navbar lang toggle + admin btn — no blink; font follows EN/HI */
+.lp-lang-toggle,
+.lp-lang-toggle .lp-lang-btn,
+.lp-chat-btn {
+    font-family: var(--lp-font-active);
+    transition: color 170ms ease, background 170ms ease, filter 160ms ease, box-shadow 170ms ease;
+}
+
+.lp-root.lp-font-phase-out .lp-nav-right :is(button, .lp-lang-btn, .lp-chat-btn),
+.lp-root.lp-font-phase-in .lp-nav-right :is(button, .lp-lang-btn, .lp-chat-btn),
+.lp-root.lp-font-phase-out .lp-lang-toggle,
+.lp-root.lp-font-phase-in .lp-lang-toggle {
+    opacity: 1;
+}
+
 .lp-nav-right {
     display: flex;
     align-items: center;
@@ -282,8 +308,8 @@
     letter-spacing: 0.05em;
     padding: 5px 11px;
     cursor: pointer;
-    transition: color 170ms ease, opacity 170ms ease;
-    font-family: inherit;
+    transition: color 170ms ease, background 170ms ease;
+    font-family: var(--lp-font-active);
     white-space: nowrap;
     line-height: 1.4;
     flex: 1;
@@ -365,6 +391,7 @@
 .lp-badge {
     display: inline-flex;
     align-items: center;
+    justify-content: flex-start;
     align-self: flex-start;
     color: #00ff88;
     padding: 7px 12px;
@@ -379,9 +406,13 @@
     margin-bottom: 10px;
     letter-spacing: 0.04em;
     white-space: nowrap;
-    width: min(232.63px, 100%);
+    width: 290px;
+    max-width: 100%;
     height: 29.8px;
+    min-height: 29.8px;
+    flex-shrink: 0;
     overflow: hidden;
+    text-overflow: ellipsis;
     box-sizing: border-box;
 }
 
@@ -969,16 +1000,8 @@
 }
 
 /* Keep Hindi copy inside same footprint as English (hero/nav only; cards stay fixed) */
-[data-lang="hi"] .lp-badge {
-    font-size: clamp(10px, 0.75vw, 10.8px);
-}
-
 [data-lang="hi"] .lp-stat-card p {
     font-size: clamp(9.5px, 0.72vw, 10.5px);
-}
-
-[data-lang="hi"] .lp-chat-btn {
-    font-size: clamp(10.5px, 0.75vw, 11.2px);
 }
 
 [data-lang="hi"] .lp-footer-bottom p {
@@ -1011,27 +1034,32 @@
 .lp-chat-btn {
     background: linear-gradient(90deg, #00cc66, #009944);
     border: none;
-    width: 101.33px;
+    width: 110px;
+    min-width: 110px;
+    max-width: 110px;
     height: 28px;
+    min-height: 28px;
+    flex-shrink: 0;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    padding: 7px 14px;
+    padding: 7px 10px;
     border-radius: 16px;
     color: #000d04;
     font-weight: 700;
-    font-family: inherit;
+    font-family: var(--lp-font-active);
     font-size: 12px;
     line-height: 1.2;
     cursor: pointer;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    transition: opacity 160ms ease;
+    box-sizing: border-box;
+    transition: background 160ms ease, filter 160ms ease;
 }
 
 .lp-chat-btn:hover {
-    opacity: 0.85;
+    filter: brightness(0.92);
 }
 
 .lp-footer-bottom {
@@ -1189,11 +1217,13 @@
     }
 
     .lp-chat-btn {
-        width: auto;
-        min-width: 72px;
-        height: 30px;
-        padding: 6px 12px;
-        font-size: 11px;
+        width: 110px;
+        min-width: 110px;
+        max-width: 110px;
+        height: 28px;
+        min-height: 28px;
+        padding: 7px 10px;
+        font-size: 12px;
     }
 
     .lp-main {
@@ -1207,9 +1237,9 @@
     }
 
     .lp-badge {
-        width: auto;
-        max-width: 100%;
-        height: auto;
+        width: min(290px, 100%);
+        height: 29.8px;
+        min-height: 29.8px;
     }
 
     .lp-headline {
@@ -1273,9 +1303,12 @@
     }
 
     .lp-chat-btn {
-        min-width: 66px;
-        padding: 6px 10px;
-        font-size: 10.5px;
+        width: 110px;
+        min-width: 110px;
+        max-width: 110px;
+        height: 28px;
+        padding: 7px 10px;
+        font-size: 12px;
     }
 }
 
