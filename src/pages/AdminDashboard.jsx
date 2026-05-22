@@ -204,6 +204,8 @@ export default function AdminDashboard() {
       localStorage.removeItem("isAdmin");
       // Clear sessionStorage
       sessionStorage.removeItem("isAuthenticated");
+      sessionStorage.removeItem("user");
+      sessionStorage.removeItem("isAdmin");
       navigate("/login");
     }
   };

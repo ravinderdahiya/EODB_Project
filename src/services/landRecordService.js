@@ -21,23 +21,10 @@
  */
 
 import { getRuntimeConfigValue } from "@/config/runtimeConfig";
-import { decrypt } from "@/utils/crypto";
 
 // ─── Backend proxy base URL ───────────────────────────────────────────────────
 function getAsmxBasePath() {
   return getRuntimeConfigValue("VITE_ASMX_BASE_PATH", "");
-}
-
-function getAuthorizationHeaderFromLocalToken() {
-  const encryptedToken = localStorage.getItem("token");
-  if (!encryptedToken) return null;
-
-  try {
-    const token = decrypt(encryptedToken);
-    return token ? `Bearer ${token}` : null;
-  } catch {
-    return null;
-  }
 }
 
 // ─── Internal helpers ─────────────────────────────────────────────────────────
@@ -89,13 +76,10 @@ function parseAsmxXml(rawText) {
 async function asmxGet(method, params) {
   const qs  = new URLSearchParams(params).toString();
   const url = `${getAsmxBasePath()}/${method}?${qs}`;
-  const authHeader = getAuthorizationHeaderFromLocalToken();
-
   const res = await fetch(url, {
     credentials: "include",
     headers: {
       Accept: "text/xml, application/xml",
-      ...(authHeader ? { Authorization: authHeader } : {}),
     },
   });
 

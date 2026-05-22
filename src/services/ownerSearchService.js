@@ -1,5 +1,4 @@
 import { getRuntimeConfigValue } from "@/config/runtimeConfig";
-import { decrypt } from "@/utils/crypto";
 
 function cleanText(value) {
   return String(value || "").replace(/\s+/g, " ").trim();
@@ -16,21 +15,6 @@ function pickFirstValue(source, keys) {
     if (value) return value;
   }
   return "";
-}
-
-function getAuthorizationHeaderFromLocalToken() {
-  if (typeof window === "undefined") return null;
-  const encryptedToken = localStorage.getItem("token");
-  if (!encryptedToken) return null;
-
-  try {
-    const token = decrypt(encryptedToken);
-    if (token) return `Bearer ${token}`;
-    if (encryptedToken.split(".").length === 3) return `Bearer ${encryptedToken}`;
-    return null;
-  } catch {
-    return null;
-  }
 }
 
 export function unwrapOwnerPayload(payload) {
@@ -298,7 +282,6 @@ export function isLikelyOwnerDetailQuery(value) {
 
 export async function requestOwnerApiResult(query) {
   const ownerApiEndpoint = getRuntimeConfigValue("VITE_OWNER_API_ENDPOINT", "/api-url/owner-search");
-  const authHeader = getAuthorizationHeaderFromLocalToken();
   const queryVariants = buildOwnerApiQueryVariants(query);
 
   let lastError = null;
@@ -311,7 +294,6 @@ export async function requestOwnerApiResult(query) {
         method: "GET",
         headers: {
           Accept: "application/json, text/plain, */*",
-          ...(authHeader ? { Authorization: authHeader } : {}),
         },
         credentials: "include",
       });
@@ -347,14 +329,12 @@ export async function requestCadastralHindiSearch(query) {
     "VITE_CADASTRAL_HINDI_SEARCH_ENDPOINT",
     "/api-url/cadastral-hindi-search",
   );
-  const authHeader = getAuthorizationHeaderFromLocalToken();
   const url = `${endpoint}${endpoint.includes("?") ? "&" : "?"}query=${encodeURIComponent(query)}`;
 
   const response = await fetch(url, {
     method: "GET",
     headers: {
       Accept: "application/json, text/plain, */*",
-      ...(authHeader ? { Authorization: authHeader } : {}),
     },
     credentials: "include",
   });

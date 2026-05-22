@@ -1105,6 +1105,8 @@ export default function App() {
           localStorage.removeItem("user");
           localStorage.removeItem("isAdmin");
           sessionStorage.removeItem("isAuthenticated");
+          sessionStorage.removeItem("user");
+          sessionStorage.removeItem("isAdmin");
           navigate("/login");
         }}
         searchValue={searchValue}

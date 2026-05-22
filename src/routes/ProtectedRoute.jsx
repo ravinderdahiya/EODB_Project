@@ -1,6 +1,4 @@
 import { Navigate } from "react-router-dom";
-import { decrypt } from "../utils/crypto";
-
 
 function ProtectedRoute({ children, requireAdmin = false }) {
   // Developer mode bypass for development only
@@ -15,16 +13,12 @@ function ProtectedRoute({ children, requireAdmin = false }) {
     return children;
   }
 
-  const encryptedToken = localStorage.getItem("token");
-  const token = encryptedToken ? decrypt(encryptedToken) : null;
-  const isAdmin = localStorage.getItem("isAdmin") === "true";
-  const hasValidToken = Boolean(token && token.trim());
+  const isAdmin =
+    sessionStorage.getItem("isAdmin") === "true" ||
+    localStorage.getItem("isAdmin") === "true";
 
-  // Support both auth styles:
-  // 1) JWT in localStorage
-  // 2) HttpOnly cookie with sessionStorage auth marker
-  // If session is authenticated, allow navigation even when token is absent.
-  if (!hasValidToken && !isAuthenticated) return <Navigate to="/login" />;
+  // Auth is tracked by login marker + server-side httpOnly cookie.
+  if (!isAuthenticated) return <Navigate to="/login" />;
   if (requireAdmin && !isAdmin) return <Navigate to="/login" />;
 
   return children;
