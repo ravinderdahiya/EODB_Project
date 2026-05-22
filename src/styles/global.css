@@ -19,7 +19,8 @@ html,
 body,
 #root {
   width: 100%;
-  height: 100%;
+  min-height: var(--app-height);
+  height: var(--app-height);
 }
 
 html {
@@ -97,8 +98,21 @@ button {
 ========================= */
 
 .app-shell {
-  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-height: var(--app-height);
+  height: var(--app-height);
+  max-height: var(--app-height);
   overflow: hidden;
+  box-sizing: border-box;
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.app-shell > .app-header {
+  flex: 0 0 auto;
 }
 
 .app-overlay {
@@ -123,8 +137,9 @@ button {
   grid-template-columns: 220px minmax(0, 1fr);
   grid-template-rows: minmax(0, 1fr);
   gap: 0.9rem;
+  flex: 1 1 auto;
   min-height: 0;
-  height: calc(100vh - var(--header-height));
+  height: auto;
   padding: 0.85rem;
   overflow: hidden;
   transition: grid-template-columns 280ms ease, gap 280ms ease;
@@ -222,10 +237,12 @@ select:focus-visible {
   color: var(--ink);
 }
 
-:root[data-theme="dark"] .map-toolbar__button.map-toolbar__button--active {
-  background: linear-gradient(135deg, rgba(65, 174, 121, 0.96), rgba(72, 140, 214, 0.92));
+:root[data-theme="dark"] .map-toolbar__button:hover,
+:root[data-theme="dark"] .map-toolbar__button.map-toolbar__button--active,
+:root[data-theme="dark"] .parcel-table-toggle:hover {
+  background: linear-gradient(135deg, rgba(47, 141, 93, 0.95), rgba(46, 115, 180, 0.87));
   color: #ffffff;
-  box-shadow: 0 10px 24px rgba(40, 109, 171, 0.32);
+  box-shadow: 0 4px 16px rgba(46, 115, 180, 0.28);
 }
 
 :root[data-theme="dark"] .basemap-switcher__option.basemap-switcher__option--active {
@@ -271,17 +288,28 @@ select:focus-visible {
 ========================= */
 
 /* Tablet and below: sidebar is a fixed overlay, workspace takes full width.
-   Two-row header is ~120px; update --header-height so dashboard height and
-   sidebar top position stay in sync. */
+   --header-height fallback until AppHeader measures actual height. */
 @media (max-width: 1024px) {
   :root {
-    --header-height: 120px;
+    --header-height: 124px;
   }
 
   .dashboard-shell {
     grid-template-columns: 1fr;
     gap: 0;
-    padding: 0.75rem;
+    padding: 0.65rem;
+    padding-bottom: max(0.65rem, env(safe-area-inset-bottom, 0px));
+  }
+}
+
+@media (max-width: 768px) {
+  :root {
+    --header-height: 132px;
+  }
+
+  .dashboard-shell {
+    padding: 0.55rem;
+    padding-bottom: max(0.55rem, env(safe-area-inset-bottom, 0px));
   }
 }
 
@@ -300,12 +328,13 @@ select:focus-visible {
 /* Mobile landscape: keep controls visible and map using remaining height */
 @media (max-height: 500px) and (orientation: landscape) {
   :root {
-    --header-height: 70px;
+    --header-height: 68px;
   }
 
   .dashboard-shell {
-    gap: 0.45rem;
-    padding: 0.55rem;
+    gap: 0.35rem;
+    padding: 0.45rem;
+    padding-bottom: max(0.45rem, env(safe-area-inset-bottom, 0px));
   }
 }
 

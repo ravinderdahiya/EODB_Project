@@ -9,6 +9,7 @@ import { useLanguage } from "@/context/LanguageContext";
  * @param {string} [activeClass]   CSS class added to the active btn (default: "lang-toggle__btn--active")
  * @param {string} [label]         aria-label for the wrapper div
  * @param {boolean} [persistSelection]  Save to localStorage on click (default true)
+ * @param {boolean} [compact]  E / हि round split on tablet-mobile (App header only; default true)
  */
 export default function LanguageToggle({
   wrapperClass = "lang-toggle",
@@ -16,6 +17,7 @@ export default function LanguageToggle({
   activeClass  = "lang-toggle__btn--active",
   label        = "Select language",
   persistSelection = true,
+  compact = true,
 }) {
   const { lang, setLang, lockLoginLanguage } = useLanguage();
 
@@ -31,18 +33,34 @@ export default function LanguageToggle({
         className={`${btnClass}${lang === "en" ? ` ${activeClass}` : ""}`}
         onClick={() => selectLang("en")}
         aria-pressed={lang === "en"}
+        aria-label="English"
         title="English"
       >
-        ENG
+        {compact ? (
+          <>
+            <span className="lang-toggle__text lang-toggle__text--full">ENG</span>
+            <span className="lang-toggle__text lang-toggle__text--compact" aria-hidden="true">E</span>
+          </>
+        ) : (
+          "ENG"
+        )}
       </button>
       <button
         type="button"
         className={`${btnClass}${lang === "hi" ? ` ${activeClass}` : ""}`}
         onClick={() => selectLang("hi")}
         aria-pressed={lang === "hi"}
+        aria-label="हिंदी"
         title="हिंदी"
       >
-        हिन्दी
+        {compact ? (
+          <>
+            <span className="lang-toggle__text lang-toggle__text--full">हिन्दी</span>
+            <span className="lang-toggle__text lang-toggle__text--compact" aria-hidden="true">हि</span>
+          </>
+        ) : (
+          "हिन्दी"
+        )}
       </button>
     </div>
   );

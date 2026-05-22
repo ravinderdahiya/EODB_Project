@@ -49,6 +49,8 @@
   justify-content: space-between;
   gap: 0.4rem;
   width: 100%;
+  min-height: auto;
+  grid-template-columns: none;
   padding: 0.72rem 0.8rem;
   border: 0;
   border-radius: 12px;
@@ -56,12 +58,15 @@
   font-size: 0.86rem;
   text-align: left;
   cursor: pointer;
-  transition: background 180ms ease, box-shadow 180ms ease, border-radius 180ms ease;
-  box-shadow: 0 3px 10px rgba(47, 141, 93, 0.2);
+  transition: background 180ms ease, box-shadow 180ms ease, border-radius 180ms ease, color 180ms ease, transform 180ms ease;
 }
 
 .search-section__trigger:hover {
-  box-shadow: 0 6px 18px rgba(47, 141, 93, 0.32);
+  transform: translateY(-1px);
+}
+
+.search-section__trigger .search-section__chevron {
+  color: inherit;
 }
 
 .search-section--open .search-section__trigger {

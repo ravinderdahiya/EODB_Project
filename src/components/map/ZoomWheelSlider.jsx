@@ -6,11 +6,12 @@ import './ZoomWheelSlider.css';
 // Keep lower bound wide enough so right-side drag can reach ~1:70,00,000 scale.
 const MIN_ZOOM = 6;
 const MAX_ZOOM = 19;
-const TICKS_PER_ZOOM = 8;   // sub-tick marks per zoom level
+const TICKS_PER_ZOOM = 10;  // sub-tick marks per zoom level
 const TICK_SPACING   = 9;   // px width of each tick cell (must match CSS .zws__tick width)
 const PADDING        = 32;  // phantom ticks on each side so the track never runs empty
-const REAL_TICKS     = (MAX_ZOOM - MIN_ZOOM) * TICKS_PER_ZOOM + 1; // 97
-const ALL_TICKS      = PADDING * 2 + REAL_TICKS;                    // 161
+const MID_TICK_INDEX = Math.floor(TICKS_PER_ZOOM / 2); // half-step mark within each zoom unit
+const REAL_TICKS     = (MAX_ZOOM - MIN_ZOOM) * TICKS_PER_ZOOM + 1; // 131
+const ALL_TICKS      = PADDING * 2 + REAL_TICKS;                    // 195
 const STATE_BUTTON_TARGET_SCALE = 7354296; // > 1:50,00,000 and within state-boundary visible range
 
 const LAYERS = [
@@ -168,7 +169,6 @@ export default function ZoomWheelSlider({ viewRef, layerVisibility, mapScale }) 
     Boolean(layerVisibility?.murrabaGrid) &&
     Boolean(layerVisibility?.murabba) &&
     Boolean(layerVisibility?.cadastral);
-
   return (
     <div className="zws" role="region" aria-label="Map zoom level">
 
@@ -192,7 +192,7 @@ export default function ZoomWheelSlider({ viewRef, layerVisibility, mapScale }) 
             {Array.from({ length: ALL_TICKS }, (_, i) => {
               const ri    = i - PADDING; // position in real zoom scale (negative = padding)
               const isMaj = ri >= 0 && ri < REAL_TICKS && ri % TICKS_PER_ZOOM === 0;
-              const isMid = ri >= 0 && ri < REAL_TICKS && ri % TICKS_PER_ZOOM === 4;
+              const isMid = ri >= 0 && ri < REAL_TICKS && ri % TICKS_PER_ZOOM === MID_TICK_INDEX;
               const isRe  = ri >= 0 && ri < REAL_TICKS;
               return (
                 <div

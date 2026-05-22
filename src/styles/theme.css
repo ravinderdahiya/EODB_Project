@@ -47,6 +47,8 @@
   --radius-lg: 30px;
 
   /* Layout */
+  --app-height: 100vh;
+  --app-height: 100dvh;
   --header-height: 74px;
 
   /* Popup card tokens */

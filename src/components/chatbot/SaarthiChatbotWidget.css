@@ -152,6 +152,7 @@ body.dark .saarthi-chatbot-widget iframe {
   opacity: 1;
   pointer-events: auto;
   width: min(292px, calc(100vw - 56px));
+  height: min(494px, calc(100dvh - 132px));
   height: min(494px, calc(100vh - 132px));
   border-radius: 14px;
 }
@@ -193,6 +194,7 @@ body.dark .saarthi-chatbot-widget iframe {
 
   .saarthi-chatbot-widget--open iframe {
     width: min(262px, calc(100vw - 58px));
+    height: min(408px, calc(100dvh - 136px));
     height: min(408px, calc(100vh - 136px));
     border-radius: 12px;
   }

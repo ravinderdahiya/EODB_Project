@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useLanguage } from "@/context/LanguageContext";
 import { normalizeParcel } from "@/utils/parcelUtils";
 import { triggerPrint, PRINT_DISCLAIMER } from "@/utils/printUtils";
+
 function formatScale(scale) {
   if (!scale || scale <= 0) return null;
   return `1 : ${Math.round(scale).toLocaleString("en-IN")}`;

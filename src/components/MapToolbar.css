@@ -37,11 +37,18 @@
   background: rgba(255, 255, 255, 0.92);
   color: var(--ink);
   box-shadow: var(--shadow-soft);
+  transition: background 180ms ease, color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
 }
 
+.map-toolbar__button:hover,
 .map-toolbar__button--active {
-  background: linear-gradient(135deg, rgba(47, 141, 93, 0.94), rgba(46, 115, 180, 0.88));
-  color: white;
+  background: linear-gradient(135deg, rgba(47, 141, 93, 0.95), rgba(46, 115, 180, 0.87));
+  color: #ffffff;
+  box-shadow: 0 4px 16px rgba(46, 115, 180, 0.22);
+}
+
+.map-toolbar__button:hover {
+  transform: translateY(-1px);
 }
 
 /* ── Responsive ───────────────────────────────────────────── */
@@ -49,8 +56,8 @@
 @media (max-width: 768px) {
   /* Zoom toolbar: keep at bottom-left */
   .map-toolbar:not(.map-toolbar--left) {
-    bottom: 2.5rem;
-    left: 0.9rem;
+    bottom: calc(2.5rem + env(safe-area-inset-bottom, 0px));
+    left: max(0.9rem, env(safe-area-inset-left, 0px));
     top: auto;
     right: auto;
     gap: 0.55rem;

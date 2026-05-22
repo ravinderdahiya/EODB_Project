@@ -11,6 +11,7 @@
     position: sticky;
     top: 0;
     z-index: 70;
+    flex-shrink: 0;
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(380px, 780px) minmax(0, 1fr);
     gap: 0.85rem;
@@ -45,11 +46,26 @@
     border-radius: 18px;
     background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(226, 242, 232, 0.88)), rgba(255, 255, 255, 0.76);
     box-shadow: 0 10px 20px rgba(23, 50, 72, 0.12), inset 0 0 0 1px rgba(255, 255, 255, 0.72);
+    transition: background 180ms ease, color 180ms ease, box-shadow 180ms ease;
 }
 
-.app-header__menu-button--active {
-    background: linear-gradient(135deg, rgba(47, 141, 93, 0.92), rgba(46, 115, 180, 0.88));
-    color: white;
+/* Gradient only on true hover (mouse) — avoids sticky fill after tap on tablet/mobile */
+@media (hover: hover) and (pointer: fine) {
+    .app-header__menu-button:hover {
+        background: linear-gradient(135deg, rgba(47, 141, 93, 0.95), rgba(46, 115, 180, 0.87));
+        color: #ffffff;
+        box-shadow: 0 4px 16px rgba(46, 115, 180, 0.22);
+    }
+}
+
+@media (hover: none), (pointer: coarse) {
+    .app-header__menu-button:hover,
+    .app-header__menu-button:active,
+    .app-header__menu-button:focus {
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(226, 242, 232, 0.88)), rgba(255, 255, 255, 0.76);
+        color: var(--ink);
+        box-shadow: 0 10px 20px rgba(23, 50, 72, 0.12), inset 0 0 0 1px rgba(255, 255, 255, 0.72);
+    }
 }
 
 .app-header__brand {
@@ -276,6 +292,14 @@
 
 .header-action-button--theme {
     background: linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(234, 245, 255, 0.92)), rgba(255, 255, 255, 0.92);
+    transition: background 180ms ease, color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+}
+
+.header-action-button--theme:hover {
+    background: linear-gradient(135deg, rgba(47, 141, 93, 0.95), rgba(46, 115, 180, 0.87));
+    color: #ffffff;
+    box-shadow: 0 4px 16px rgba(46, 115, 180, 0.22);
+    transform: translateY(-1px);
 }
 
 .header-action-button--active {
@@ -292,12 +316,14 @@
     background: linear-gradient(135deg, rgba(196, 58, 58, 0.12), rgba(180, 44, 44, 0.08));
     color: #c43a3a;
     box-shadow: inset 0 0 0 1px rgba(196, 58, 58, 0.2);
+    transition: background 180ms ease, color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
 }
 
 .header-action-button--logout:hover {
     background: linear-gradient(135deg, rgba(196, 58, 58, 0.9), rgba(164, 36, 36, 0.86));
-    color: white;
+    color: #ffffff;
     box-shadow: 0 6px 16px rgba(196, 58, 58, 0.28);
+    transform: translateY(-1px);
 }
 
 
@@ -383,23 +409,25 @@
     position: relative;
     isolation: isolate;
     border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 2px;
+    border-radius: 999px;
+    min-height: 46px;
+    padding: 3px;
     overflow: hidden;
     gap: 0;
     flex-shrink: 0;
+    box-sizing: border-box;
 }
 
 .lang-toggle::before {
     content: "";
     position: absolute;
-    top: 2px;
-    bottom: 2px;
-    left: 2px;
-    width: calc(50% - 2px);
-    border-radius: 6px;
-    background: linear-gradient(135deg, var(--green), #2e73b4);
-    box-shadow: 0 8px 18px rgba(46, 115, 180, 0.24);
+    top: 3px;
+    bottom: 3px;
+    left: 3px;
+    width: calc(50% - 3px);
+    border-radius: 999px;
+    background: linear-gradient(135deg, var(--green), #4ea36d);
+    box-shadow: 0 8px 18px rgba(47, 141, 93, 0.28);
     transition: transform 230ms cubic-bezier(0.22, 1, 0.36, 1);
     z-index: 0;
 }
@@ -416,16 +444,20 @@
     font-size: 11px;
     font-weight: 600;
     letter-spacing: 0.04em;
-    padding: 0 10px;
-    height: 30px;
+    padding: 0 12px;
     flex: 1;
     cursor: pointer;
-    transition: color 170ms ease;
+    transition: color 170ms ease, background 170ms ease;
     line-height: 1;
     white-space: nowrap;
     min-width: 54px;
     position: relative;
     z-index: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    align-self: stretch;
+    border-radius: 999px;
 }
 
 .lang-toggle__btn:hover:not(.lang-toggle__btn--active) {
@@ -448,6 +480,62 @@
     border-left: 1px solid var(--border);
 }
 
+.lang-toggle__text--compact {
+    display: none;
+}
+
+/* Tablet + mobile: round split toggle (E | हि) — App header only (not Login) */
+@media (max-width: 1024px) {
+    .app-header .lang-toggle {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        align-items: stretch;
+        width: 56px;
+        height: 46px;
+        min-height: 46px;
+        max-width: 56px;
+        padding: 3px;
+        border-radius: 16px;
+        flex-shrink: 0;
+    }
+
+    .app-header .lang-toggle::before {
+        top: 3px;
+        bottom: 3px;
+        left: 3px;
+        width: calc(50% - 3px);
+        border-radius: 12px;
+        transform: translateX(0);
+    }
+
+    .app-header .lang-toggle[data-active-lang="hi"]::before {
+        transform: translateX(100%);
+    }
+
+    .app-header .lang-toggle__btn {
+        min-width: 0;
+        width: 100%;
+        flex: none;
+        padding: 0;
+        font-size: 13px;
+        font-weight: 800;
+        border-radius: 10px;
+    }
+
+    .app-header .lang-toggle__btn:last-child .lang-toggle__text--compact {
+        font-size: 11px;
+        line-height: 1.1;
+    }
+
+    .app-header .lang-toggle__text--full {
+        display: none;
+    }
+
+    .app-header .lang-toggle__text--compact {
+        display: inline;
+    }
+}
+
 
 /* =========================
    AppHeader — Dark Theme Overrides
@@ -462,6 +550,25 @@
 :root[data-theme="dark"] .app-header__menu-button {
     background: linear-gradient(135deg, rgba(23, 41, 57, 0.96), rgba(15, 28, 40, 0.92)), rgba(12, 22, 31, 0.86);
     box-shadow: 0 14px 26px rgba(0, 0, 0, 0.22), inset 0 0 0 1px rgba(212, 229, 240, 0.08);
+}
+
+@media (hover: hover) and (pointer: fine) {
+    :root[data-theme="dark"] .app-header__menu-button:hover,
+    :root[data-theme="dark"] .header-action-button--theme:hover {
+        background: linear-gradient(135deg, rgba(47, 141, 93, 0.95), rgba(46, 115, 180, 0.87));
+        color: #ffffff;
+        box-shadow: 0 4px 16px rgba(46, 115, 180, 0.28);
+    }
+}
+
+@media (hover: none), (pointer: coarse) {
+    :root[data-theme="dark"] .app-header__menu-button:hover,
+    :root[data-theme="dark"] .app-header__menu-button:active,
+    :root[data-theme="dark"] .app-header__menu-button:focus {
+        background: linear-gradient(135deg, rgba(23, 41, 57, 0.96), rgba(15, 28, 40, 0.92)), rgba(12, 22, 31, 0.86);
+        color: var(--ink);
+        box-shadow: 0 14px 26px rgba(0, 0, 0, 0.22), inset 0 0 0 1px rgba(212, 229, 240, 0.08);
+    }
 }
 
 :root[data-theme="dark"] .app-header__logo {
@@ -484,7 +591,7 @@
     background: rgba(125, 181, 255, 0.09);
 }
 
-:root[data-theme="dark"] .header-action-button,
+:root[data-theme="dark"] .header-action-button:not(.header-action-button--logout),
 :root[data-theme="dark"] .select-shell,
 :root[data-theme="dark"] .profile-chip,
 :root[data-theme="dark"] .icon-button--soft {
@@ -504,8 +611,24 @@
     box-shadow: inset 0 0 0 1px rgba(196, 58, 58, 0.22);
 }
 
+:root[data-theme="dark"] .header-action-button--logout:hover {
+    background: linear-gradient(135deg, rgba(196, 58, 58, 0.9), rgba(164, 36, 36, 0.86));
+    color: #ffffff;
+    box-shadow: 0 6px 16px rgba(196, 58, 58, 0.32);
+}
+
 :root[data-theme="dark"] .profile-chip__avatar {
     color: #9ed1ff;
+}
+
+:root[data-theme="dark"] .lang-toggle {
+    border-color: rgba(154, 178, 197, 0.12);
+    background: linear-gradient(180deg, rgba(22, 39, 55, 0.96), rgba(14, 27, 39, 0.92)), rgba(11, 22, 31, 0.92);
+    box-shadow: 0 16px 30px rgba(0, 0, 0, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+:root[data-theme="dark"] .lang-toggle__btn + .lang-toggle__btn {
+    border-left-color: rgba(154, 178, 197, 0.14);
 }
 
 
@@ -583,6 +706,13 @@
         padding: 0 0.72rem;
         font-size: 0.9rem;
     }
+
+    .header-action-button--theme {
+        width: 46px;
+        min-width: 46px;
+        padding: 0;
+        justify-content: center;
+    }
 }
 
 
@@ -621,6 +751,24 @@
     .header-action-button {
         min-height: 44px;
         padding: 0 0.6rem;
+    }
+    .header-action-button--theme {
+        width: 42px;
+        min-width: 42px;
+        padding: 0;
+    }
+    .lang-toggle {
+        width: 50px;
+        height: 42px;
+        min-height: 42px;
+        max-width: 50px;
+        border-radius: 14px;
+    }
+    .lang-toggle::before {
+        border-radius: 10px;
+    }
+    .lang-toggle__btn {
+        font-size: 12px;
     }
     .icon-button {
         width: 42px;
@@ -678,9 +826,19 @@
         min-height: 40px;
         padding: 0 0.68rem;
     }
+    .lang-toggle {
+        width: 52px;
+        height: 40px;
+        min-height: 40px;
+        max-width: 52px;
+        padding: 2px;
+    }
+
     .lang-toggle__btn {
-        height: 28px;
-        padding: 0 8px;
+        font-size: 11px;
+    }
+
+    .lang-toggle__btn:last-child .lang-toggle__text--compact {
         font-size: 10px;
     }
     .search-shell__submit {
@@ -729,10 +887,29 @@
     .header-action-button--logout span {
         display: none;
     }
+    .lang-toggle {
+        width: 48px;
+        height: 36px;
+        min-height: 36px;
+        max-width: 48px;
+        border-radius: 12px;
+        padding: 2px;
+    }
+
+    .lang-toggle::before {
+        top: 2px;
+        bottom: 2px;
+        left: 2px;
+        width: calc(50% - 2px);
+        border-radius: 8px;
+    }
+
     .lang-toggle__btn {
-        height: 26px;
-        padding: 0 7px;
         font-size: 10px;
+    }
+
+    .lang-toggle__btn:last-child .lang-toggle__text--compact {
+        font-size: 9px;
     }
     .search-shell__submit {
         min-height: 30px;

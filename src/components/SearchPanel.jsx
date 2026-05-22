@@ -216,7 +216,7 @@ function SearchSection({
     <div className={`search-section ${isOpen ? "search-section--open" : ""}`}>
       <button
         type="button"
-        className="search-section__trigger sidebar__nav-item sidebar__nav-item--active"
+        className={`search-section__trigger sidebar__nav-item${isOpen ? " sidebar__nav-item--active" : ""}`}
         onClick={onToggle}
         aria-expanded={isOpen}
       >

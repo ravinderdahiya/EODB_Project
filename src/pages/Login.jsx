@@ -252,6 +252,7 @@ export default function Login() {
             btnClass="lp-lang-btn"
             activeClass="lp-lang-btn--active"
             persistSelection={false}
+            compact={false}
           />
           <button
             type="button"

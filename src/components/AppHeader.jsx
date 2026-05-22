@@ -1,5 +1,5 @@
 import "./AppHeader.css";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   LogOut,
   Menu,
@@ -12,7 +12,6 @@ import LanguageToggle from "./LanguageToggle";
 
 export default function AppHeader({
   searchPlaceholder,
-  sidebarOpen,
   theme,
   onSidebarToggle,
   onToggleTheme,
@@ -27,11 +26,37 @@ export default function AppHeader({
   isAdmin = false,
   showSearch = true,
 }) {
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
+  const headerRef = useRef(null);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
 
   const title    = t("header.title");
   const subtitle = isAdmin ? t("header.adminSubtitle") : t("header.subtitle");
+
+  /* Keep --header-height in sync with real header size (fixes bottom crop on mobile/tablet). */
+  useEffect(() => {
+    const node = headerRef.current;
+    if (!node) return undefined;
+
+    const syncHeaderHeight = () => {
+      const height = Math.ceil(node.getBoundingClientRect().height);
+      if (height > 0) {
+        document.documentElement.style.setProperty("--header-height", `${height}px`);
+      }
+    };
+
+    syncHeaderHeight();
+    const observer = new ResizeObserver(syncHeaderHeight);
+    observer.observe(node);
+    window.addEventListener("resize", syncHeaderHeight);
+    window.addEventListener("orientationchange", syncHeaderHeight);
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", syncHeaderHeight);
+      window.removeEventListener("orientationchange", syncHeaderHeight);
+    };
+  }, [showSearch, isAdmin, lang, title, subtitle]);
 
   const getSuggestionTitle = (suggestion) => {
     if (suggestion?.title) return suggestion.title;
@@ -47,13 +72,14 @@ export default function AppHeader({
   };
 
   return (
-    <header className={`app-header ${showSearch ? "" : "app-header--no-search"}`}>
+    <header
+      ref={headerRef}
+      className={`app-header ${showSearch ? "" : "app-header--no-search"}`}
+    >
       <div className="app-header__brand-cluster">
         <button
           type="button"
-          className={`icon-button icon-button--ghost app-header__menu-button ${
-            sidebarOpen ? "app-header__menu-button--active" : ""
-          }`}
+          className="icon-button icon-button--ghost app-header__menu-button"
           onClick={onSidebarToggle}
           aria-label={t("header.toggleNav")}
         >
