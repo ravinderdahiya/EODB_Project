@@ -181,7 +181,7 @@ const en = {
     sendOtp:       "✈ Send OTP",
     enterOtp:      "Enter OTP",
     verifyOtp:     "✅ Verify OTP",
-    adminIdLabel:  "Admin ID",
+    adminIdLabel:  "Admin User ID / Email",
     passwordLabel: "Password",
     adminLoginBtn: "🔐 Admin Login",
     or:            "OR",

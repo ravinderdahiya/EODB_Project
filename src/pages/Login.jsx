@@ -193,7 +193,7 @@ export default function Login() {
   };
 
   const toggleAdminPanel = () => {
-    setShowAdminPanel((prev) => !prev);
+    setShowAdminPanel(true);
     setAdminError("");
   };
 
@@ -226,44 +226,10 @@ export default function Login() {
             className="lp-chat-btn"
             onClick={toggleAdminPanel}
             aria-expanded={showAdminPanel}
-            aria-controls="lp-admin-dropdown"
+            aria-controls="lp-login-card-mode"
           >
             {t("login.tabAdmin")}
           </button>
-
-          {showAdminPanel && (
-            <div id="lp-admin-dropdown" className="lp-admin-dropdown" role="dialog" aria-label={t("login.tabAdmin")}>
-              <form className="lp-admin-dropdown-form" onSubmit={handleAdminLogin} noValidate>
-                <label className="lp-admin-dropdown-label" htmlFor="lp-admin-id">
-                  {t("login.adminIdLabel")}
-                </label>
-                <input
-                  id="lp-admin-id"
-                  className="lp-admin-dropdown-input"
-                  type="text"
-                  value={adminId}
-                  onChange={(e) => setAdminId(e.target.value)}
-                />
-
-                <label className="lp-admin-dropdown-label" htmlFor="lp-admin-password">
-                  {t("login.passwordLabel")}
-                </label>
-                <input
-                  id="lp-admin-password"
-                  className="lp-admin-dropdown-input"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
-
-                {adminError && <p className="lp-admin-error">{adminError}</p>}
-
-                <button type="submit" className="lp-btn-green" disabled={isAdminLoggingIn}>
-                  {t("login.adminLoginBtn")}
-                </button>
-              </form>
-            </div>
-          )}
         </div>
       </header>
 
@@ -303,13 +269,54 @@ export default function Login() {
             <p className="lp-subtext">{t("login.cardSubtitle")}</p>
 
             {/* Public login marker (admin login moved to header) */}
-            <div className="lp-tabs lp-tabs--single" role="tablist">
+            <div id="lp-login-card-mode" className="lp-tabs lp-tabs--single" role="tablist">
               <button type="button" role="tab" aria-selected={true} className="lp-tab lp-tab--active">
-                {t("login.tabOtp")}
+                {showAdminPanel ? t("login.tabAdmin") : t("login.tabOtp")}
               </button>
             </div>
 
             {/* Form */}
+            {showAdminPanel ? (
+              <form className="lp-admin-card-form" onSubmit={handleAdminLogin} noValidate>
+                <label className="lp-label" htmlFor="lp-admin-id">
+                  {t("login.adminIdLabel")}
+                </label>
+                <input
+                  id="lp-admin-id"
+                  className="lp-full-input"
+                  type="text"
+                  value={adminId}
+                  onChange={(e) => setAdminId(e.target.value)}
+                />
+
+                <label className="lp-label" htmlFor="lp-admin-password">
+                  {t("login.passwordLabel")}
+                </label>
+                <input
+                  id="lp-admin-password"
+                  className="lp-full-input"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+
+                {adminError && <p className="lp-error">{adminError}</p>}
+
+                <button type="submit" className="lp-btn-green" disabled={isAdminLoggingIn}>
+                  {t("login.adminLoginBtn")}
+                </button>
+                <button
+                  type="button"
+                  className="lp-btn-outline lp-back-public-btn"
+                  onClick={() => {
+                    setShowAdminPanel(false);
+                    setAdminError("");
+                  }}
+                >
+                  Back to Public Login
+                </button>
+              </form>
+            ) : (
             <form onSubmit={handlePublicLogin} noValidate>
               {!showOtpInput ? (
                 <>
@@ -411,6 +418,7 @@ export default function Login() {
 
               {error && <p className="lp-error">{error}</p>}
             </form>
+            )}
           </div>
 
           <p className="lp-terms">
