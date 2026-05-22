@@ -26,6 +26,19 @@ function getInitialLanguageState() {
 
 const LanguageContext = createContext(null);
 
+export function createTranslator(lang) {
+  const dict = DICTS[lang] ?? DICTS.en;
+  return (key, params = {}) => {
+    const val = key.split(".").reduce((obj, k) => obj?.[k], dict);
+    if (Array.isArray(val)) return val;
+    if (typeof val !== "string") return key;
+    return Object.entries(params).reduce(
+      (str, [k, v]) => str.replaceAll(`{${k}}`, v),
+      val,
+    );
+  };
+}
+
 export function LanguageProvider({ children }) {
   const [lang, setLangState] = useState(() => getInitialLanguageState().lang);
   const [hasPersistedLanguage, setHasPersistedLanguage] = useState(
@@ -52,6 +65,32 @@ export function LanguageProvider({ children }) {
     setLang(next, { persist: false });
   }, [setLang]);
 
+  /** Login page mount / refresh — restart auto hi/en preview. */
+  const resetLoginPreview = useCallback(() => {
+    setHasPersistedLanguage(false);
+    setLangState("en");
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+    } catch {
+      // localStorage unavailable
+    }
+  }, []);
+
+  /** User picked ENG/हिन्दी on login — stop preview until page refresh. */
+  const lockLoginLanguage = useCallback((next) => {
+    if (!SUPPORTED_LANGS.has(next)) return;
+    setLangState(next);
+    setHasPersistedLanguage(true);
+  }, []);
+
+  /** After successful login — keep current language for the app session. */
+  const commitLanguage = useCallback(() => {
+    setLangState((current) => {
+      persistLang(current);
+      return current;
+    });
+  }, [persistLang]);
+
   const ensureLanguage = useCallback((fallback = "en") => {
     const next = SUPPORTED_LANGS.has(fallback) ? fallback : "en";
     if (hasPersistedLanguage) return;
@@ -64,20 +103,7 @@ export function LanguageProvider({ children }) {
     document.documentElement.setAttribute("data-lang", lang);
   }, [lang]);
 
-  const t = useCallback(
-    (key, params = {}) => {
-      const dict = DICTS[lang] ?? DICTS.en;
-      const val = key.split(".").reduce((obj, k) => obj?.[k], dict);
-      // Return arrays as-is (used for table headers)
-      if (Array.isArray(val)) return val;
-      if (typeof val !== "string") return key;
-      return Object.entries(params).reduce(
-        (str, [k, v]) => str.replaceAll(`{${k}}`, v),
-        val,
-      );
-    },
-    [lang],
-  );
+  const t = useCallback((key, params = {}) => createTranslator(lang)(key, params), [lang]);
 
   return (
     <LanguageContext.Provider
@@ -85,6 +111,9 @@ export function LanguageProvider({ children }) {
         lang,
         setLang,
         setPreviewLang,
+        resetLoginPreview,
+        lockLoginLanguage,
+        commitLanguage,
         hasPersistedLanguage,
         ensureLanguage,
         t,

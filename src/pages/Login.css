@@ -8,6 +8,10 @@
 
 .lp-root {
     font-family: "Poppins", sans-serif;
+    --lp-font-en: "Poppins", sans-serif;
+    --lp-font-hi: "Noto Sans Devanagari", "Mukta", "Hind", "Poppins", sans-serif;
+    --lp-font-fade-duration: 0.38s;
+    --lp-font-fade-ease: cubic-bezier(0.4, 0, 0.2, 1);
     color: #ffffff;
     /* height: 100vh; */
     /* overflow: hidden; */
@@ -24,6 +28,98 @@
     flex-direction: column;
     position: relative;
     background: url("/branding/hero-bg.jpg") center / cover no-repeat;
+}
+
+/* Smooth EN ↔ HI font change — typography opacity + font-size only (login page) */
+.lp-root :is(
+    h1, h2, h3, h4, h5,
+    p, label, a, small, strong,
+    button,
+    .lp-main-title, .lp-tagline, .lp-sub-title,
+    .lp-badge, .lp-headline, .lp-desc,
+    .lp-stat-card h3, .lp-stat-card p,
+    .lp-card-title, .lp-subtext, .lp-tab,
+    .lp-label, .lp-lang-btn, .lp-chat-btn,
+    .lp-btn-green, .lp-btn-outline, .lp-back-public-btn,
+    .lp-error, .lp-otp-timer, .lp-resend-btn,
+    .lp-terms, .lp-announcement-header h4,
+    .lp-announcement-content h5, .lp-announcement-content p,
+    .lp-view-all, .lp-footer-bottom p,
+    .lp-phone-input, .lp-full-input,
+    .otp-input, .lp-month, .lp-day
+) {
+    font-family: var(--lp-font-en);
+    transition:
+        opacity var(--lp-font-fade-duration) var(--lp-font-fade-ease),
+        font-size 0.45s var(--lp-font-fade-ease);
+}
+
+.lp-root[data-lang="hi"] :is(
+    h1, h2, h3, h4, h5,
+    p, label, a, small, strong,
+    button,
+    .lp-main-title, .lp-tagline, .lp-sub-title,
+    .lp-badge, .lp-headline, .lp-desc,
+    .lp-stat-card h3, .lp-stat-card p,
+    .lp-card-title, .lp-subtext, .lp-tab,
+    .lp-label, .lp-lang-btn, .lp-chat-btn,
+    .lp-btn-green, .lp-btn-outline, .lp-back-public-btn,
+    .lp-error, .lp-otp-timer, .lp-resend-btn,
+    .lp-terms, .lp-announcement-header h4,
+    .lp-announcement-content h5, .lp-announcement-content p,
+    .lp-view-all, .lp-footer-bottom p,
+    .lp-phone-input, .lp-full-input,
+    .otp-input, .lp-month, .lp-day
+) {
+    font-family: var(--lp-font-hi);
+}
+
+.lp-root.lp-font-phase-out :is(
+    h1, h2, h3, h4, h5,
+    p, label, a, small, strong,
+    button,
+    .lp-main-title, .lp-tagline, .lp-sub-title,
+    .lp-badge, .lp-headline, .lp-desc,
+    .lp-stat-card h3, .lp-stat-card p,
+    .lp-card-title, .lp-subtext, .lp-tab,
+    .lp-label, .lp-lang-btn, .lp-chat-btn,
+    .lp-btn-green, .lp-btn-outline, .lp-back-public-btn,
+    .lp-error, .lp-otp-timer, .lp-resend-btn,
+    .lp-terms, .lp-announcement-header h4,
+    .lp-announcement-content h5, .lp-announcement-content p,
+    .lp-view-all, .lp-footer-bottom p,
+    .lp-phone-input, .lp-full-input,
+    .otp-input, .lp-month, .lp-day
+) {
+    opacity: 0.12;
+}
+
+.lp-root.lp-font-phase-in :is(
+    h1, h2, h3, h4, h5,
+    p, label, a, small, strong,
+    button,
+    .lp-main-title, .lp-tagline, .lp-sub-title,
+    .lp-badge, .lp-headline, .lp-desc,
+    .lp-stat-card h3, .lp-stat-card p,
+    .lp-card-title, .lp-subtext, .lp-tab,
+    .lp-label, .lp-lang-btn, .lp-chat-btn,
+    .lp-btn-green, .lp-btn-outline, .lp-back-public-btn,
+    .lp-error, .lp-otp-timer, .lp-resend-btn,
+    .lp-terms, .lp-announcement-header h4,
+    .lp-announcement-content h5, .lp-announcement-content p,
+    .lp-view-all, .lp-footer-bottom p,
+    .lp-phone-input, .lp-full-input,
+    .otp-input, .lp-month, .lp-day
+) {
+    opacity: 1;
+}
+
+.lp-root.lp-font-phase-out img,
+.lp-root.lp-font-phase-in img,
+.lp-root.lp-font-phase-out .lp-logo-flip,
+.lp-root.lp-font-phase-in .lp-logo-flip {
+    opacity: 1;
+    transition: none;
 }
 
 .lp-root::before {
@@ -360,12 +456,14 @@
 
 .lp-headline {
     font-size: clamp(1.3rem, 2.2vw, 1.85rem);
-    line-height: 1.40;
-    height: calc(1.28em * 3);
+    line-height: 1.48;
+    height: calc(1em * 1.48 * 3 + 0.35em);
     margin: 0 0 10px;
+    padding-bottom: 0.2em;
     font-weight: 700;
     overflow: hidden;
     overflow-wrap: break-word;
+    box-sizing: border-box;
 }
 
 .lp-green {
@@ -1326,6 +1424,8 @@
 
     .lp-headline {
         height: auto;
+        min-height: calc(1em * 1.48 * 3 + 0.35em);
+        padding-bottom: 0.2em;
         margin-bottom: 8px;
     }
 
@@ -1608,7 +1708,9 @@
 
     .lp-headline {
         font-size: clamp(0.95rem, 1.6vw, 1.15rem);
-        line-height: 1.2;
+        line-height: 1.45;
+        height: calc(1em * 1.45 * 3 + 0.35em);
+        padding-bottom: 0.2em;
         margin-bottom: 6px;
     }
 
@@ -1793,7 +1895,9 @@
 
     .lp-headline {
         font-size: clamp(0.9rem, 2.2vh, 1.1rem);
-        line-height: 1.2;
+        line-height: 1.45;
+        height: calc(1em * 1.45 * 3 + 0.35em);
+        padding-bottom: 0.2em;
         margin-bottom: 6px;
     }
 

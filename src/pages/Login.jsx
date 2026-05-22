@@ -1,17 +1,24 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Login.css";
-import { useLanguage } from "@/context/LanguageContext";
+import { createTranslator, useLanguage } from "@/context/LanguageContext";
 import axiosInstance from "../utils/axiosInstance";
 import LanguageToggle from "@/components/LanguageToggle";
 import { reloadRuntimeConfig } from "@/config/runtimeConfig";
 import { mountSplash } from "../splash";
 
+const LOGIN_FONT_FADE_OUT_MS = 380;
+const LOGIN_FONT_FADE_IN_MS = 420;
+
 export default function Login() {
   const navigate = useNavigate();
-  const { t, hasPersistedLanguage, setPreviewLang, ensureLanguage } = useLanguage();
+  const { lang, hasPersistedLanguage, setPreviewLang, resetLoginPreview, commitLanguage } = useLanguage();
   const previewIntervalRef = useRef(null);
   const previewLangRef = useRef("en");
+  const skipFontTransitionRef = useRef(true);
+  const [displayLang, setDisplayLang] = useState(lang);
+  const [fontPhase, setFontPhase] = useState("");
+  const t = useMemo(() => createTranslator(displayLang), [displayLang]);
 
   const [phone, setPhone] = useState("");
   const [adminId, setAdminId] = useState("");
@@ -49,6 +56,30 @@ export default function Login() {
   }, [showOtpInput, otpTimer]);
 
   useEffect(() => {
+    resetLoginPreview();
+    previewLangRef.current = "en";
+    skipFontTransitionRef.current = true;
+    setFontPhase("");
+  }, [resetLoginPreview]);
+
+  useEffect(() => {
+    if (skipFontTransitionRef.current) {
+      skipFontTransitionRef.current = false;
+      setDisplayLang(lang);
+      return undefined;
+    }
+
+    setFontPhase("out");
+    const swapTimer = window.setTimeout(() => {
+      setDisplayLang(lang);
+      setFontPhase("in");
+      window.setTimeout(() => setFontPhase(""), LOGIN_FONT_FADE_IN_MS);
+    }, LOGIN_FONT_FADE_OUT_MS);
+
+    return () => clearTimeout(swapTimer);
+  }, [lang]);
+
+  useEffect(() => {
     if (hasPersistedLanguage) {
       if (previewIntervalRef.current) {
         clearInterval(previewIntervalRef.current);
@@ -62,7 +93,7 @@ export default function Login() {
     previewIntervalRef.current = window.setInterval(() => {
       previewLangRef.current = previewLangRef.current === "en" ? "hi" : "en";
       setPreviewLang(previewLangRef.current);
-    }, 10000);
+    }, 8000);
 
     return () => {
       if (previewIntervalRef.current) {
@@ -95,7 +126,7 @@ export default function Login() {
       sessionStorage.setItem("user", JSON.stringify(res.data.user || {}));
       sessionStorage.setItem("isAdmin", "false");
       sessionStorage.setItem("isAuthenticated", "true");
-      ensureLanguage("en");
+      commitLanguage();
       await reloadRuntimeConfig();
       mountSplash();
       navigate("/map");
@@ -178,7 +209,7 @@ export default function Login() {
       sessionStorage.setItem("user", JSON.stringify(res.data.user || {}));
       sessionStorage.setItem("isAdmin", "true");
       sessionStorage.setItem("isAuthenticated", "true");
-      ensureLanguage("en");
+      commitLanguage();
       await reloadRuntimeConfig();
       setShowAdminPanel(false);
       navigate("/admin");
@@ -195,7 +226,10 @@ export default function Login() {
   };
 
   return (
-    <div className="lp-root">
+    <div
+      className={`lp-root${fontPhase ? ` lp-font-phase-${fontPhase}` : ""}`}
+      data-lang={displayLang}
+    >
 
       {/* ── NAVBAR ─────────────────────────────────── */}
       <header className="lp-navbar">
@@ -217,6 +251,7 @@ export default function Login() {
             wrapperClass="lp-lang-toggle"
             btnClass="lp-lang-btn"
             activeClass="lp-lang-btn--active"
+            persistSelection={false}
           />
           <button
             type="button"
