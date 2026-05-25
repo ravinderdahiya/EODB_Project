@@ -599,7 +599,7 @@ export function createLocationGraphic(point, title) {
     },
     popupTemplate: {
       title,
-      content: "Location centered from ArcGIS geolocation workflow.",
+      content: "Your current device location on the map.",
     },
   });
 }

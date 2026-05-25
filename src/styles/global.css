@@ -285,6 +285,7 @@ select:focus-visible {
 
 /* =========================
    Responsive — Layout breakpoints
+   JS: src/constants/layoutBreakpoints.js (1024 / 768)
 ========================= */
 
 /* Tablet and below: sidebar is a fixed overlay, workspace takes full width.

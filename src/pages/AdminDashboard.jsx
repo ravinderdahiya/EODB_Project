@@ -110,9 +110,7 @@ export default function AdminDashboard() {
   const [feedbackError, setFeedbackError] = useState(null);
 
   useEffect(() => {
-    if (isTablet) {
-      setSidebarOpen(false);
-    }
+    setSidebarOpen(!isTablet);
   }, [isTablet]);
 
   useEffect(() => {

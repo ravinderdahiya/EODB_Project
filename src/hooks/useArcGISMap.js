@@ -3,7 +3,7 @@
  * Keeps the map wired to the migrated HSAC service stack from the legacy app.
  */
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useLatestRef } from "./useLatestRef";
 import esriConfig from "@arcgis/core/config.js";
 import Extent from "@arcgis/core/geometry/Extent.js";
@@ -48,6 +48,13 @@ import {
   showLandRecordMiniPopup,
   syncLandRecordMiniPopup,
 } from "./useArcGISMapUtils";
+import {
+  geolocationMessageFromError,
+  isSecureGeolocationContext,
+  LOCATE_ME_ZOOM,
+  USER_GEOLOCATION_OPTIONS,
+  USER_LOCATION_GRAPHIC_TITLE,
+} from "./userLocationGeo";
 
 const ARCGIS_API_KEY = getRuntimeConfigValue(
   "VITE_ARCGIS_API_KEY",
@@ -146,6 +153,55 @@ export function useArcGISMap({
   const selectedParcelRef       = useLatestRef(selectedParcel);
   const onPreviewFullDetailsRef = useLatestRef(onPreviewFullDetails);
   const layerVisibilityRef       = useLatestRef(layerVisibility);
+  const userLocationRef          = useRef(null);
+  const userLocationWatchIdRef   = useRef(null);
+  const userLocationErrorRef     = useRef(null);
+
+  const syncUserLocationDot = useCallback((coords) => {
+    userLocationRef.current = {
+      longitude: coords.longitude,
+      latitude: coords.latitude,
+      accuracy: coords.accuracy ?? null,
+    };
+    userLocationErrorRef.current = null;
+
+    const layer = layersRef.current.userLocationLayer;
+    if (!layer) return;
+
+    const point = new Point({
+      longitude: coords.longitude,
+      latitude: coords.latitude,
+    });
+    layer.removeAll();
+    layer.add(createLocationGraphic(point, USER_LOCATION_GRAPHIC_TITLE));
+  }, []);
+
+  const stopUserLocationWatch = useCallback(() => {
+    if (userLocationWatchIdRef.current == null) return;
+    navigator.geolocation.clearWatch(userLocationWatchIdRef.current);
+    userLocationWatchIdRef.current = null;
+  }, []);
+
+  const startUserLocationWatch = useCallback(() => {
+    if (!navigator.geolocation || !isSecureGeolocationContext()) return;
+    if (userLocationWatchIdRef.current != null) return;
+
+    const onPosition = (position) => {
+      syncUserLocationDot(position.coords);
+    };
+
+    const onError = (err) => {
+      userLocationErrorRef.current = geolocationMessageFromError(err);
+    };
+
+    navigator.geolocation.getCurrentPosition(onPosition, onError, USER_GEOLOCATION_OPTIONS);
+
+    userLocationWatchIdRef.current = navigator.geolocation.watchPosition(
+      onPosition,
+      onError,
+      USER_GEOLOCATION_OPTIONS,
+    );
+  }, [syncUserLocationDot]);
 
   const [mapReady,     setMapReady]     = useState(false);
   const [mapStatus,    setMapStatus]    = useState("Initialising Haryana land-record map…");
@@ -313,6 +369,7 @@ export function useArcGISMap({
         visible: false,
       });
       const locationLayer   = new GraphicsLayer({ title: "Location search",    listMode: "hide" });
+      const userLocationLayer = new GraphicsLayer({ title: "Your location", listMode: "hide" });
       const selectionLayer  = new GraphicsLayer({ title: "Feature selection",  listMode: "hide" });
 
       const map = new ArcGISMap({
@@ -328,13 +385,14 @@ export function useArcGISMap({
         boundaryLayer,
         selectionLayer,
         highlightLayer,
+        userLocationLayer,
       ]);
 
       view = new MapView({
         container: containerRef.current,
         map,
         extent: initialExtent.clone(),
-        constraints: { minZoom: 6, snapToZoom: false },
+        constraints: { minZoom: 6, snapToZoom: false, rotationEnabled: true },
         navigation: { mouseWheelZoomEnabled: true, browserTouchPanEnabled: true },
         popup: {
           dockEnabled: false,
@@ -383,7 +441,10 @@ export function useArcGISMap({
           selectionLayer,
           highlightLayer,
           locationLayer,
+          userLocationLayer,
         };
+
+        startUserLocationWatch();
 
         // Live scale ratio — updates on every zoom/pan
         reactiveUtils.watch(
@@ -709,6 +770,9 @@ export function useArcGISMap({
 
     return () => {
       isDisposed = true;
+      stopUserLocationWatch();
+      userLocationRef.current = null;
+      userLocationErrorRef.current = null;
       layersRef.current = {};
       viewRef.current = null;
       setMapReady(false);
@@ -873,9 +937,14 @@ export function useArcGISMap({
     if (!viewRef.current || !defaultExtentRef.current) {
       return { ok: false, message: "Default Haryana extent is not available yet." };
     }
-    await viewRef.current.goTo(defaultExtentRef.current.clone(), {
-      duration: 900, easing: "ease-in-out",
-    });
+    // Reset extent and rotation together so the north compass returns to 0°.
+    await viewRef.current.goTo(
+      {
+        target: defaultExtentRef.current.clone(),
+        rotation: 0,
+      },
+      { duration: 900, easing: "ease-in-out" },
+    );
     return { ok: true, message: "Map reset to the default Haryana extent." };
   };
 
@@ -902,65 +971,63 @@ export function useArcGISMap({
     return { ok: true, message: "HSAC map layers refreshed." };
   };
 
-  const goToCurrentLocation = () =>
-    new Promise(async (resolve) => {
-      if (!navigator.geolocation || !viewRef.current) {
-        resolve({ ok: false, message: "Geolocation is not available in this environment." });
-        return;
-      }
+  const goToCurrentLocation = async () => {
+    if (!viewRef.current) {
+      return { ok: false, message: "Map is still loading." };
+    }
 
-      const isSecureLocation =
-        window.isSecureContext ||
-        window.location.hostname === "localhost" ||
-        window.location.hostname === "127.0.0.1";
+    if (!navigator.geolocation) {
+      return { ok: false, message: "Geolocation is not available in this environment." };
+    }
 
-      if (!isSecureLocation) {
-        resolve({
-          ok: false,
-          message:
-            "Browser location access requires HTTPS or localhost. Run the app on localhost or an HTTPS server to see the location permission prompt.",
-        });
-        return;
-      }
+    if (!isSecureGeolocationContext()) {
+      return {
+        ok: false,
+        message:
+          "Browser location access requires HTTPS or localhost. Run the app on localhost or an HTTPS server to see the location permission prompt.",
+      };
+    }
 
+    const centerOnUser = async (coords) => {
+      syncUserLocationDot(coords);
+      const point = new Point({
+        longitude: coords.longitude,
+        latitude: coords.latitude,
+      });
+      await viewRef.current.goTo(
+        { target: point, zoom: LOCATE_ME_ZOOM },
+        { duration: 450, easing: "ease-out" },
+      );
+    };
+
+    if (userLocationRef.current) {
       try {
-        const permissionStatus = await navigator.permissions?.query?.({ name: "geolocation" }).catch(() => null);
-        if (permissionStatus?.state === "denied") {
-          resolve({
-            ok: false,
-            message:
-              "Location permission is denied. Please enable location access in your browser settings and try again.",
-          });
-          return;
-        }
+        await centerOnUser(userLocationRef.current);
+        return { ok: true, message: "Centered on your location." };
       } catch {
-        // Ignore permission query errors and continue to request geolocation.
+        return { ok: false, message: "Unable to centre the map on your location." };
       }
+    }
 
+    return new Promise((resolve) => {
       navigator.geolocation.getCurrentPosition(
-        async ({ coords }) => {
-          const point = new Point({ longitude: coords.longitude, latitude: coords.latitude });
-
-          layersRef.current.locationLayer.removeAll();
-          layersRef.current.locationLayer.add(createLocationGraphic(point, "Current Location"));
-
-          await viewRef.current.goTo({ target: point, zoom: 14 }, { duration: 950, easing: "ease-in-out" });
-          resolve({ ok: true, message: "Current location loaded and centred on the map." });
+        async (position) => {
+          try {
+            await centerOnUser(position.coords);
+            resolve({ ok: true, message: "Centered on your location." });
+          } catch {
+            resolve({ ok: false, message: "Unable to centre the map on your location." });
+          }
         },
         (err) => {
-          let message = "Unable to access current location.";
-          if (err?.code === 1) {
-            message = "Location permission denied. Please allow location access in your browser.";
-          } else if (err?.code === 2) {
-            message = "Unable to determine location. Please try again.";
-          } else if (err?.code === 3) {
-            message = "Location request timed out. Please try again.";
-          }
+          const message = geolocationMessageFromError(err);
+          userLocationErrorRef.current = message;
           resolve({ ok: false, message });
         },
-        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 },
+        USER_GEOLOCATION_OPTIONS,
       );
     });
+  };
 
   const searchPlace = async (term) => {
     if (!viewRef.current) return { ok: false, message: "Map is still loading." };
