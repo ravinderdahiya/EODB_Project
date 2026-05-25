@@ -4,6 +4,7 @@ import { submitFeedback } from "@/services/feedbackService";
 import "./FeedbackWidget.css";
 
 const WHATSAPP_NUMBER = `${import.meta.env.VITE_FEEDBACK_WHATSAPP_NUMBER || ""}`.replace(/[^\d]/g, "");
+const shouldOpenWhatsAppChat = String(import.meta.env.VITE_FEEDBACK_OPEN_WHATSAPP_CHAT || "true").toLowerCase() === "true";
 
 const buildWhatsAppUrl = (text) => {
   const encoded = encodeURIComponent(text);
@@ -11,6 +12,32 @@ const buildWhatsAppUrl = (text) => {
     return `https://wa.me/${WHATSAPP_NUMBER}?text=${encoded}`;
   }
   return `https://wa.me/?text=${encoded}`;
+};
+
+const getLoggedInUser = () => {
+  try {
+    const rawSessionUser = sessionStorage.getItem("user");
+    if (rawSessionUser) {
+      const parsed = JSON.parse(rawSessionUser);
+      if (parsed && typeof parsed === "object") return parsed;
+    }
+  } catch {
+    // ignore parsing/storage errors
+  }
+  return {};
+};
+
+const buildFeedbackMessage = (form, mobileFromSession) => {
+  const complaintId = `HSAC_${Date.now()}`;
+  return [
+    "New user feedback",
+    `Comp-ID: ${complaintId}`,
+    `Name: ${form.name.trim()}`,
+    mobileFromSession ? `Mobile: ${mobileFromSession}` : "",
+    `Message: ${form.message.trim()}`,
+  ]
+    .filter(Boolean)
+    .join("\n");
 };
 
 export default function FeedbackWidget({
@@ -32,10 +59,10 @@ export default function FeedbackWidget({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const sessionUser = useMemo(() => getLoggedInUser(), []);
+  const sessionMobile = `${sessionUser?.mobile || ""}`.trim();
   const [form, setForm] = useState({
-    name: "",
-    mobile: "",
-    email: "",
+    name: `${sessionUser?.fullname || ""}`.trim(),
     message: "",
   });
 
@@ -45,7 +72,7 @@ export default function FeedbackWidget({
   );
 
   const resetForm = () => {
-    setForm({ name: "", mobile: "", email: "", message: "" });
+    setForm((prev) => ({ ...prev, message: "" }));
   };
 
   const handleSubmit = async (event) => {
@@ -59,24 +86,23 @@ export default function FeedbackWidget({
     try {
       const payload = {
         ...form,
+        mobile: sessionMobile || null,
         pageUrl: window.location.href,
       };
       const response = await submitFeedback(payload);
       const feedbackId = response?.feedbackId ? `FB-${response.feedbackId}` : "N/A";
+      const message = buildFeedbackMessage(form, sessionMobile);
 
-      const message = [
-        "New user feedback",
-        `Ref: ${feedbackId}`,
-        `Name: ${form.name.trim()}`,
-        form.mobile.trim() ? `Mobile: ${form.mobile.trim()}` : "",
-        form.email.trim() ? `Email: ${form.email.trim()}` : "",
-        `Message: ${form.message.trim()}`,
-      ]
-        .filter(Boolean)
-        .join("\n");
+      if (shouldOpenWhatsAppChat) {
+        window.open(buildWhatsAppUrl(message), "_blank", "noopener,noreferrer");
+      }
 
-      window.open(buildWhatsAppUrl(message), "_blank", "noopener,noreferrer");
-      setSuccess(`Feedback submitted. Reference ID: ${feedbackId}`);
+      const cloudStatus = response?.whatsapp;
+      if (cloudStatus?.sent) {
+        setSuccess(`Feedback submitted and WhatsApp API sent. Reference ID: ${feedbackId}`);
+      } else {
+        setSuccess(`Feedback submitted. Reference ID: ${feedbackId}`);
+      }
       resetForm();
     } catch (apiError) {
       setError(apiError?.response?.data?.message || "Unable to submit feedback right now.");
@@ -129,31 +155,8 @@ export default function FeedbackWidget({
                   onChange={(event) =>
                     setForm((prev) => ({ ...prev, name: event.target.value }))
                   }
+                  placeholder="Enter your name"
                   required
-                />
-              </label>
-
-              <label>
-                Mobile
-                <input
-                  type="text"
-                  value={form.mobile}
-                  onChange={(event) =>
-                    setForm((prev) => ({ ...prev, mobile: event.target.value }))
-                  }
-                  placeholder="+91XXXXXXXXXX"
-                />
-              </label>
-
-              <label>
-                Email
-                <input
-                  type="email"
-                  value={form.email}
-                  onChange={(event) =>
-                    setForm((prev) => ({ ...prev, email: event.target.value }))
-                  }
-                  placeholder="name@example.com"
                 />
               </label>
 
@@ -174,7 +177,7 @@ export default function FeedbackWidget({
 
               <button type="submit" className="feedback-form__submit" disabled={!canSubmit}>
                 <Send size={16} />
-                <span>{submitting ? "Submitting..." : "Submit & Open WhatsApp"}</span>
+                <span>{submitting ? "Submitting..." : "Submit Feedback"}</span>
               </button>
             </form>
           </section>
