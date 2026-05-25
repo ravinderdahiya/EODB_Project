@@ -1,3 +1,5 @@
+import { useState } from "react";
+
 export default function AdminAnalyticsEventsTable({
   events,
   loading,
@@ -7,6 +9,26 @@ export default function AdminAnalyticsEventsTable({
   totalCount,
   onPageChange,
 }) {
+  const [selectedLabel, setSelectedLabel] = useState(null);
+
+  const normalizeLabelText = (value) => {
+    if (value == null) return "-";
+    if (typeof value === "string") return value;
+    try {
+      return JSON.stringify(value);
+    } catch (error) {
+      return String(value);
+    }
+  };
+
+  const getShortDescription = (value, maxLength = 24) => {
+    const text = normalizeLabelText(value).trim();
+    if (text.length <= maxLength) {
+      return { shortText: text || "-", hasMore: false };
+    }
+    return { shortText: `${text.slice(0, maxLength).trim()}...`, hasMore: true };
+  };
+
   const startIndex = totalCount === 0 ? 0 : (page - 1) * pageSize + 1;
   const endIndex = Math.min(startIndex + events.length - 1, totalCount);
 
@@ -83,7 +105,20 @@ export default function AdminAnalyticsEventsTable({
                       <td>{entry.eventType}</td>
                       <td>{entry.category}</td>
                       <td>{entry.action}</td>
-                      <td>{entry.label}</td>
+                      <td>
+                        <div className="admin-label-cell">
+                          <span>{getShortDescription(entry.label).shortText}</span>
+                          {getShortDescription(entry.label).hasMore ? (
+                            <button
+                              type="button"
+                              className="admin-read-more-btn"
+                              onClick={() => setSelectedLabel(normalizeLabelText(entry.label))}
+                            >
+                              Read More
+                            </button>
+                          ) : null}
+                        </div>
+                      </td>
                       <td>{entry.page}</td>
                       <td>{entry.userId}</td>
                       <td>{entry.source}</td>
@@ -92,6 +127,30 @@ export default function AdminAnalyticsEventsTable({
                 )}
               </tbody>
             </table>
+
+            {selectedLabel ? (
+              <div
+                className="admin-label-modal-backdrop"
+                onClick={() => setSelectedLabel(null)}
+              >
+                <div
+                  className="admin-label-modal"
+                  onClick={(event) => event.stopPropagation()}
+                >
+                  <div className="admin-label-modal__head">
+                    <h4>Label Details</h4>
+                    <button
+                      type="button"
+                      className="admin-table-pagination__button"
+                      onClick={() => setSelectedLabel(null)}
+                    >
+                      Close
+                    </button>
+                  </div>
+                  <pre className="admin-label-modal__content">{selectedLabel}</pre>
+                </div>
+              </div>
+            ) : null}
           </>
         )}
       </div>
