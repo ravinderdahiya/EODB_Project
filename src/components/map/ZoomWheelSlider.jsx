@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import * as reactiveUtils from '@arcgis/core/core/reactiveUtils.js';
+import { useLanguage } from '@/context/LanguageContext';
 import './ZoomWheelSlider.css';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -15,12 +16,17 @@ const ALL_TICKS      = PADDING * 2 + REAL_TICKS;                    // 195
 const STATE_BUTTON_TARGET_SCALE = 7354296; // > 1:50,00,000 and within state-boundary visible range
 
 const LAYERS = [
-  { key: 'state',     label: 'State',     min: 7,  max: 8.9   },
-  { key: 'district',  label: 'District',  min: 9,  max: 10.9  },
-  { key: 'tehsil',    label: 'Tehsil',    min: 11, max: 12.9 },
-  { key: 'village',   label: 'Village',   min: 13, max: 16.9 },
-  { key: 'cadastral', label: 'Murraba', min: 17, max: 19 },
+  { key: 'state',     min: 7,  max: 8.9   },
+  { key: 'district',  min: 9,  max: 10.9  },
+  { key: 'tehsil',    min: 11, max: 12.9 },
+  { key: 'village',   min: 13, max: 16.9 },
+  { key: 'cadastral', min: 17, max: 19 },
 ];
+
+const formatMapScale = (scale) => {
+  if (!Number.isFinite(scale) || scale <= 0) return '—';
+  return `1:${Math.round(scale).toLocaleString()}`;
+};
 
 function getActiveKey(zoom) {
   return (LAYERS.find(l => zoom >= l.min && zoom <= l.max) ?? LAYERS[0]).key;
@@ -30,8 +36,25 @@ function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
 
 // ── Component ─────────────────────────────────────────────────────────────────
 export default function ZoomWheelSlider({ viewRef, layerVisibility, mapScale }) {
+  const { t } = useLanguage();
   const [zoom,     setZoom]     = useState(MIN_ZOOM);
   const [dragging, setDragging] = useState(false);
+
+  const layerLabel = useCallback(
+    (key) => {
+      const label = t(`zoomBar.layers.${key}.label`);
+      return label !== `zoomBar.layers.${key}.label` ? label : key;
+    },
+    [t],
+  );
+
+  const layerTitle = useCallback(
+    (key) => {
+      const title = t(`zoomBar.layers.${key}.title`);
+      return title !== `zoomBar.layers.${key}.title` ? title : layerLabel(key);
+    },
+    [t, layerLabel],
+  );
 
   // Refs avoid stale-closure issues inside event listeners
   const zoomRef        = useRef(MIN_ZOOM);
@@ -169,8 +192,25 @@ export default function ZoomWheelSlider({ viewRef, layerVisibility, mapScale }) 
     Boolean(layerVisibility?.murrabaGrid) &&
     Boolean(layerVisibility?.murabba) &&
     Boolean(layerVisibility?.cadastral);
+
+  const activeLayerLabel = layerLabel(zoomActiveKey);
+
+  const tickZoneTitle = useMemo(
+    () => t('zoomBar.hoverInfo', {
+      level: zoom.toFixed(1),
+      scale: formatMapScale(mapScale),
+      layer: activeLayerLabel,
+    }),
+    [t, zoom, mapScale, activeLayerLabel],
+  );
+
   return (
-    <div className="zws" role="region" aria-label="Map zoom level">
+    <div
+      className="zws"
+      role="region"
+      aria-label={t('zoomBar.region')}
+      title={tickZoneTitle}
+    >
 
       {/* ── Centre: pointer + tick wheel + layer labels ─────────────── */}
       <div className="zws__mid">
@@ -181,6 +221,8 @@ export default function ZoomWheelSlider({ viewRef, layerVisibility, mapScale }) 
         {/* Scrolling tick ruler */}
         <div
           className="zws__tick-zone"
+          title={`${t('zoomBar.dragHint')} · ${tickZoneTitle}`}
+          aria-label={tickZoneTitle}
           onMouseDown={handlePointerDown}
           onTouchStart={handlePointerDown}
         >
@@ -223,6 +265,8 @@ export default function ZoomWheelSlider({ viewRef, layerVisibility, mapScale }) 
                       ? (zoomActiveKey === layer.key && isMurrabaZoomLabelEligible ? ' is-active' : '')
                     : (zoomActiveKey === layer.key && layerEnabled[layer.key] ? ' is-active' : '')
                 }`}
+                aria-label={layerTitle(layer.key)}
+                title={layerTitle(layer.key)}
                 aria-pressed={
                   layer.key === 'state'
                     ? (layerEnabled.state && isStateScaleEligible)
@@ -238,7 +282,7 @@ export default function ZoomWheelSlider({ viewRef, layerVisibility, mapScale }) 
                   goToZoom(layer.min);
                 }}
               >
-                {layer.label}
+                {layerLabel(layer.key)}
               </button>
             </span>
           ))}

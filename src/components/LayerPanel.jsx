@@ -1,5 +1,6 @@
 import "./LayerPanel.css";
-import { RefreshCcw } from "lucide-react";
+import { useState } from "react";
+import { ChevronDown, RefreshCcw } from "lucide-react";
 import { arcgisPortalConfig } from "@/config/arcgis";
 import { useLanguage } from "@/context/LanguageContext";
 
@@ -24,6 +25,26 @@ function LayerToggleRow({ title, description, checked, onChange }) {
   );
 }
 
+function LayerCollapsibleGroup({ title, description, expanded, onToggle, children }) {
+  return (
+    <div className={`layer-panel__group${expanded ? " layer-panel__group--open" : ""}`}>
+      <button
+        type="button"
+        className="toggle-row toggle-row--group"
+        onClick={onToggle}
+        aria-expanded={expanded}
+      >
+        <span className="toggle-row__copy">
+          <strong>{title}</strong>
+          {description ? <small>{description}</small> : null}
+        </span>
+        <ChevronDown size={16} className="toggle-row__chevron" aria-hidden="true" />
+      </button>
+      <div className="layer-panel__group-body">{children}</div>
+    </div>
+  );
+}
+
 export default function LayerPanel({
   isOpen,
   layerVisibility,
@@ -32,6 +53,9 @@ export default function LayerPanel({
   serviceHealth,
 }) {
   const { t } = useLanguage();
+  const [murabbaLayersExpanded, setMurabbaLayersExpanded] = useState(false);
+  const [boundariesExpanded, setBoundariesExpanded] = useState(false);
+  const [otherLayersExpanded, setOtherLayersExpanded] = useState(false);
 
   return (
     <aside className={`layer-panel ${isOpen ? "layer-panel--open" : ""}`}>
@@ -51,71 +75,83 @@ export default function LayerPanel({
         </button>
       </div>
 
+      <div className="layer-panel__scroll">
       <div className="layer-panel__section">
-        <span className="layer-panel__section-label eyebrow">Murraba Grid</span>
-        <LayerToggleRow
-          title="Murraba Grid (Haryana)"
-          description="Group + child layer (id 29 + 30)"
-          checked={layerVisibility.murrabaGrid ?? false}
-          onChange={() => onToggleLayer("murrabaGrid")}
-        />
-      </div>
-
-      <div className="layer-panel__section">
-        <span className="layer-panel__section-label eyebrow">{t("layerPanel.cadastral")}</span>
-
-        <LayerToggleRow
-          title={t("layerPanel.cadastralLayerTitle")}
-          description={t("layerPanel.cadastralLayerDesc")}
-          checked={layerVisibility.cadastral}
-          onChange={() => onToggleLayer("cadastral")}
-        />
-
-      </div>
-
-      <div className="layer-panel__section">
-        <span className="layer-panel__section-label eyebrow">{t("layerPanel.boundaries")}</span>
-
-        <LayerToggleRow
-          title="Haryana State Boundary"
-          description="State boundary layer (id 31)"
-          checked={layerVisibility.stateBoundary ?? false}
-          onChange={() => onToggleLayer("stateBoundary")}
-        />
-
-        {arcgisPortalConfig.boundarySublayers.map((layer) => (
+        <LayerCollapsibleGroup
+          title={t("layerPanel.murabbaLayersTitle")}
+          description={t("layerPanel.murabbaLayersDesc")}
+          expanded={murabbaLayersExpanded}
+          onToggle={() => setMurabbaLayersExpanded((open) => !open)}
+        >
           <LayerToggleRow
-            key={layer.key}
-            title={layer.title}
-            description={layer.description}
-            checked={layerVisibility[layer.key]}
-            onChange={() => onToggleLayer(layer.key)}
+            title="Murraba Grid (Haryana)"
+            description="Group + child layer (id 29 + 30)"
+            checked={layerVisibility.murrabaGrid ?? false}
+            onChange={() => onToggleLayer("murrabaGrid")}
           />
-        ))}
+
+          <LayerToggleRow
+            title={t("layerPanel.cadastralLayerTitle")}
+            description={t("layerPanel.cadastralLayerDesc")}
+            checked={layerVisibility.cadastral}
+            onChange={() => onToggleLayer("cadastral")}
+          />
+        </LayerCollapsibleGroup>
       </div>
 
       <div className="layer-panel__section">
-        <span className="layer-panel__section-label eyebrow">Nearby Places</span>
+        <LayerCollapsibleGroup
+          title={t("layerPanel.boundariesLayerTitle")}
+          description={t("layerPanel.boundariesLayerDesc")}
+          expanded={boundariesExpanded}
+          onToggle={() => setBoundariesExpanded((open) => !open)}
+        >
+          <LayerToggleRow
+            title="Haryana State Boundary"
+            description="State boundary layer (id 31)"
+            checked={layerVisibility.stateBoundary ?? false}
+            onChange={() => onToggleLayer("stateBoundary")}
+          />
+
+          {arcgisPortalConfig.boundarySublayers.map((layer) => (
+            <LayerToggleRow
+              key={layer.key}
+              title={layer.title}
+              description={layer.description}
+              checked={layerVisibility[layer.key]}
+              onChange={() => onToggleLayer(layer.key)}
+            />
+          ))}
+        </LayerCollapsibleGroup>
+      </div>
+
+      {/* <div className="layer-panel__section">
+       
         <LayerToggleRow
           title="Nearby Places (POI)"
           description="Group + child layer (id 23 + 24)"
           checked={layerVisibility.nearbyPlaces ?? false}
           onChange={() => onToggleLayer("nearbyPlaces")}
         />
-      </div>
+      </div> */}
 
       <div className="layer-panel__section">
-        <span className="layer-panel__section-label eyebrow">{t("layerPanel.overlays")}</span>
-
-        {arcgisPortalConfig.operationalLayers.map((layer) => (
-          <LayerToggleRow
-            key={layer.key}
-            title={layer.title}
-            description={layer.description}
-            checked={layerVisibility[layer.key] ?? false}
-            onChange={() => onToggleLayer(layer.key)}
-          />
-        ))}
+        <LayerCollapsibleGroup
+          title={t("layerPanel.otherLayersTitle")}
+          description={t("layerPanel.otherLayersDesc")}
+          expanded={otherLayersExpanded}
+          onToggle={() => setOtherLayersExpanded((open) => !open)}
+        >
+          {arcgisPortalConfig.operationalLayers.map((layer) => (
+            <LayerToggleRow
+              key={layer.key}
+              title={layer.title}
+              description={layer.description}
+              checked={layerVisibility[layer.key] ?? false}
+              onChange={() => onToggleLayer(layer.key)}
+            />
+          ))}
+        </LayerCollapsibleGroup>
       </div>
 
       <div className="layer-panel__footer">
@@ -130,6 +166,7 @@ export default function LayerPanel({
             <HealthDot status={serviceHealth.assets} /> {t("layerPanel.healthAssets")}
           </span>
         </div>
+      </div>
       </div>
     </aside>
   );

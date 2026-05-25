@@ -74,8 +74,8 @@ export const arcgisPortalConfig = {
   serviceUrls,
   boundarySublayers: [
     { id: HSAC_LAYER.DISTRICT, key: "district", title: "District boundaries", description: "23 Districts of Haryana" },
-    { id: HSAC_LAYER.TEHSIL, key: "tehsil", title: "Tehsil boundaries", description: "94 Tehsils of Haryana" },
-    { id: HSAC_LAYER.VILLAGE, key: "village", title: "Village boundaries", description: "6,841 Villages of Haryana" },
+    { id: HSAC_LAYER.TEHSIL, key: "tehsil", title: "Tehsil boundaries", description: "143 Tehsils of Haryana" },
+    { id: HSAC_LAYER.VILLAGE, key: "village", title: "Village boundaries", description: "7,103 Villages of Haryana" },
   ],
   operationalLayers: [
     { key: "assets", title: "Government Assets", description: "Govt. infrastructure from HSACGGM" },
