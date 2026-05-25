@@ -283,6 +283,11 @@ export default defineConfig(({ mode }) => {
           changeOrigin: true,
           secure: false,
         },
+        "/feedback": {
+          target: baseURL,
+          changeOrigin: true,
+          secure: false,
+        },
         // Local dev fallback: when frontend resolves backend-prefixed URLs, proxy them to backend origin.
         "/eodb_backend": {
           target: backendOriginForPrefixedProxy,
@@ -342,6 +347,11 @@ export default defineConfig(({ mode }) => {
           secure: false,
         },
         "/analytics": {
+          target: baseURL,
+          changeOrigin: true,
+          secure: false,
+        },
+        "/feedback": {
           target: baseURL,
           changeOrigin: true,
           secure: false,
