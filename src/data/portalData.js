@@ -1,9 +1,8 @@
 import {
   CircleHelp,
   FileDown,
-  Layers3,
   LocateFixed,
-  Ruler,
+  MessageCircle,
   SearchCheck,
   SlidersHorizontal,
 } from "lucide-react";
@@ -16,22 +15,10 @@ export const navigationItems = [
     icon: SearchCheck,
   },
   {
-    id: "layers",
-    label: "Map Layers",
-    description: "Overlay and legend control",
-    icon: Layers3,
-  },
-  {
     id: "find-latlong",
     label: "Find Lat/Long",
     description: "Find map location by coordinates",
     icon: LocateFixed,
-  },
-  {
-    id: "measurement",
-    label: "Measurement Tools",
-    description: "Distance and area workflow",
-    icon: Ruler,
   },
   {
     id: "download-terminology",
@@ -53,6 +40,12 @@ export const navigationItems = [
     description: "Guides and support links",
     icon: CircleHelp,
     pdfUrl: `${import.meta.env.BASE_URL}Help-FAQ.pdf`,
+  },
+  {
+    id: "feedback",
+    label: "Feedback",
+    description: "Share suggestions or report issues",
+    icon: MessageCircle,
   },
 ];
 

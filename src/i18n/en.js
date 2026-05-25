@@ -17,12 +17,11 @@ const en = {
 
   nav: {
     search:               { label: "Search Land Record",   description: "Khasra, owner and village search" },
-    layers:               { label: "Map Layers",            description: "Overlay and legend control" },
     "find-latlong":      { label: "Find Lat/Long",         description: "Find map location by coordinates" },
-    measurement:          { label: "Measurement Tools",     description: "Distance and area workflow" },
     "download-terminology": { label: "Cadastral Terminology", description: "View reference glossary PDF" },
     personalizations:     { label: "Personalizations",      description: "Theme, display and visual settings" },
     help:                 { label: "Help / FAQ",             description: "Guides and support links" },
+    feedback:             { label: "Feedback",               description: "Share suggestions or report issues" },
   },
 
   latLong: {

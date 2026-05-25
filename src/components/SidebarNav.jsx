@@ -18,8 +18,7 @@ export default function SidebarNav({
   onRecordSelect,
   onStatusChange,
   mapReady,
-  layersPanelActive,
-  measurementActive,
+  feedbackActive = false,
   sfActiveTool,
   sfIsActive,
   sfProgress,
@@ -68,6 +67,12 @@ export default function SidebarNav({
       setSearchExpanded(false);
       setLatLongExpanded(false);
       setLatLongError("");
+    } else if (id === "feedback") {
+      setSearchExpanded(false);
+      setLatLongExpanded(false);
+      setLatLongError("");
+      setSelectorExpanded(false);
+      onSelect(id);
     } else {
       setSearchExpanded(false);
       setLatLongExpanded(false);
@@ -135,8 +140,7 @@ export default function SidebarNav({
               const isActive =
                 item.id === "search"           ? searchExpanded  :
                 item.id === "find-latlong"     ? latLongExpanded :
-                item.id === "layers"           ? Boolean(layersPanelActive) :
-                item.id === "measurement"      ? Boolean(measurementActive) :
+                item.id === "feedback"         ? Boolean(feedbackActive) :
                 item.id === "personalizations" ? selectorExpanded :
                 item.id === activeId;
 

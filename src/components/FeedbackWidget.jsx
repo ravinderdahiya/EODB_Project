@@ -13,8 +13,22 @@ const buildWhatsAppUrl = (text) => {
   return `https://wa.me/?text=${encoded}`;
 };
 
-export default function FeedbackWidget({ hidden = false }) {
-  const [open, setOpen] = useState(false);
+export default function FeedbackWidget({
+  hidden = false,
+  open: controlledOpen,
+  onOpenChange,
+  showFab = true,
+}) {
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = controlledOpen ?? internalOpen;
+
+  const setOpen = (nextOpen) => {
+    if (onOpenChange) {
+      onOpenChange(nextOpen);
+      return;
+    }
+    setInternalOpen(nextOpen);
+  };
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -75,15 +89,17 @@ export default function FeedbackWidget({ hidden = false }) {
 
   return (
     <>
-      <button
-        type="button"
-        className="feedback-fab"
-        onClick={() => setOpen(true)}
-        aria-label="Open feedback form"
-      >
-        <MessageCircle size={20} />
-        <span>Feedback</span>
-      </button>
+      {showFab ? (
+        <button
+          type="button"
+          className="feedback-fab"
+          onClick={() => setOpen(true)}
+          aria-label="Open feedback form"
+        >
+          <MessageCircle size={20} />
+          <span>Feedback</span>
+        </button>
+      ) : null}
 
       {open ? (
         <div className="feedback-modal-backdrop" onClick={() => setOpen(false)}>

@@ -106,6 +106,7 @@ export default function App() {
     "ArcGIS map is active with highlighted Haryana state and district boundaries.",
   );
   const [measurementMode, setMeasurementMode] = useState(null);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [adminSuggestions, setAdminSuggestions] = useState([]);
   const [voiceDistricts, setVoiceDistricts] = useState([]);
   const [voiceTehsils, setVoiceTehsils] = useState([]);
@@ -1197,17 +1198,12 @@ export default function App() {
           onStatusChange={setSystemMessage}
           onSelect={(id) => {
             setActiveNav(id);
-            if (id === "layers") {
-              handleToolbarAction("layers");
-              return;
-            }
-            if (id === "measurement") {
-              handleToolbarAction("measurement");
+            if (id === "feedback") {
+              setFeedbackOpen(true);
             }
           }}
           mapReady={mapReady}
-          layersPanelActive={activeMapPanel === "layers"}
-          measurementActive={measurementMode !== null}
+          feedbackActive={feedbackOpen}
           sfActiveTool={sf.activeTool}
           sfIsActive={sf.isActive}
           sfProgress={sf.progress}
@@ -1313,7 +1309,12 @@ export default function App() {
         blurred={detailsOpen}
         hidden={isTablet && sidebarOpen}
       />
-      <FeedbackWidget hidden={detailsOpen} />
+      <FeedbackWidget
+        hidden={detailsOpen}
+        open={feedbackOpen}
+        onOpenChange={setFeedbackOpen}
+        showFab={false}
+      />
     </div>
   );
 }
