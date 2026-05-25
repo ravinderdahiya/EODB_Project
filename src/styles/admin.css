@@ -431,6 +431,84 @@
   color: var(--ink-muted);
 }
 
+.admin-label-cell {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  min-width: 280px;
+}
+
+.admin-label-cell span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-read-more-btn {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--blue);
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.3rem 0.62rem;
+  cursor: pointer;
+  flex: 0 0 auto;
+}
+
+.admin-read-more-btn:hover {
+  background: var(--surface-emphasis);
+}
+
+.admin-label-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(12, 28, 42, 0.52);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  z-index: 1200;
+}
+
+.admin-label-modal {
+  width: min(720px, 100%);
+  border-radius: 20px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  box-shadow: 0 24px 56px rgba(8, 24, 35, 0.25);
+  padding: 1rem;
+}
+
+.admin-label-modal__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.7rem;
+}
+
+.admin-label-modal__head h4 {
+  margin: 0;
+  color: var(--ink);
+}
+
+.admin-label-modal__content {
+  margin: 0;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--bg-secondary);
+  color: var(--ink-soft);
+  padding: 0.9rem;
+  max-height: 62vh;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 0.83rem;
+  line-height: 1.5;
+}
+
 .admin-table tbody tr:hover {
   background: rgba(47, 141, 93, 0.04);
 }
