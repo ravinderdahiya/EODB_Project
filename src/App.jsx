@@ -11,6 +11,7 @@ import SidebarNav from "@/components/SidebarNav";
 import SaarthiChatbotWidget from "@/components/chatbot/SaarthiChatbotWidget";
 import VoiceAssistantPopup from "@/components/voiceAssistant/VoiceAssistantPopup";
 import ZoomWheelSlider from "@/components/map/ZoomWheelSlider";
+import FeedbackWidget from "@/components/FeedbackWidget";
 import { navigationItems } from "@/data/portalData";
 import { useArcGISMap } from "@/hooks/useArcGISMap";
 import { DISTRICT_SUBLAYERS } from "@/config/arcgis";
@@ -1268,6 +1269,7 @@ export default function App() {
         blurred={detailsOpen}
         hidden={isTablet && sidebarOpen}
       />
+      <FeedbackWidget hidden={detailsOpen} />
     </div>
   );
 }
