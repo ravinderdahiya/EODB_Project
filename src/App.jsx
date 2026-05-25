@@ -11,13 +11,14 @@ import SidebarNav from "@/components/SidebarNav";
 import SaarthiChatbotWidget from "@/components/chatbot/SaarthiChatbotWidget";
 import VoiceAssistantPopup from "@/components/voiceAssistant/VoiceAssistantPopup";
 import ZoomWheelSlider from "@/components/map/ZoomWheelSlider";
+import NorthCompassControl from "@/components/map/NorthCompassControl";
 import { navigationItems } from "@/data/portalData";
 import { useArcGISMap } from "@/hooks/useArcGISMap";
 import { DISTRICT_SUBLAYERS } from "@/config/arcgis";
 import { useDashboardPreferences } from "@/hooks/useDashboardPreferences";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
+import { MEDIA_MOBILE, MEDIA_TABLET } from "@/constants/layoutBreakpoints";
 import { useMeasurement } from "@/hooks/useMeasurement";
-import useMandatoryLocationPermission from "@/hooks/useMandatoryLocationPermission";
 import { useSelectFeatures } from "@/hooks/useSelectFeatures";
 import useDisableDevTools from "@/hooks/useDisableDevTools";
 import { useLanguage } from "@/context/LanguageContext";
@@ -77,12 +78,10 @@ export default function App() {
   const navigate = useNavigate();
   const { trackPageView, trackUserInteraction, trackMapInteraction, trackSearch, trackFeatureUsage } = useAnalytics();
 
-  useMandatoryLocationPermission();
-
   // Disable developer tools in production
   useDisableDevTools();
-  const isTablet = useMediaQuery("(max-width: 1024px)");
-  const isMobile = useMediaQuery("(max-width: 768px)");
+  const isTablet = useMediaQuery(MEDIA_TABLET);
+  const isMobile = useMediaQuery(MEDIA_MOBILE);
   const [isPending, startTransition] = useTransition();
   const { theme, setTheme } = useDashboardPreferences();
 
@@ -286,14 +285,56 @@ export default function App() {
   }, [sf.statusMessage]);
 
   useEffect(() => {
-    if (isTablet) {
-      setSidebarOpen(false);
-    }
+    setSidebarOpen(!isTablet);
   }, [isTablet]);
 
   useEffect(() => {
     if (isMobile) setActiveMapPanel(null);
   }, [isMobile]);
+
+  useEffect(() => {
+    if (!mapReady) return undefined;
+
+    const resizeMap = () => {
+      const view = viewRef.current;
+      if (!view) return;
+      try {
+        view.resize();
+      } catch {
+        /* view disposed */
+      }
+    };
+
+    const scheduleMapResize = () => {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(resizeMap);
+      });
+    };
+
+    scheduleMapResize();
+    const afterLayoutTimer = window.setTimeout(scheduleMapResize, 360);
+
+    const workspace = document.querySelector(".app-shell .workspace");
+    const resizeObserver =
+      workspace && typeof ResizeObserver !== "undefined"
+        ? new ResizeObserver(scheduleMapResize)
+        : null;
+    resizeObserver?.observe(workspace);
+
+    const tabletMq = window.matchMedia(MEDIA_TABLET);
+    const onLayoutBreakpointChange = () => scheduleMapResize();
+    tabletMq.addEventListener("change", onLayoutBreakpointChange);
+    window.addEventListener("resize", scheduleMapResize);
+    window.addEventListener("orientationchange", scheduleMapResize);
+
+    return () => {
+      window.clearTimeout(afterLayoutTimer);
+      resizeObserver?.disconnect();
+      tabletMq.removeEventListener("change", onLayoutBreakpointChange);
+      window.removeEventListener("resize", scheduleMapResize);
+      window.removeEventListener("orientationchange", scheduleMapResize);
+    };
+  }, [mapReady, isTablet, isMobile, sidebarOpen, viewRef]);
 
   useEffect(() => {
     setSystemMessage(mapStatus);
@@ -823,6 +864,7 @@ export default function App() {
     }
 
     if (actionId === "locate") {
+      setSystemMessage("Centering on your location…");
       const result = await goToCurrentLocation();
       setSystemMessage(result.message);
       if (!result.ok) {
@@ -1195,6 +1237,7 @@ export default function App() {
             onWhatsAppShare={handleMapWhatsAppShare}
           >
             <ZoomWheelSlider viewRef={viewRef} layerVisibility={layerVisibility} mapScale={mapScale} />
+            <NorthCompassControl viewRef={viewRef} mapReady={mapReady} />
 
             <MapToolbar
               activeLayerPanel={activeMapPanel === "layers"}

@@ -98,9 +98,7 @@ export default function AdminDashboard() {
   const [analyticsError, setAnalyticsError] = useState(null);
 
   useEffect(() => {
-    if (isTablet) {
-      setSidebarOpen(false);
-    }
+    setSidebarOpen(!isTablet);
   }, [isTablet]);
 
   useEffect(() => {

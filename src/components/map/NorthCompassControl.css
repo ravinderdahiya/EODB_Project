@@ -1,0 +1,357 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   NorthCompassControl — isolated map rotation / north arrow UI
+═══════════════════════════════════════════════════════════════════════════ */
+
+.ncc {
+  position: absolute;
+  top: calc(1rem + env(safe-area-inset-top, 0px));
+  right: calc(1rem + env(safe-area-inset-right, 0px));
+  z-index: 24;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.45rem;
+  pointer-events: none;
+  user-select: none;
+}
+
+.ncc__toggle,
+.ncc__panel,
+.ncc__ring,
+.ncc__center,
+.ncc__close {
+  pointer-events: auto;
+}
+
+/* ── Collapsed toggle ─────────────────────────────────────────────────────── */
+
+.ncc__toggle {
+  width: 38px;
+  height: 38px;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.22);
+  backdrop-filter: blur(12px) saturate(1.25);
+  -webkit-backdrop-filter: blur(12px) saturate(1.25);
+  color: #173248;
+  box-shadow: 0 4px 14px rgba(23, 50, 72, 0.14);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 160ms ease, background 160ms ease, box-shadow 160ms ease;
+}
+
+.ncc__toggle:hover,
+.ncc__toggle:focus-visible {
+  background: rgba(255, 255, 255, 0.42);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(23, 50, 72, 0.18);
+}
+
+.ncc__toggle-arrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 80ms linear;
+}
+
+.ncc--dragging .ncc__toggle-arrow {
+  transition: none;
+}
+
+.ncc__pointer-svg {
+  display: block;
+  fill: #111111;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.12));
+}
+
+/* ── Expanded panel ───────────────────────────────────────────────────────── */
+
+.ncc__panel {
+  position: relative;
+  width: 132px;
+  padding: 0.55rem 0.55rem 0.45rem;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.58);
+  background: rgba(255, 255, 255, 0.28);
+  backdrop-filter: blur(16px) saturate(1.35);
+  -webkit-backdrop-filter: blur(16px) saturate(1.35);
+  box-shadow: 0 10px 28px rgba(23, 50, 72, 0.16);
+}
+
+.ncc__close {
+  position: absolute;
+  top: 0.3rem;
+  right: 0.35rem;
+  width: 22px;
+  height: 22px;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(23, 50, 72, 0.08);
+  color: #466075;
+  font-size: 1rem;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ncc__close:hover {
+  background: rgba(23, 50, 72, 0.14);
+}
+
+.ncc__dial {
+  position: relative;
+  width: 108px;
+  height: 108px;
+  margin: 0.2rem auto 0;
+}
+
+.ncc__rose {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  transition: transform 80ms linear;
+}
+
+.ncc--dragging .ncc__rose {
+  transition: none;
+}
+
+.ncc__tick-ring {
+  position: absolute;
+  inset: 6px;
+  border-radius: 50%;
+  border: 1px dashed rgba(70, 96, 117, 0.28);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.35);
+}
+
+.ncc__cardinal {
+  position: absolute;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: rgba(70, 96, 117, 0.88);
+}
+
+.ncc__cardinal--n {
+  top: 2px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: #c0392b;
+}
+
+.ncc__cardinal--e {
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.ncc__cardinal--s {
+  bottom: 2px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.ncc__cardinal--w {
+  left: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.ncc__north-arrow {
+  position: absolute;
+  left: 50%;
+  top: 14px;
+  width: 0;
+  height: 0;
+  transform: translateX(-50%);
+  border-left: 7px solid transparent;
+  border-right: 7px solid transparent;
+  border-bottom: 24px solid #c0392b;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.18));
+}
+
+.ncc__north-arrow::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 24px;
+  width: 2px;
+  height: 16px;
+  transform: translateX(-50%);
+  background: linear-gradient(180deg, #c0392b 0%, rgba(192, 57, 43, 0.35) 100%);
+  border-radius: 1px;
+}
+
+.ncc__ring {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  cursor: grab;
+  touch-action: none;
+}
+
+.ncc--dragging .ncc__ring {
+  cursor: grabbing;
+}
+
+.ncc__center {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 30px;
+  height: 30px;
+  transform: translate(-50%, -50%);
+  border: 1px solid rgba(255, 255, 255, 0.75);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: 0 2px 8px rgba(23, 50, 72, 0.12);
+  z-index: 2;
+}
+
+.ncc__center:hover {
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.ncc__center-arrow {
+  position: absolute;
+  left: 50%;
+  top: 5px;
+  width: 0;
+  height: 0;
+  transform: translateX(-50%);
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-bottom: 12px solid #2f8d5d;
+}
+
+.ncc__hint {
+  margin: 0.35rem 0 0;
+  text-align: center;
+  font-size: 0.62rem;
+  line-height: 1.25;
+  color: rgba(70, 96, 117, 0.9);
+}
+
+/* ── Dark theme ───────────────────────────────────────────────────────────── */
+
+:root[data-theme="dark"] .ncc__toggle {
+  color: #e8f2ef;
+  border-color: rgba(255, 255, 255, 0.22);
+  background: rgba(16, 28, 40, 0.42);
+}
+
+:root[data-theme="dark"] .ncc__pointer-svg {
+  fill: #f2f6f8;
+}
+
+:root[data-theme="dark"] .ncc__panel {
+  border-color: rgba(255, 255, 255, 0.16);
+  background: rgba(16, 28, 40, 0.55);
+}
+
+:root[data-theme="dark"] .ncc__cardinal {
+  color: rgba(214, 228, 236, 0.82);
+}
+
+:root[data-theme="dark"] .ncc__hint {
+  color: rgba(214, 228, 236, 0.72);
+}
+
+/* ── Responsive ───────────────────────────────────────────────────────────── */
+
+@media (max-width: 768px) {
+  .ncc {
+    top: calc(0.85rem + env(safe-area-inset-top, 0px));
+    right: calc(0.85rem + env(safe-area-inset-right, 0px));
+    z-index: 25;
+  }
+
+  .ncc__toggle {
+    width: 34px;
+    height: 34px;
+  }
+
+  .ncc__pointer-svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .ncc__panel {
+    width: 120px;
+  }
+
+  .ncc__dial {
+    width: 98px;
+    height: 98px;
+  }
+}
+
+@media (max-width: 400px) {
+  .ncc__toggle {
+    width: 32px;
+    height: 32px;
+  }
+
+  .ncc__pointer-svg {
+    width: 15px;
+    height: 15px;
+  }
+}
+
+@media (max-height: 500px) and (orientation: landscape) {
+  .ncc {
+    position: absolute;
+    top: calc(0.65rem + env(safe-area-inset-top, 0px));
+    right: calc(0.65rem + env(safe-area-inset-right, 0px));
+    z-index: 26;
+    /* Reserve only toggle footprint so zoom buttons stay fixed below */
+    width: 32px;
+    height: 32px;
+    min-height: 32px;
+    gap: 0;
+    overflow: visible;
+  }
+
+  .ncc__toggle {
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
+  }
+
+  .ncc__pointer-svg {
+    width: 15px;
+    height: 15px;
+  }
+
+  /* Overlay to the left — does not push zoom +/- downward */
+  .ncc__panel {
+    position: absolute;
+    top: 0;
+    right: calc(100% + 0.45rem);
+    left: auto;
+    width: 112px;
+    padding: 0.45rem;
+    z-index: 27;
+  }
+
+  .ncc__dial {
+    width: 90px;
+    height: 90px;
+  }
+
+  .ncc__hint {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ncc__rose,
+  .ncc__toggle,
+  .ncc__toggle-arrow {
+    transition: none;
+  }
+}
