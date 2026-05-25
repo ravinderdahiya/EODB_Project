@@ -5,6 +5,8 @@ import AdminRecentActivity from "@/components/admin/AdminRecentActivity";
 import AdminRecentEventsTable from "@/components/admin/AdminRecentEventsTable";
 import AdminLoginLogsTable from "@/components/admin/AdminLoginLogsTable";
 import AdminAnalyticsEventsTable from "@/components/admin/AdminAnalyticsEventsTable";
+import AdminFeedbackTable from "@/components/admin/AdminFeedbackTable";
+import AdminUsersTable from "@/components/admin/AdminUsersTable";
 import AdminApiUrlManager from "@/components/admin/AdminApiUrlManager";
 import AdminStatCards from "@/components/admin/AdminStatCards";
 import AdminSummaryCards from "@/components/admin/AdminSummaryCards";
@@ -50,7 +52,19 @@ export default function AdminDashboardView({
   analyticsError = null,
   analyticsPage = 1,
   analyticsTotal = 0,
+  feedbackRecords = [],
+  feedbackLoading = false,
+  feedbackError = null,
+  feedbackPage = 1,
+  feedbackTotal = 0,
+  usersRecords = [],
+  usersLoading = false,
+  usersError = null,
+  usersPage = 1,
+  usersTotal = 0,
   onAnalyticsPageChange,
+  onFeedbackPageChange,
+  onUsersPageChange,
   onPageChange,
   onCreateEvent,
 }) {
@@ -128,6 +142,19 @@ export default function AdminDashboardView({
             />
             <AdminSummaryCards cards={adminSummaryMetrics} />
           </>
+        ) : activeItem.id === "users" ? (
+          <>
+            <AdminUsersTable
+              users={usersRecords}
+              loading={usersLoading}
+              error={usersError}
+              page={usersPage}
+              pageSize={pageSize}
+              totalCount={usersTotal}
+              onPageChange={onUsersPageChange}
+            />
+            <AdminSummaryCards cards={adminSummaryMetrics} />
+          </>
         ) : activeItem.id === "api-urls" ? (
           <>
             <AdminApiUrlManager />
@@ -143,6 +170,19 @@ export default function AdminDashboardView({
               pageSize={pageSize}
               totalCount={analyticsTotal}
               onPageChange={onAnalyticsPageChange}
+            />
+            <AdminSummaryCards cards={adminSummaryMetrics} />
+          </>
+        ) : activeItem.id === "feedback-history" ? (
+          <>
+            <AdminFeedbackTable
+              feedbacks={feedbackRecords}
+              loading={feedbackLoading}
+              error={feedbackError}
+              page={feedbackPage}
+              pageSize={pageSize}
+              totalCount={feedbackTotal}
+              onPageChange={onFeedbackPageChange}
             />
             <AdminSummaryCards cards={adminSummaryMetrics} />
           </>

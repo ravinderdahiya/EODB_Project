@@ -11,6 +11,8 @@ import {
   fetchAnalyticsEvents,
   fetchAnalyticsSummary,
 } from "@/services/adminAnalyticsService";
+import { fetchFeedbackHistory } from "@/services/feedbackService";
+import { fetchUsersList } from "@/services/adminUserService";
 import axiosInstance from "../utils/axiosInstance";
 import "@/styles/admin.css";
 
@@ -96,11 +98,19 @@ export default function AdminDashboard() {
   const [analyticsPage, setAnalyticsPage] = useState(1);
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
   const [analyticsError, setAnalyticsError] = useState(null);
+  const [usersRecords, setUsersRecords] = useState([]);
+  const [usersTotal, setUsersTotal] = useState(0);
+  const [usersPage, setUsersPage] = useState(1);
+  const [usersLoading, setUsersLoading] = useState(false);
+  const [usersError, setUsersError] = useState(null);
+  const [feedbackRecords, setFeedbackRecords] = useState([]);
+  const [feedbackTotal, setFeedbackTotal] = useState(0);
+  const [feedbackPage, setFeedbackPage] = useState(1);
+  const [feedbackLoading, setFeedbackLoading] = useState(false);
+  const [feedbackError, setFeedbackError] = useState(null);
 
   useEffect(() => {
-    if (isTablet) {
-      setSidebarOpen(false);
-    }
+    setSidebarOpen(!isTablet);
   }, [isTablet]);
 
   useEffect(() => {
@@ -178,6 +188,52 @@ export default function AdminDashboard() {
     fetchEvents();
   }, [activeNav, analyticsPage, pageSize]);
 
+  useEffect(() => {
+    const fetchUsers = async () => {
+      if (activeNav !== "users") return;
+
+      setUsersLoading(true);
+      setUsersError(null);
+      try {
+        const res = await fetchUsersList({
+          page: usersPage,
+          pageSize,
+        });
+        setUsersRecords(res.users || []);
+        setUsersTotal(res.totalCount || 0);
+      } catch (err) {
+        setUsersError(err.response?.data?.message || "Failed to load users list.");
+      } finally {
+        setUsersLoading(false);
+      }
+    };
+
+    fetchUsers();
+  }, [activeNav, usersPage, pageSize]);
+
+  useEffect(() => {
+    const fetchFeedback = async () => {
+      if (activeNav !== "feedback-history") return;
+
+      setFeedbackLoading(true);
+      setFeedbackError(null);
+      try {
+        const res = await fetchFeedbackHistory({
+          page: feedbackPage,
+          pageSize,
+        });
+        setFeedbackRecords(res.feedbacks || []);
+        setFeedbackTotal(res.totalCount || 0);
+      } catch (err) {
+        setFeedbackError(err.response?.data?.message || "Failed to load feedback history.");
+      } finally {
+        setFeedbackLoading(false);
+      }
+    };
+
+    fetchFeedback();
+  }, [activeNav, feedbackPage, pageSize]);
+
   const handleNavSelect = (nextId) => {
     setActiveNav(nextId);
 
@@ -186,6 +242,12 @@ export default function AdminDashboard() {
     }
     if (nextId === "reports") {
       setAnalyticsPage(1);
+    }
+    if (nextId === "users") {
+      setUsersPage(1);
+    }
+    if (nextId === "feedback-history") {
+      setFeedbackPage(1);
     }
 
     const navItem = adminNavigationItems.find((item) => item.id === nextId);
@@ -267,7 +329,19 @@ export default function AdminDashboard() {
             analyticsError={analyticsError}
             analyticsPage={analyticsPage}
             analyticsTotal={analyticsTotal}
+            usersRecords={usersRecords}
+            usersLoading={usersLoading}
+            usersError={usersError}
+            usersPage={usersPage}
+            usersTotal={usersTotal}
+            feedbackRecords={feedbackRecords}
+            feedbackLoading={feedbackLoading}
+            feedbackError={feedbackError}
+            feedbackPage={feedbackPage}
+            feedbackTotal={feedbackTotal}
             onAnalyticsPageChange={setAnalyticsPage}
+            onUsersPageChange={setUsersPage}
+            onFeedbackPageChange={setFeedbackPage}
             onPageChange={setCurrentPage}
             onCreateEvent={() =>
               setSystemMessage("Create event action can be connected to your form/workflow.")

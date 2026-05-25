@@ -96,12 +96,14 @@
     gap: 0.4rem;
   }
 
-  /* Move zoom (+/-) toolbar to upper-right in landscape */
+  /* Fixed below north toggle — position never changes when compass expands */
   .map-toolbar:not(.map-toolbar--left) {
-    top: 0.75rem;
-    right: 0.75rem;
+    top: calc(0.65rem + 32px + 0.5rem + env(safe-area-inset-top, 0px));
+    right: calc(0.65rem + env(safe-area-inset-right, 0px));
     left: auto;
     bottom: auto;
+    gap: 0.35rem;
+    z-index: 23;
   }
 
   .map-toolbar--left {

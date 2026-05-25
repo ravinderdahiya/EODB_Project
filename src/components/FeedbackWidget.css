@@ -1,0 +1,132 @@
+.feedback-fab {
+  position: fixed;
+  left: 1.1rem;
+  bottom: 1.1rem;
+  z-index: 1250;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 44px;
+  padding: 0 0.92rem;
+  border: 0;
+  border-radius: 999px;
+  background: #25d366;
+  color: #053d28;
+  font-weight: 700;
+  box-shadow: 0 12px 24px rgba(7, 69, 45, 0.25);
+  cursor: pointer;
+}
+
+.feedback-fab:hover {
+  filter: brightness(1.04);
+}
+
+.feedback-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1300;
+  background: rgba(9, 26, 38, 0.52);
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+}
+
+.feedback-modal {
+  width: min(440px, 100%);
+  border-radius: 20px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  box-shadow: 0 20px 44px rgba(14, 38, 53, 0.25);
+  padding: 1rem;
+}
+
+.feedback-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+
+.feedback-modal__header h3 {
+  margin: 0;
+}
+
+.feedback-modal__close {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.feedback-form {
+  display: grid;
+  gap: 0.66rem;
+}
+
+.feedback-form label {
+  display: grid;
+  gap: 0.32rem;
+  color: var(--ink-muted);
+  font-size: 0.88rem;
+}
+
+.feedback-form input,
+.feedback-form textarea {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--ink);
+  padding: 0.66rem 0.76rem;
+  outline: none;
+}
+
+.feedback-form textarea {
+  resize: vertical;
+}
+
+.feedback-form input:focus,
+.feedback-form textarea:focus {
+  border-color: rgba(47, 141, 93, 0.45);
+  box-shadow: 0 0 0 3px rgba(47, 141, 93, 0.13);
+}
+
+.feedback-form__submit {
+  border: 0;
+  border-radius: 12px;
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  background: linear-gradient(135deg, #1aa152, #2bb36e);
+  color: #fff;
+  font-weight: 700;
+}
+
+.feedback-form__submit:disabled {
+  opacity: 0.62;
+}
+
+.feedback-form__error {
+  margin: 0;
+  color: #be2f2f;
+  font-size: 0.86rem;
+}
+
+.feedback-form__success {
+  margin: 0;
+  color: #1b7b4f;
+  font-size: 0.86rem;
+}
+
+@media (max-width: 768px) {
+  .feedback-fab {
+    bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+    left: 0.8rem;
+  }
+}

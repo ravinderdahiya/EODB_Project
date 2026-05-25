@@ -305,7 +305,7 @@
   top: calc(100% + 8px);
   left: 0;
   right: 0;
-  z-index: 65;
+  z-index: 80;
   padding: 0.5rem 0.7rem 0.55rem;
   border-radius: clamp(12px, 1.2vw, 18px);
   border: 1px solid rgba(0, 220, 160, 0.22);

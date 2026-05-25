@@ -6,6 +6,7 @@ import {
   Clock3,
   LayoutDashboard,
   Link2,
+  MessageSquare,
   Settings,
   Tags,
   TicketCheck,
@@ -61,6 +62,12 @@ export const adminNavigationItems = [
     label: "Analytics Reports",
     description: "Insights, tracked events and analytics",
     icon: BarChart3,
+  },
+  {
+    id: "feedback-history",
+    label: "Feedback History",
+    description: "User feedback records submitted from frontend",
+    icon: MessageSquare,
   },
   {
     id: "settings",

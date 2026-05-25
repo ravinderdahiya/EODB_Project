@@ -7,7 +7,9 @@ import {
   Search,
   SunMedium,
 } from "lucide-react";
+import { MEDIA_MOBILE, MEDIA_TABLET } from "@/constants/layoutBreakpoints";
 import { useLanguage } from "@/context/LanguageContext";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
 import LanguageToggle from "./LanguageToggle";
 
 export default function AppHeader({
@@ -28,15 +30,21 @@ export default function AppHeader({
 }) {
   const { t, lang } = useLanguage();
   const headerRef = useRef(null);
+  const searchBlurTimerRef = useRef(0);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const isTablet = useMediaQuery(MEDIA_TABLET);
+  const isMobile = useMediaQuery(MEDIA_MOBILE);
 
   const title    = t("header.title");
   const subtitle = isAdmin ? t("header.adminSubtitle") : t("header.subtitle");
 
-  /* Keep --header-height in sync with real header size (fixes bottom crop on mobile/tablet). */
+  /* Publish --header-height for sidebar/overlay; never use it as header min-height (avoids stretch loop). */
   useEffect(() => {
     const node = headerRef.current;
     if (!node) return undefined;
+
+    let frameId = 0;
+    let settleTimer = 0;
 
     const syncHeaderHeight = () => {
       const height = Math.ceil(node.getBoundingClientRect().height);
@@ -45,18 +53,45 @@ export default function AppHeader({
       }
     };
 
-    syncHeaderHeight();
+    const scheduleSync = () => {
+      if (frameId) cancelAnimationFrame(frameId);
+      if (settleTimer) window.clearTimeout(settleTimer);
+
+      // Drop stale inline height so CSS grid can reflow before re-measure.
+      document.documentElement.style.removeProperty("--header-height");
+
+      frameId = requestAnimationFrame(() => {
+        requestAnimationFrame(syncHeaderHeight);
+      });
+
+      settleTimer = window.setTimeout(syncHeaderHeight, 320);
+    };
+
+    scheduleSync();
+
     const observer = new ResizeObserver(syncHeaderHeight);
     observer.observe(node);
-    window.addEventListener("resize", syncHeaderHeight);
-    window.addEventListener("orientationchange", syncHeaderHeight);
+
+    const tabletMq = window.matchMedia(MEDIA_TABLET);
+    const mobileMq = window.matchMedia(MEDIA_MOBILE);
+    const onBreakpointChange = () => scheduleSync();
+
+    tabletMq.addEventListener("change", onBreakpointChange);
+    mobileMq.addEventListener("change", onBreakpointChange);
+    window.addEventListener("resize", scheduleSync);
+    window.addEventListener("orientationchange", scheduleSync);
 
     return () => {
+      if (frameId) cancelAnimationFrame(frameId);
+      if (settleTimer) window.clearTimeout(settleTimer);
+      if (searchBlurTimerRef.current) window.clearTimeout(searchBlurTimerRef.current);
       observer.disconnect();
-      window.removeEventListener("resize", syncHeaderHeight);
-      window.removeEventListener("orientationchange", syncHeaderHeight);
+      tabletMq.removeEventListener("change", onBreakpointChange);
+      mobileMq.removeEventListener("change", onBreakpointChange);
+      window.removeEventListener("resize", scheduleSync);
+      window.removeEventListener("orientationchange", scheduleSync);
     };
-  }, [showSearch, isAdmin, lang, title, subtitle]);
+  }, [showSearch, isAdmin, lang, title, subtitle, isTablet, isMobile]);
 
   const getSuggestionTitle = (suggestion) => {
     if (suggestion?.title) return suggestion.title;
@@ -74,7 +109,9 @@ export default function AppHeader({
   return (
     <header
       ref={headerRef}
-      className={`app-header ${showSearch ? "" : "app-header--no-search"}`}
+      className={`app-header ${showSearch ? "" : "app-header--no-search"} ${
+        isTablet ? "app-header--layout-tablet" : "app-header--layout-desktop"
+      }`}
     >
       <div className="app-header__brand-cluster">
         <button
@@ -112,8 +149,19 @@ export default function AppHeader({
             className="search-shell__input"
             value={searchValue}
             onChange={(event) => onSearchValueChange(event.target.value)}
-            onFocus={() => setIsSearchFocused(true)}
-            onBlur={() => setIsSearchFocused(false)}
+            onFocus={() => {
+              if (searchBlurTimerRef.current) {
+                window.clearTimeout(searchBlurTimerRef.current);
+                searchBlurTimerRef.current = 0;
+              }
+              setIsSearchFocused(true);
+            }}
+            onBlur={() => {
+              searchBlurTimerRef.current = window.setTimeout(() => {
+                setIsSearchFocused(false);
+                searchBlurTimerRef.current = 0;
+              }, 150);
+            }}
             placeholder={searchPlaceholder}
           />
           <button type="submit" className="search-shell__submit">
@@ -151,6 +199,7 @@ export default function AppHeader({
           className="header-action-button header-action-button--theme"
           onClick={onToggleTheme}
           aria-label={theme === "dark" ? t("header.switchToLight") : t("header.switchToDark")}
+          title={theme === "dark" ? t("header.switchToLight") : t("header.switchToDark")}
         >
           {theme === "dark" ? <SunMedium size={16} /> : <MoonStar size={16} />}
         </button>
