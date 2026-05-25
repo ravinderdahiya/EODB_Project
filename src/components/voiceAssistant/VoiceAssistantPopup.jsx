@@ -832,7 +832,13 @@ export default function VoiceAssistantPopup({
         : "Web Speech API unavailable in this browser.");
       return;
     }
-    if (micPromptDismissedRef.current) { if (typeof window !== "undefined") window.location.reload(); return; }
+    if (micPromptDismissedRef.current) {
+      micPromptDismissedRef.current = false;
+      handleOpenVoicePanel();
+      setVoicePanelStatus("Retrying microphone permission...");
+      void handleSpeakAction();
+      return;
+    }
     if (voicePanelOpen && !isListening && !isProcessingCmd) { stopAndClosePanel(); return; }
     handleOpenVoicePanel();
     if (isListening) { recognitionRef.current.stop(); return; }
@@ -844,7 +850,7 @@ export default function VoiceAssistantPopup({
   };
 
   const handleSpeakAction = async () => {
-    if (micPromptDismissedRef.current) { if (typeof window !== "undefined") window.location.reload(); return; }
+    if (micPromptDismissedRef.current) micPromptDismissedRef.current = false;
     if (isListening) { recognitionRef.current?.stop(); return; }
     if (micPermissionState === "denied") { setVoicePanelStatus("Microphone blocked. Allow mic in browser settings."); return; }
     let ok = micPermissionState === "granted";
