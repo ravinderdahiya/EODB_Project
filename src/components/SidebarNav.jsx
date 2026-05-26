@@ -3,6 +3,7 @@ import { Fragment, useState } from "react";
 import { BoxSelect, Hexagon, Spline, Trash2 } from "lucide-react";
 import SearchPanel from "./SearchPanel";
 import { useLanguage } from "@/context/LanguageContext";
+import { resolveMapLink } from "@/services/mapLinkService";
 
 const SF_TOOL_IDS = ["rectangle", "polygon", "polyline"];
 const SF_TOOL_ICONS = { rectangle: BoxSelect, polygon: Hexagon, polyline: Spline };
@@ -27,11 +28,16 @@ export default function SidebarNav({
   onSfClear,
 }) {
   const { t } = useLanguage();
+  const tf = (key, fallback) => {
+    const value = t(key);
+    return value === key ? fallback : value;
+  };
   const [searchExpanded,   setSearchExpanded]   = useState(false);
   const [latLongExpanded,  setLatLongExpanded]  = useState(false);
   const [selectorExpanded, setSelectorExpanded] = useState(false);
   const [latitude, setLatitude] = useState("");
   const [longitude, setLongitude] = useState("");
+  const [mapLink, setMapLink] = useState("");
   const [latLongLoading, setLatLongLoading] = useState(false);
   const [latLongError, setLatLongError] = useState("");
 
@@ -123,6 +129,102 @@ export default function SidebarNav({
     }
   };
 
+  const extractCoordinatesFromText = (value) => {
+    const source = `${value || ""}`.trim();
+    if (!source) return null;
+
+    const decoded = (() => {
+      try {
+        return decodeURIComponent(source);
+      } catch {
+        return source;
+      }
+    })();
+
+    const candidates = [decoded, source];
+
+    for (const item of candidates) {
+      const atMatch = item.match(/@(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)/);
+      if (atMatch) {
+        const lat = parseCoordinate(atMatch[1]);
+        const lon = parseCoordinate(atMatch[2]);
+        if (Number.isFinite(lat) && Number.isFinite(lon)) {
+          return { latitude: lat, longitude: lon };
+        }
+      }
+
+      const qMatch = item.match(/[?&](?:q|query|ll|sll|destination|daddr)=(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)/i);
+      if (qMatch) {
+        const lat = parseCoordinate(qMatch[1]);
+        const lon = parseCoordinate(qMatch[2]);
+        if (Number.isFinite(lat) && Number.isFinite(lon)) {
+          return { latitude: lat, longitude: lon };
+        }
+      }
+
+      const encodedMatch = item.match(/!3d(-?\d+(?:\.\d+)?)!4d(-?\d+(?:\.\d+)?)/);
+      if (encodedMatch) {
+        const lat = parseCoordinate(encodedMatch[1]);
+        const lon = parseCoordinate(encodedMatch[2]);
+        if (Number.isFinite(lat) && Number.isFinite(lon)) {
+          return { latitude: lat, longitude: lon };
+        }
+      }
+    }
+
+    return null;
+  };
+
+  const handleMapLinkSubmit = async (event) => {
+    event.preventDefault();
+    const trimmed = `${mapLink || ""}`.trim();
+
+    if (!onFindLatLong) {
+      setLatLongError(t("latLong.errors.notAvailable"));
+      return;
+    }
+
+    if (!trimmed) {
+      setLatLongError(tf("latLong.errors.noLink", "Please paste a Google Maps link."));
+      return;
+    }
+
+    setLatLongLoading(true);
+    setLatLongError("");
+
+    try {
+      // Fast path for direct Google Maps URLs that already contain coordinates.
+      const localMatch = extractCoordinatesFromText(trimmed);
+      const coords = localMatch || (await resolveMapLink(trimmed))?.data;
+
+      const lat = parseCoordinate(coords?.latitude);
+      const lon = parseCoordinate(coords?.longitude);
+
+      if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+        setLatLongError(tf("latLong.errors.invalidLink", "Could not extract coordinates from this map link."));
+        return;
+      }
+
+      const result = await onFindLatLong({ latitude: lat, longitude: lon });
+      if (!result?.ok) {
+        setLatLongError(result?.message || t("latLong.errors.unableToFind"));
+        return;
+      }
+
+      setLatitude(String(lat));
+      setLongitude(String(lon));
+      onStatusChange?.(result.message || t("latLong.success.located"));
+    } catch (error) {
+      setLatLongError(
+        error?.response?.data?.message
+        || error?.message
+        || tf("latLong.errors.invalidLink", "Could not extract coordinates from this map link."),
+      );
+    } finally {
+      setLatLongLoading(false);
+    }
+  };
+
   const progressPct =
     sfProgress?.total > 0
       ? Math.round((sfProgress.current / sfProgress.total) * 100)
@@ -194,6 +296,18 @@ export default function SidebarNav({
                               onChange={(e) => setLongitude(e.target.value)}
                             />
                           </label>
+                          <label className="sidebar-latlong__field">
+                            <span>{tf("latLong.linkLabel", "Google Maps Link")}</span>
+                            <input
+                              type="url"
+                              placeholder={tf(
+                                "latLong.linkPlaceholder",
+                                "Paste Google Maps link (maps.app.goo.gl or google.com/maps)",
+                              )}
+                              value={mapLink}
+                              onChange={(e) => setMapLink(e.target.value)}
+                            />
+                          </label>
                           {latLongError ? (
                             <p className="sidebar-latlong__error" role="alert">{latLongError}</p>
                           ) : null}
@@ -203,6 +317,14 @@ export default function SidebarNav({
                             disabled={latLongLoading || !mapUsable}
                           >
                             {latLongLoading ? t("latLong.finding") : t("latLong.findPoint")}
+                          </button>
+                          <button
+                            type="button"
+                            className="sidebar-latlong__button"
+                            disabled={latLongLoading || !mapUsable}
+                            onClick={handleMapLinkSubmit}
+                          >
+                            {latLongLoading ? t("latLong.finding") : tf("latLong.findFromLink", "Find From Link")}
                           </button>
                         </form>
                       </div>
