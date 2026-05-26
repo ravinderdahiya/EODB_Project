@@ -103,12 +103,32 @@ const hi = {
     boundaries: "सीमाएं",
     boundariesLayerTitle: "सीमाएं",
     boundariesLayerDesc: "राज्य, जिला, तहसील और गांव की सीमा परतें",
+    boundaryLayers: {
+      state: {
+        title: "राज्य सीमा",
+        description: "राज्य सीमा परत",
+      },
+      district: {
+        title: "जिला सीमाएं",
+        description: "हरियाणा के 23 जिले",
+      },
+      tehsil: {
+        title: "तहसील सीमाएं",
+        description: "हरियाणा की 143 तहसीलें",
+      },
+      village: {
+        title: "गांव की सीमाएं",
+        description: "हरियाणा के 7,103 गांव",
+      },
+    },
     overlays:   "ओवरले",
     otherLayers: "अन्य परतें",
     otherLayersTitle: "अन्य परतें",
     otherLayersDesc: "सरकारी संपत्ति, सड़क और NHAI ओवरले",
     cadastralLayerTitle: "भूकर भूमि जानकारी",
-    cadastralLayerDesc:  "HSAC मैप सर्वर — जिला सब-लेयर 1-22 खसरा विवरण के साथ",
+    cadastralLayerDesc:  "जिला सब-लेयर खसरा विवरण के साथ",
+    murrabaGridTitle: "मुरब्बा ग्रिड",
+    murrabaGridDesc: "जिला सब-लेयर मुरब्बा विवरण के साथ",
     healthCadastral:  "भूकर",
     healthBoundaries: "सीमाएं",
     healthAssets:     "संपत्तियां",
