@@ -27,14 +27,19 @@ const en = {
   latLong: {
     latitude: "Latitude",
     longitude: "Longitude",
+    linkLabel: "Google Maps Link",
     latitudePlaceholder: "e.g. 29.0588",
     longitudePlaceholder: "e.g. 76.0856",
+    linkPlaceholder: "Paste Google Maps link (maps.app.goo.gl or google.com/maps)",
     findPoint: "Find Point",
+    findFromLink: "Find From Link",
     finding: "Finding...",
     success: {
       located: "Point located successfully.",
     },
     errors: {
+      noLink: "Please paste a Google Maps link.",
+      invalidLink: "Could not extract coordinates from this map link.",
       numeric: "Please enter numeric latitude and longitude.",
       latitudeRange: "Latitude must be between -90 and 90.",
       longitudeRange: "Longitude must be between -180 and 180.",

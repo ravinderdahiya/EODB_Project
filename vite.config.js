@@ -288,6 +288,11 @@ export default defineConfig(({ mode }) => {
           changeOrigin: true,
           secure: false,
         },
+        "/map-link": {
+          target: baseURL,
+          changeOrigin: true,
+          secure: false,
+        },
         "/vip-users": {
           target: baseURL,
           changeOrigin: true,
@@ -357,6 +362,11 @@ export default defineConfig(({ mode }) => {
           secure: false,
         },
         "/feedback": {
+          target: baseURL,
+          changeOrigin: true,
+          secure: false,
+        },
+        "/map-link": {
           target: baseURL,
           changeOrigin: true,
           secure: false,
