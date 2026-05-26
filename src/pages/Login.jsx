@@ -103,6 +103,34 @@ export default function Login() {
     };
   }, [hasPersistedLanguage, setPreviewLang]);
 
+  const clearAuthMarkers = () => {
+    sessionStorage.removeItem("isAuthenticated");
+    sessionStorage.removeItem("user");
+    sessionStorage.removeItem("isAdmin");
+  };
+
+  const establishTrustedSession = async ({ requireAdmin = false } = {}) => {
+    const meResponse = await axiosInstance.get("/user/me");
+    const serverUser = meResponse?.data || {};
+
+    if (!serverUser?.id) {
+      throw new Error("Unable to validate authenticated session.");
+    }
+
+    const serverRole = String(serverUser?.role || "").toLowerCase().trim();
+    const isAdmin = serverRole === "admin" || serverRole === "superadmin";
+
+    if (requireAdmin && !isAdmin) {
+      throw new Error(t("login.errBadAdmin"));
+    }
+
+    sessionStorage.setItem("user", JSON.stringify(serverUser));
+    sessionStorage.setItem("isAdmin", isAdmin ? "true" : "false");
+    sessionStorage.setItem("isAuthenticated", "true");
+
+    return serverUser;
+  };
+
   const handleVerifyOtp = async () => {
     const enteredOtp = otp.join("");
 
@@ -118,19 +146,17 @@ export default function Login() {
 
     try {
       setIsVerifyingOtp(true);
-      const res = await axiosInstance.post("/otp/verify-otp", {
+      await axiosInstance.post("/otp/verify-otp", {
         phone,
         otp: enteredOtp,
       });
-
-      sessionStorage.setItem("user", JSON.stringify(res.data.user || {}));
-      sessionStorage.setItem("isAdmin", "false");
-      sessionStorage.setItem("isAuthenticated", "true");
+      await establishTrustedSession({ requireAdmin: false });
       commitLanguage();
       await reloadRuntimeConfig();
       mountSplash();
       navigate("/map");
     } catch (err) {
+      clearAuthMarkers();
       setError(err.response?.data?.message || t("login.errOtpFailed"));
     } finally {
       setIsVerifyingOtp(false);
@@ -178,9 +204,7 @@ export default function Login() {
       setIsSendingOtp(true);
       const res = await axiosInstance.post("/otp/send-otp", { phone });
       if (res.data?.vipLogin && res.data?.user) {
-        sessionStorage.setItem("user", JSON.stringify(res.data.user || {}));
-        sessionStorage.setItem("isAdmin", "false");
-        sessionStorage.setItem("isAuthenticated", "true");
+        await establishTrustedSession({ requireAdmin: false });
         commitLanguage();
         await reloadRuntimeConfig();
         mountSplash();
@@ -194,6 +218,7 @@ export default function Login() {
         setOtpTimer(120);
       }
     } catch (err) {
+      clearAuthMarkers();
       setError(err.response?.data?.message || t("login.errSendFailed"));
     } finally {
       setIsSendingOtp(false);
@@ -211,20 +236,17 @@ export default function Login() {
 
     try {
       setIsAdminLoggingIn(true);
-      const res = await axiosInstance.post("/user/admin-login", {
+      await axiosInstance.post("/user/admin-login", {
         adminId,
         password
       });
-
-
-      sessionStorage.setItem("user", JSON.stringify(res.data.user || {}));
-      sessionStorage.setItem("isAdmin", "true");
-      sessionStorage.setItem("isAuthenticated", "true");
+      await establishTrustedSession({ requireAdmin: true });
       commitLanguage();
       await reloadRuntimeConfig();
       setShowAdminPanel(false);
       navigate("/admin");
     } catch (err) {
+      clearAuthMarkers();
       setAdminError(err.response?.data?.message || t("login.errBadAdmin"));
     } finally {
       setIsAdminLoggingIn(false);
