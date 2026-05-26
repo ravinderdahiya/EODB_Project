@@ -6,7 +6,9 @@ import {
   Clock3,
   LayoutDashboard,
   Link2,
+  Mail,
   MessageSquare,
+  Phone,
   Settings,
   Tags,
   TicketCheck,
@@ -56,6 +58,12 @@ export const adminNavigationItems = [
     label: "API URLs",
     description: "Manage backend API endpoints and metadata",
     icon: Link2,
+  },
+  {
+    id: "vip-users",
+    label: "VIP Users",
+    description: "Manage VIP numbers with OTP bypass controls",
+    icon: Phone,
   },
   {
     id: "reports",
@@ -256,7 +264,7 @@ export const adminSummaryMetrics = [
     label: "Newsletter Subscribers",
     value: "18,903",
     tone: "mint",
-    icon: "Mail",
+    icon: Mail,
   },
 ];
 
