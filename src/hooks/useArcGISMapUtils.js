@@ -275,7 +275,13 @@ export function createLandRecordPopupContent({
         <div class="map-click-popup__hero-top">
           <div class="map-click-popup__hero-copy">
             <h3>${s.title}</h3>
-            <p>${preview.breadcrumb}</p>
+            <button
+              type="button"
+              class="map-click-popup__view-details"
+              data-role="view-details"
+            >
+              ${s.viewFullDetails}
+            </button>
           </div>
 
           <div class="map-click-popup__hero-actions">
@@ -306,44 +312,6 @@ export function createLandRecordPopupContent({
           <span class="map-click-popup__loading-spinner" aria-hidden="true"></span>
           <span>${s.loading}</span>
         </div>
-        <div class="map-click-popup__selectors">
-          <div class="map-click-popup__selector">
-            <span>${s.district}</span>
-            <div class="map-click-popup__select">
-              <strong data-field="district">${preview.district}</strong>
-              <small data-field="districtCode">${preview.districtCode || "--"}</small>
-            </div>
-          </div>
-
-          <div class="map-click-popup__selector">
-            <span>${s.tehsil}</span>
-            <div class="map-click-popup__select">
-              <strong data-field="tehsil">${preview.tehsil}</strong>
-              <small data-field="tehsilCode">${preview.tehsilCode || "--"}</small>
-            </div>
-          </div>
-
-          <div class="map-click-popup__selector map-click-popup__selector--wide">
-            <span>${s.village}</span>
-            <div class="map-click-popup__select">
-              <strong data-field="village">${preview.village}</strong>
-              <small data-field="villageCode">${preview.villageCode || "--"}</small>
-            </div>
-          </div>
-        </div>
-
-        <div class="map-click-popup__metrics">
-          <article class="map-click-popup__metric">
-            <span>${s.murabba}</span>
-            <strong data-field="murabbaNo">${preview.murabbaNo}</strong>
-          </article>
-          <article class="map-click-popup__metric">
-            <span>${s.khasra}</span>
-            <strong data-field="khasraNo">${preview.khasraNo}</strong>
-          </article>
-          
-
-        </div>
 
         <div class="record-panel__details map-click-popup__details">
           <div class="info-row">
@@ -368,18 +336,49 @@ export function createLandRecordPopupContent({
           </div>
         </div>
 
+        <div class="map-click-popup__location">
+          <div class="map-click-popup__selectors">
+            <div class="map-click-popup__selector">
+              <span>${s.district}</span>
+              <div class="map-click-popup__select">
+                <strong data-field="district">${preview.district}</strong>
+                <small data-field="districtCode">${preview.districtCode || "--"}</small>
+              </div>
+            </div>
+
+            <div class="map-click-popup__selector">
+              <span>${s.tehsil}</span>
+              <div class="map-click-popup__select">
+                <strong data-field="tehsil">${preview.tehsil}</strong>
+                <small data-field="tehsilCode">${preview.tehsilCode || "--"}</small>
+              </div>
+            </div>
+
+            <div class="map-click-popup__selector map-click-popup__selector--wide">
+              <span>${s.village}</span>
+              <div class="map-click-popup__select">
+                <strong data-field="village">${preview.village}</strong>
+                <small data-field="villageCode">${preview.villageCode || "--"}</small>
+              </div>
+            </div>
+          </div>
+
+          <div class="map-click-popup__metrics">
+            <article class="map-click-popup__metric">
+              <span>${s.murabba}</span>
+              <strong data-field="murabbaNo">${preview.murabbaNo}</strong>
+            </article>
+            <article class="map-click-popup__metric">
+              <span>${s.khasra}</span>
+              <strong data-field="khasraNo">${preview.khasraNo}</strong>
+            </article>
+          </div>
+        </div>
+
         <div class="record-panel__status map-click-popup__status">
           <span class="badge badge--${verificationTone}" data-field="verificationStatus">${preview.verificationStatus}</span>
           <small data-field="lastUpdated">${s.updatedPrefix}${preview.lastUpdated}</small>
         </div>
-
-        
-
-        <button type="button" class="primary-button map-click-popup__primary" data-role="view-details">
-          ${s.viewFullDetails}
-        </button>
-
-        
       </div>
     </section>`;
 

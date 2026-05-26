@@ -2,6 +2,7 @@ import "./SidebarNav.css";
 import { Fragment, useState } from "react";
 import { BoxSelect, Hexagon, Spline, Trash2 } from "lucide-react";
 import SearchPanel from "./SearchPanel";
+import { MAX_KHASRA_SELECTION } from "@/constants/selectFeatures";
 import { useLanguage } from "@/context/LanguageContext";
 
 const SF_TOOL_IDS = ["rectangle", "polygon", "polyline"];
@@ -233,7 +234,7 @@ export default function SidebarNav({
                           </div>
 
                           <p className="sf-hint">
-                            {t("sf.hint", { max: 20 })}
+                            {t("sf.hint", { max: MAX_KHASRA_SELECTION })}
                           </p>
 
                           <div className="sf-tools">

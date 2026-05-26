@@ -25,8 +25,7 @@ import { getHsacMainUrl } from "@/config/arcgis";
 import { getCadastralLayerId } from "@/services/hsacLayerResolver";
 import { getOwnerNames } from "@/services/landRecordService";
 import { SELECTION_FILL_SYMBOL } from "@/config/mapSymbols";
-
-const MAX_KHASRA = 20;
+import { MAX_KHASRA_SELECTION } from "@/constants/selectFeatures";
 
 export function useSelectFeatures({ viewRef, layersRef }) {
   // ── Internal refs ────────────────────────────────────────────────────────────
@@ -113,7 +112,7 @@ export function useSelectFeatures({ viewRef, layersRef }) {
           outFields: ["n_d_code", "n_d_name"],
           where: "n_d_code IS NOT NULL AND n_d_code <> ''",
           outSpatialReference: view.spatialReference,
-          num: MAX_KHASRA + 1,
+          num: MAX_KHASRA_SELECTION + 1,
         }),
       );
 
@@ -127,8 +126,8 @@ export function useSelectFeatures({ viewRef, layersRef }) {
         return;
       }
 
-      if (distFeatures.length > MAX_KHASRA) {
-        setStatusMessage(`You Can Select Maximum ${MAX_KHASRA} Khasra`);
+      if (distFeatures.length > MAX_KHASRA_SELECTION) {
+        setStatusMessage(`You Can Select Maximum ${MAX_KHASRA_SELECTION} Khasra`);
         setProgress({ current: 0, total: 0, running: false });
         return;
       }
@@ -148,7 +147,7 @@ export function useSelectFeatures({ viewRef, layersRef }) {
           outFields: ["*"],
           where: "n_khas_no IS NOT NULL AND n_khas_no <> ''",
           outSpatialReference: view.spatialReference,
-          num: MAX_KHASRA + 1,
+          num: MAX_KHASRA_SELECTION + 1,
         }),
       );
 
@@ -162,8 +161,8 @@ export function useSelectFeatures({ viewRef, layersRef }) {
         return;
       }
 
-      if (khasFeatures.length > MAX_KHASRA) {
-        setStatusMessage(`You Can Select Maximum ${MAX_KHASRA} Khasra`);
+      if (khasFeatures.length > MAX_KHASRA_SELECTION) {
+        setStatusMessage(`You Can Select Maximum ${MAX_KHASRA_SELECTION} Khasra`);
         setProgress({ current: 0, total: 0, running: false });
         return;
       }

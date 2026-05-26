@@ -263,6 +263,31 @@
 
 /* ── Responsive ───────────────────────────────────────────────────────────── */
 
+/* Laptop + desktop — slightly larger north toggle (mobile/tablet unchanged) */
+@media (min-width: 769px) and (min-height: 501px) {
+  .ncc__toggle {
+    width: 44px;
+    height: 44px;
+  }
+
+  .ncc__pointer-svg {
+    width: 21px;
+    height: 21px;
+  }
+}
+
+@media (min-width: 1025px) {
+  .ncc__toggle {
+    width: 46px;
+    height: 46px;
+  }
+
+  .ncc__pointer-svg {
+    width: 22px;
+    height: 22px;
+  }
+}
+
 @media (max-width: 768px) {
   .ncc {
     top: calc(0.85rem + env(safe-area-inset-top, 0px));
