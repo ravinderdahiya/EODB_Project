@@ -97,8 +97,16 @@ const en = {
     eyebrow:    "Operational layers",
     title:      "Map Layers",
     cadastral:  "Cadastral",
+    murabbaLayers: "Murabba layers",
+    murabbaLayersTitle: "Murabba Layers",
+    murabbaLayersDesc: "Murraba grid and cadastral land information layers",
     boundaries: "Boundaries",
+    boundariesLayerTitle: "Boundaries",
+    boundariesLayerDesc: "State, district, tehsil and village boundary layers",
     overlays:   "Overlays",
+    otherLayers: "Other layers",
+    otherLayersTitle: "Other Layers",
+    otherLayersDesc: "Government assets, roads and NHAI overlays",
     cadastralLayerTitle: "Cadastral land information",
     cadastralLayerDesc:  "HSAC MapServer — district sublayers 1-22 with Khasra detail popup",
     healthCadastral:  "Cadastral",
@@ -116,6 +124,34 @@ const en = {
     measurement: "Measurement tools",
     "zoom-in":   "Zoom in",
     "zoom-out":  "Zoom out",
+  },
+
+  zoomBar: {
+    region: "Map zoom control",
+    dragHint: "Drag left or right to zoom the map",
+    hoverInfo: "Zoom level {level} · Map scale {scale} · {layer} view",
+    layers: {
+      state: {
+        label: "State",
+        title: "Zoom to state boundary view",
+      },
+      district: {
+        label: "District",
+        title: "Zoom to district level",
+      },
+      tehsil: {
+        label: "Tehsil",
+        title: "Zoom to tehsil level",
+      },
+      village: {
+        label: "Village",
+        title: "Zoom to village level",
+      },
+      cadastral: {
+        label: "Murraba",
+        title: "Zoom to murabba / cadastral level",
+      },
+    },
   },
 
   measurement: {

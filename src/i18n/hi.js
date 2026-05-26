@@ -97,8 +97,16 @@ const hi = {
     eyebrow:    "परिचालन परतें",
     title:      "मानचित्र परतें",
     cadastral:  "भूकर",
+    murabbaLayers: "मुरब्बा परतें",
+    murabbaLayersTitle: "मुरब्बा परतें",
+    murabbaLayersDesc: "मुरब्बा ग्रिड और भूकर भूमि अभिलेख परतें",
     boundaries: "सीमाएं",
+    boundariesLayerTitle: "सीमाएं",
+    boundariesLayerDesc: "राज्य, जिला, तहसील और गांव की सीमा परतें",
     overlays:   "ओवरले",
+    otherLayers: "अन्य परतें",
+    otherLayersTitle: "अन्य परतें",
+    otherLayersDesc: "सरकारी संपत्ति, सड़क और NHAI ओवरले",
     cadastralLayerTitle: "भूकर भूमि जानकारी",
     cadastralLayerDesc:  "HSAC मैप सर्वर — जिला सब-लेयर 1-22 खसरा विवरण के साथ",
     healthCadastral:  "भूकर",
@@ -116,6 +124,34 @@ const hi = {
     measurement: "मापन उपकरण",
     "zoom-in":   "ज़ूम इन",
     "zoom-out":  "ज़ूम आउट",
+  },
+
+  zoomBar: {
+    region: "मानचित्र ज़ूम नियंत्रण",
+    dragHint: "ज़ूम करने के लिए बाएं या दाएं खींचें",
+    hoverInfo: "ज़ूम स्तर {level} · मानचित्र स्केल {scale} · {layer} दृश्य",
+    layers: {
+      state: {
+        label: "राज्य",
+        title: "राज्य सीमा दृश्य पर ज़ूम करें",
+      },
+      district: {
+        label: "जिला",
+        title: "जिला स्तर पर ज़ूम करें",
+      },
+      tehsil: {
+        label: "तहसील",
+        title: "तहसील स्तर पर ज़ूम करें",
+      },
+      village: {
+        label: "गांव",
+        title: "गांव स्तर पर ज़ूम करें",
+      },
+      cadastral: {
+        label: "मुरब्बा",
+        title: "मुरब्बा / भूकर स्तर पर ज़ूम करें",
+      },
+    },
   },
 
   measurement: {
