@@ -30,7 +30,7 @@ function LayerCollapsibleGroup({ title, description, expanded, onToggle, childre
     <div className={`layer-panel__group${expanded ? " layer-panel__group--open" : ""}`}>
       <button
         type="button"
-        className="toggle-row toggle-row--group"
+        className={`toggle-row toggle-row--group${expanded ? " toggle-row--group--active" : ""}`}
         onClick={onToggle}
         aria-expanded={expanded}
       >
@@ -40,7 +40,9 @@ function LayerCollapsibleGroup({ title, description, expanded, onToggle, childre
         </span>
         <ChevronDown size={16} className="toggle-row__chevron" aria-hidden="true" />
       </button>
-      <div className="layer-panel__group-body">{children}</div>
+      <div className="layer-panel__group-body">
+        <div className="layer-panel__group-inner">{children}</div>
+      </div>
     </div>
   );
 }
@@ -53,9 +55,11 @@ export default function LayerPanel({
   serviceHealth,
 }) {
   const { t } = useLanguage();
-  const [murabbaLayersExpanded, setMurabbaLayersExpanded] = useState(false);
-  const [boundariesExpanded, setBoundariesExpanded] = useState(false);
-  const [otherLayersExpanded, setOtherLayersExpanded] = useState(false);
+  const [expandedGroupId, setExpandedGroupId] = useState(null);
+
+  const toggleGroup = (groupId) => {
+    setExpandedGroupId((current) => (current === groupId ? null : groupId));
+  };
 
   return (
     <aside className={`layer-panel ${isOpen ? "layer-panel--open" : ""}`}>
@@ -80,12 +84,12 @@ export default function LayerPanel({
         <LayerCollapsibleGroup
           title={t("layerPanel.murabbaLayersTitle")}
           description={t("layerPanel.murabbaLayersDesc")}
-          expanded={murabbaLayersExpanded}
-          onToggle={() => setMurabbaLayersExpanded((open) => !open)}
+          expanded={expandedGroupId === "murabba"}
+          onToggle={() => toggleGroup("murabba")}
         >
           <LayerToggleRow
-            title="Murraba Grid (Haryana)"
-            description="Group + child layer (id 29 + 30)"
+            title={t("layerPanel.murrabaGridTitle")}
+            description={t("layerPanel.murrabaGridDesc")}
             checked={layerVisibility.murrabaGrid ?? false}
             onChange={() => onToggleLayer("murrabaGrid")}
           />
@@ -103,12 +107,12 @@ export default function LayerPanel({
         <LayerCollapsibleGroup
           title={t("layerPanel.boundariesLayerTitle")}
           description={t("layerPanel.boundariesLayerDesc")}
-          expanded={boundariesExpanded}
-          onToggle={() => setBoundariesExpanded((open) => !open)}
+          expanded={expandedGroupId === "boundaries"}
+          onToggle={() => toggleGroup("boundaries")}
         >
           <LayerToggleRow
-            title="Haryana State Boundary"
-            description="State boundary layer (id 31)"
+            title={t("layerPanel.boundaryLayers.state.title")}
+            description={t("layerPanel.boundaryLayers.state.description")}
             checked={layerVisibility.stateBoundary ?? false}
             onChange={() => onToggleLayer("stateBoundary")}
           />
@@ -116,8 +120,8 @@ export default function LayerPanel({
           {arcgisPortalConfig.boundarySublayers.map((layer) => (
             <LayerToggleRow
               key={layer.key}
-              title={layer.title}
-              description={layer.description}
+              title={t(`layerPanel.boundaryLayers.${layer.key}.title`)}
+              description={t(`layerPanel.boundaryLayers.${layer.key}.description`)}
               checked={layerVisibility[layer.key]}
               onChange={() => onToggleLayer(layer.key)}
             />
@@ -139,8 +143,8 @@ export default function LayerPanel({
         <LayerCollapsibleGroup
           title={t("layerPanel.otherLayersTitle")}
           description={t("layerPanel.otherLayersDesc")}
-          expanded={otherLayersExpanded}
-          onToggle={() => setOtherLayersExpanded((open) => !open)}
+          expanded={expandedGroupId === "other"}
+          onToggle={() => toggleGroup("other")}
         >
           {arcgisPortalConfig.operationalLayers.map((layer) => (
             <LayerToggleRow
