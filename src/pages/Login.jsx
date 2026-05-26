@@ -177,6 +177,17 @@ export default function Login() {
     try {
       setIsSendingOtp(true);
       const res = await axiosInstance.post("/otp/send-otp", { phone });
+      if (res.data?.vipLogin && res.data?.user) {
+        sessionStorage.setItem("user", JSON.stringify(res.data.user || {}));
+        sessionStorage.setItem("isAdmin", "false");
+        sessionStorage.setItem("isAuthenticated", "true");
+        commitLanguage();
+        await reloadRuntimeConfig();
+        mountSplash();
+        navigate("/map");
+        return;
+      }
+
       if (res.data.message) {
         setShowOtpInput(true);
         setOtp(["", "", "", ""]);

@@ -8,6 +8,7 @@ import AdminAnalyticsEventsTable from "@/components/admin/AdminAnalyticsEventsTa
 import AdminFeedbackTable from "@/components/admin/AdminFeedbackTable";
 import AdminUsersTable from "@/components/admin/AdminUsersTable";
 import AdminApiUrlManager from "@/components/admin/AdminApiUrlManager";
+import AdminVipUsersManager from "@/components/admin/AdminVipUsersManager";
 import AdminStatCards from "@/components/admin/AdminStatCards";
 import AdminSummaryCards from "@/components/admin/AdminSummaryCards";
 import {
@@ -158,6 +159,11 @@ export default function AdminDashboardView({
         ) : activeItem.id === "api-urls" ? (
           <>
             <AdminApiUrlManager />
+            <AdminSummaryCards cards={adminSummaryMetrics} />
+          </>
+        ) : activeItem.id === "vip-users" ? (
+          <>
+            <AdminVipUsersManager />
             <AdminSummaryCards cards={adminSummaryMetrics} />
           </>
         ) : activeItem.id === "reports" ? (
