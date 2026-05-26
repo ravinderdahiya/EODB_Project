@@ -27,14 +27,19 @@ const hi = {
   latLong: {
     latitude: "अक्षांश",
     longitude: "देशांतर",
+    linkLabel: "गूगल मैप लिंक",
     latitudePlaceholder: "उदाहरण: 29.0588",
     longitudePlaceholder: "उदाहरण: 76.0856",
+    linkPlaceholder: "गूगल लिंक यहाँ टाइप करें",
+    or: "या",
     findPoint: "बिंदु खोजें",
     finding: "खोजा जा रहा है...",
     success: {
       located: "बिंदु सफलतापूर्वक मिल गया।",
     },
     errors: {
+      empty: "अक्षांश/देशांतर दर्ज करें या Google Maps लिंक चिपकाएं।",
+      invalidLink: "इस मानचित्र लिंक से निर्देशांक नहीं निकाले जा सके।",
       numeric: "कृपया वैध संख्यात्मक अक्षांश और देशांतर दर्ज करें।",
       latitudeRange: "अक्षांश -90 से 90 के बीच होना चाहिए।",
       longitudeRange: "देशांतर -180 से 180 के बीच होना चाहिए।",
@@ -138,7 +143,7 @@ const hi = {
     layerControls: "परत नियंत्रण",
     mapControls:   "मानचित्र नियंत्रण",
     basemap:     "बेसमैप विकल्प",
-    layers:      "परतें टॉगल करें",
+    layers:      "मानचित्र परतें",
     reset:       "विस्तार रीसेट करें",
     locate:      "मुझे ढूंढें",
     measurement: "मापन उपकरण",

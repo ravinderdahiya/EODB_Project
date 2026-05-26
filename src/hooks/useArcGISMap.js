@@ -688,12 +688,6 @@ export function useArcGISMap({
         const loadingPopup = createLandRecordPopupContent({
           parcel: createPopupLoadingPreview(selectedParcelRef.current, event.mapPoint),
           onClose: () => closeLandRecordMiniPopup(popupStateRef),
-          onZoomToParcel: async () => {
-            if (!event.mapPoint) return;
-            await view
-              .goTo({ target: event.mapPoint, zoom: Math.max(view.zoom ?? 13, 15) })
-              .catch(() => undefined);
-          },
           onViewFullDetails: () => onPreviewFullDetailsRef.current?.(selectedParcelRef.current),
         });
         showLandRecordMiniPopup({

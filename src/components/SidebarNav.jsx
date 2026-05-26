@@ -89,29 +89,20 @@ export default function SidebarNav({
     }
   };
 
-  const handleLatLongSubmit = async (event) => {
-    event.preventDefault();
-    const lat = parseCoordinate(latitude);
-    const lon = parseCoordinate(longitude);
-
-    if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
-      setLatLongError(t("latLong.errors.numeric"));
-      return;
+  const locateByCoordinates = async (lat, lon) => {
+    if (!onFindLatLong) {
+      setLatLongError(t("latLong.errors.notAvailable"));
+      return false;
     }
 
     if (lat < -90 || lat > 90) {
       setLatLongError(t("latLong.errors.latitudeRange"));
-      return;
+      return false;
     }
 
     if (lon < -180 || lon > 180) {
       setLatLongError(t("latLong.errors.longitudeRange"));
-      return;
-    }
-
-    if (!onFindLatLong) {
-      setLatLongError(t("latLong.errors.notAvailable"));
-      return;
+      return false;
     }
 
     setLatLongLoading(true);
@@ -120,14 +111,60 @@ export default function SidebarNav({
       const result = await onFindLatLong({ latitude: lat, longitude: lon });
       if (!result?.ok) {
         setLatLongError(result?.message || t("latLong.errors.unableToFind"));
-        return;
+        return false;
       }
+      setLatitude(String(lat));
+      setLongitude(String(lon));
       onStatusChange?.(result.message || t("latLong.success.located"));
+      return true;
     } catch (error) {
       setLatLongError(error?.message || t("latLong.errors.unableToFind"));
+      return false;
     } finally {
       setLatLongLoading(false);
     }
+  };
+
+  const handleFindPointSubmit = async (event) => {
+    event.preventDefault();
+    const trimmedLink = `${mapLink || ""}`.trim();
+    const hasCoordsInput = `${latitude || ""}`.trim() || `${longitude || ""}`.trim();
+
+    if (!trimmedLink && !hasCoordsInput) {
+      setLatLongError(t("latLong.errors.empty"));
+      return;
+    }
+
+    let lat = Number.NaN;
+    let lon = Number.NaN;
+
+    if (trimmedLink) {
+      try {
+        const localMatch = extractCoordinatesFromText(trimmedLink);
+        const coords = localMatch || (await resolveMapLink(trimmedLink))?.data;
+        lat = parseCoordinate(coords?.latitude);
+        lon = parseCoordinate(coords?.longitude);
+      } catch (error) {
+        setLatLongError(
+          error?.response?.data?.message
+          || error?.message
+          || t("latLong.errors.invalidLink"),
+        );
+        return;
+      }
+    }
+
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+      lat = parseCoordinate(latitude);
+      lon = parseCoordinate(longitude);
+    }
+
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+      setLatLongError(trimmedLink ? t("latLong.errors.invalidLink") : t("latLong.errors.numeric"));
+      return;
+    }
+
+    await locateByCoordinates(lat, lon);
   };
 
   const extractCoordinatesFromText = (value) => {
@@ -174,56 +211,6 @@ export default function SidebarNav({
     }
 
     return null;
-  };
-
-  const handleMapLinkSubmit = async (event) => {
-    event.preventDefault();
-    const trimmed = `${mapLink || ""}`.trim();
-
-    if (!onFindLatLong) {
-      setLatLongError(t("latLong.errors.notAvailable"));
-      return;
-    }
-
-    if (!trimmed) {
-      setLatLongError(tf("latLong.errors.noLink", "Please paste a Google Maps link."));
-      return;
-    }
-
-    setLatLongLoading(true);
-    setLatLongError("");
-
-    try {
-      // Fast path for direct Google Maps URLs that already contain coordinates.
-      const localMatch = extractCoordinatesFromText(trimmed);
-      const coords = localMatch || (await resolveMapLink(trimmed))?.data;
-
-      const lat = parseCoordinate(coords?.latitude);
-      const lon = parseCoordinate(coords?.longitude);
-
-      if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
-        setLatLongError(tf("latLong.errors.invalidLink", "Could not extract coordinates from this map link."));
-        return;
-      }
-
-      const result = await onFindLatLong({ latitude: lat, longitude: lon });
-      if (!result?.ok) {
-        setLatLongError(result?.message || t("latLong.errors.unableToFind"));
-        return;
-      }
-
-      setLatitude(String(lat));
-      setLongitude(String(lon));
-      onStatusChange?.(result.message || t("latLong.success.located"));
-    } catch (error) {
-      setLatLongError(
-        error?.response?.data?.message
-        || error?.message
-        || tf("latLong.errors.invalidLink", "Could not extract coordinates from this map link."),
-      );
-    } finally {
-      setLatLongLoading(false);
-    }
   };
 
   const progressPct =
@@ -276,7 +263,7 @@ export default function SidebarNav({
                   {item.id === "find-latlong" && (
                     <div className={`sidebar__latlong-drawer ${latLongExpanded ? "sidebar__latlong-drawer--open" : ""}`}>
                       <div className="sidebar-latlong">
-                        <form className="sidebar-latlong__form" onSubmit={handleLatLongSubmit}>
+                        <form className="sidebar-latlong__form" onSubmit={handleFindPointSubmit}>
                           <label className="sidebar-latlong__field">
                             <span>{t("latLong.latitude")}</span>
                             <input
@@ -297,14 +284,14 @@ export default function SidebarNav({
                               onChange={(e) => setLongitude(e.target.value)}
                             />
                           </label>
+                          <p className="sidebar-latlong__or" aria-hidden="true">
+                            {t("latLong.or")}
+                          </p>
                           <label className="sidebar-latlong__field">
-                            <span>{tf("latLong.linkLabel", "Google Maps Link")}</span>
+                            <span>{t("latLong.linkLabel")}</span>
                             <input
                               type="url"
-                              placeholder={tf(
-                                "latLong.linkPlaceholder",
-                                "Paste Google Maps link (maps.app.goo.gl or google.com/maps)",
-                              )}
+                              placeholder={t("latLong.linkPlaceholder")}
                               value={mapLink}
                               onChange={(e) => setMapLink(e.target.value)}
                             />
@@ -318,14 +305,6 @@ export default function SidebarNav({
                             disabled={latLongLoading || !mapUsable}
                           >
                             {latLongLoading ? t("latLong.finding") : t("latLong.findPoint")}
-                          </button>
-                          <button
-                            type="button"
-                            className="sidebar-latlong__button"
-                            disabled={latLongLoading || !mapUsable}
-                            onClick={handleMapLinkSubmit}
-                          >
-                            {latLongLoading ? t("latLong.finding") : tf("latLong.findFromLink", "Find From Link")}
                           </button>
                         </form>
                       </div>

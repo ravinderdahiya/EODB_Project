@@ -244,6 +244,27 @@
   background: #fbfefc;
 }
 
+.sidebar-latlong__or {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin: 0.1rem 0;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink);
+  opacity: 0.5;
+}
+
+.sidebar-latlong__or::before,
+.sidebar-latlong__or::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: rgba(47, 141, 93, 0.22);
+}
+
 .sidebar-latlong__error {
   margin: 0;
   font-size: 0.73rem;
@@ -616,6 +637,15 @@
   border-color: rgba(125, 181, 255, 0.45);
   box-shadow: 0 0 0 3px rgba(125, 181, 255, 0.12);
   background: rgba(24, 43, 60, 0.95);
+}
+
+:root[data-theme="dark"] .sidebar-latlong__or {
+  opacity: 0.62;
+}
+
+:root[data-theme="dark"] .sidebar-latlong__or::before,
+:root[data-theme="dark"] .sidebar-latlong__or::after {
+  background: rgba(125, 181, 255, 0.2);
 }
 
 :root[data-theme="dark"] .sidebar-latlong__error {

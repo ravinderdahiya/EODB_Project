@@ -68,9 +68,8 @@ export function getPopupLocaleStrings() {
     return {
       ariaLabel: "भूमि अभिलेख जानकारी",
       title: "भूमि अभिलेख जानकारी",
-      zoomAria: "भूमि जानकारी पर ज़ूम करें",
-      zoom: "ज़ूम",
       closeAria: "भूमि अभिलेख पॉपअप बंद करें",
+      viewAria: "पूरा विवरण देखें",
       loading: "भूमि अभिलेख विवरण लोड हो रहा है...",
       district: "जिला",
       tehsil: "तहसील",
@@ -83,16 +82,15 @@ export function getPopupLocaleStrings() {
       jamabandi: "जमाबंदी",
       area: "क्षेत्र(K-M)",
       updatedPrefix: "अपडेट ",
-      viewFullDetails: "पूरा विवरण देखें",
+      view: "और देखें",
     };
   }
 
   return {
     ariaLabel: "Land record information",
     title: "Land Record Information",
-    zoomAria: "Zoom to land information",
-    zoom: "Zoom",
     closeAria: "Close land record popup",
+    viewAria: "View full land record details",
     loading: "Loading land record details...",
     district: "District",
     tehsil: "Tehsil",
@@ -105,7 +103,7 @@ export function getPopupLocaleStrings() {
     jamabandi: "Jamabandi",
     area: "Area(K-M)",
     updatedPrefix: "Updated ",
-    viewFullDetails: "View Full Details",
+    view: "View More",
   };
 }
 
@@ -257,7 +255,6 @@ export function showLandRecordMiniPopup({
 export function createLandRecordPopupContent({
   parcel,
   onClose,
-  onZoomToParcel,
   onViewFullDetails,
 }) {
   const preview = parcel;
@@ -275,23 +272,17 @@ export function createLandRecordPopupContent({
         <div class="map-click-popup__hero-top">
           <div class="map-click-popup__hero-copy">
             <h3>${s.title}</h3>
-            <button
-              type="button"
-              class="map-click-popup__view-details"
-              data-role="view-details"
-            >
-              ${s.viewFullDetails}
-            </button>
           </div>
 
           <div class="map-click-popup__hero-actions">
             <button
               type="button"
-              class="map-click-popup__icon-button"
-              data-role="zoom"
-              aria-label="${s.zoomAria}"
+              class="map-click-popup__view-details"
+              data-role="view-details"
+              aria-label="${s.viewAria}"
+              title="${s.viewAria}"
             >
-              ${s.zoom}
+              ${s.view}
             </button>
             <button
               type="button"
@@ -319,14 +310,6 @@ export function createLandRecordPopupContent({
             <strong data-field="ownerName">${preview.ownerName}</strong>
           </div>
           <div class="info-row">
-            <span>${s.khewat}</span>
-            <strong data-field="khewatNo">${preview.khewatNo}</strong>
-          </div>
-          <div class="info-row">
-            <span>${s.khatoni}</span>
-            <strong data-field="khatoniNo">${preview.khatoniNo}</strong>
-          </div>
-          <div class="info-row">
             <span>${s.jamabandi}</span>
             <strong data-field="jamabandiYear">${preview.jamabandiYear}</strong>
           </div>
@@ -334,15 +317,34 @@ export function createLandRecordPopupContent({
             <span>${s.area}</span>
             <strong data-field="area">${preview.area}</strong>
           </div>
+          <div class="info-row">
+            <span>${s.khewat}</span>
+            <strong data-field="khewatNo">${preview.khewatNo}</strong>
+          </div>
+          <div class="info-row">
+            <span>${s.khatoni}</span>
+            <strong data-field="khatoniNo">${preview.khatoniNo}</strong>
+          </div>
         </div>
 
         <div class="map-click-popup__location">
+          <div class="map-click-popup__metrics">
+            <article class="map-click-popup__metric">
+              <span>${s.khasra}</span>
+              <strong data-field="khasraNo">${preview.khasraNo}</strong>
+            </article>
+            <article class="map-click-popup__metric">
+              <span>${s.murabba}</span>
+              <strong data-field="murabbaNo">${preview.murabbaNo}</strong>
+            </article>
+          </div>
+
           <div class="map-click-popup__selectors">
-            <div class="map-click-popup__selector">
-              <span>${s.district}</span>
+            <div class="map-click-popup__selector map-click-popup__selector--wide">
+              <span>${s.village}</span>
               <div class="map-click-popup__select">
-                <strong data-field="district">${preview.district}</strong>
-                <small data-field="districtCode">${preview.districtCode || "--"}</small>
+                <strong data-field="village">${preview.village}</strong>
+                <small data-field="villageCode">${preview.villageCode || "--"}</small>
               </div>
             </div>
 
@@ -354,24 +356,13 @@ export function createLandRecordPopupContent({
               </div>
             </div>
 
-            <div class="map-click-popup__selector map-click-popup__selector--wide">
-              <span>${s.village}</span>
+            <div class="map-click-popup__selector">
+              <span>${s.district}</span>
               <div class="map-click-popup__select">
-                <strong data-field="village">${preview.village}</strong>
-                <small data-field="villageCode">${preview.villageCode || "--"}</small>
+                <strong data-field="district">${preview.district}</strong>
+                <small data-field="districtCode">${preview.districtCode || "--"}</small>
               </div>
             </div>
-          </div>
-
-          <div class="map-click-popup__metrics">
-            <article class="map-click-popup__metric">
-              <span>${s.murabba}</span>
-              <strong data-field="murabbaNo">${preview.murabbaNo}</strong>
-            </article>
-            <article class="map-click-popup__metric">
-              <span>${s.khasra}</span>
-              <strong data-field="khasraNo">${preview.khasraNo}</strong>
-            </article>
           </div>
         </div>
 
@@ -384,10 +375,6 @@ export function createLandRecordPopupContent({
 
   container.querySelector('[data-role="close"]')?.addEventListener("click", () => {
     onClose?.();
-  });
-
-  container.querySelector('[data-role="zoom"]')?.addEventListener("click", () => {
-    onZoomToParcel?.();
   });
 
   container.querySelector('[data-role="view-details"]')?.addEventListener("click", () => {
