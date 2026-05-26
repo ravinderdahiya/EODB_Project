@@ -15,52 +15,55 @@
   display: flex;
   align-items: center;
 
-  width: 680px;
-  max-width: 92vw;
+  width: min(470px, 90vw);
   height: 52px;
-  padding: 0 10px;
+  padding: 0 4px;
 
-  border-radius: 30px;
+  border-radius: 0;
 
-  /* Light theme — very transparent frosted glass */
-  background: rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(18px) saturate(1.4);
-  -webkit-backdrop-filter: blur(18px) saturate(1.4);
+  /* Light theme — lighter frosted glass */
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(14px) saturate(1.25);
+  -webkit-backdrop-filter: blur(14px) saturate(1.25);
   box-shadow:
-    0 0 0 1px rgba(23, 50, 72, 0.10),
-    0 6px 24px rgba(23, 50, 72, 0.10);
+    0 0 0 1px rgba(23, 50, 72, 0.06),
+    0 4px 18px rgba(23, 50, 72, 0.06);
 
   user-select: none;
   -webkit-user-select: none;
   touch-action: none;
 
-  /* Fade both ends of the bar into the map */
+  /* Fade starts outside the first/last labels (State ... Murraba). */
   -webkit-mask-image: linear-gradient(
     to right,
-    transparent      0%,
-    rgba(0,0,0,0.5)  5%,
-    black            13%,
-    black            87%,
-    rgba(0,0,0,0.5)  95%,
-    transparent      100%
+    transparent        0%,
+    rgba(0, 0, 0, 0.28) 8%,
+    rgba(0, 0, 0, 0.7)  14%,
+    black              22%,
+    black              78%,
+    rgba(0, 0, 0, 0.7)  86%,
+    rgba(0, 0, 0, 0.28) 92%,
+    transparent        100%
   );
   mask-image: linear-gradient(
     to right,
-    transparent      0%,
-    rgba(0,0,0,0.5)  5%,
-    black            13%,
-    black            87%,
-    rgba(0,0,0,0.5)  95%,
-    transparent      100%
+    transparent        0%,
+    rgba(0, 0, 0, 0.28) 8%,
+    rgba(0, 0, 0, 0.7)  14%,
+    black              22%,
+    black              78%,
+    rgba(0, 0, 0, 0.7)  86%,
+    rgba(0, 0, 0, 0.28) 92%,
+    transparent        100%
   );
 }
 
 /* Dark theme override */
 :root[data-theme="dark"] .zws {
-  background: rgba(10, 14, 12, 0.30);
+  background: rgba(10, 14, 12, 0.18);
   box-shadow:
-    0 0 0 1px rgba(255, 255, 255, 0.06),
-    0 6px 24px rgba(0, 0, 0, 0.45);
+    0 0 0 1px rgba(255, 255, 255, 0.04),
+    0 4px 18px rgba(0, 0, 0, 0.28);
 }
 
 /* ── Centre column (fills full width now that buttons are removed) ────────── */
@@ -103,33 +106,9 @@
   overflow: hidden;
   cursor: ew-resize;
 
-  /*
-   * Inner fade reinforces the wheel-depth illusion.
-   * The outer .zws mask-image already fades the bar ends completely,
-   * so this only needs a short inner fade zone.
-   */
-  -webkit-mask-image: linear-gradient(
-    to right,
-    transparent       0%,
-    rgba(0,0,0, 0.45) 6%,
-    rgba(0,0,0, 0.88) 16%,
-    black             32%,
-    black             68%,
-    rgba(0,0,0, 0.88) 84%,
-    rgba(0,0,0, 0.45) 94%,
-    transparent       100%
-  );
-  mask-image: linear-gradient(
-    to right,
-    transparent       0%,
-    rgba(0,0,0, 0.45) 6%,
-    rgba(0,0,0, 0.88) 16%,
-    black             32%,
-    black             68%,
-    rgba(0,0,0, 0.88) 84%,
-    rgba(0,0,0, 0.45) 94%,
-    transparent       100%
-  );
+  /* Container mask handles side fade alignment with labels. */
+  -webkit-mask-image: none;
+  mask-image: none;
 }
 
 /* ── Scrolling tick ruler ─────────────────────────────────────────────────── */
@@ -248,12 +227,14 @@
   transition: color 0.18s ease, background 0.18s ease, text-shadow 0.18s ease;
 
   /* Light theme */
-  color: rgba(255, 255, 255, 0.75);
+  color: rgba(255, 255, 255, 0.93);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
 }
 
 :root[data-theme="dark"] .zws__label {
-  /* Raised from 0.40 so inactive labels are readable and contrast with active */
-  color: rgba(255, 255, 255, 0.62);
+  /* Brighter white for better readability over transparent bar */
+  color: rgba(255, 255, 255, 0.92);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 
 /* Active label — light theme */
@@ -282,6 +263,21 @@
   color: rgba(255, 255, 255, 0.90);
 }
 
+/* Hindi labels: use Devanagari-friendly font + spacing */
+[data-lang="hi"] .zws__label {
+  font-family: "Noto Sans Devanagari", "Nirmala UI", "Kohinoor Devanagari", "Mangal", sans-serif;
+  letter-spacing: 0;
+  font-weight: 800;
+}
+
+/* Desktop/laptop: Hindi labels slightly larger for readability */
+@media (min-width: 1025px) {
+  [data-lang="hi"] .zws__label {
+    font-size: 10.5px;
+    padding: 2px 6px;
+  }
+}
+
 /* ── Responsive ─────────────────────────────────────────────────────────── */
 
 /* Reserve right-side space for the north compass toggle (36–38px + gap). */
@@ -295,7 +291,7 @@
     max-width: none;
     height: 36px;
     padding: 0 4px;
-    border-radius: 18px;
+    border-radius: 0;
   }
 
   .zws__pointer {
@@ -319,7 +315,7 @@
   .zws__tick.minor::after { height: 3px; }
   .zws__tick.pad::after   { height: 2px; }
 
-  .zws__label  { font-size: 6.4px; padding: 1px 2px; letter-spacing: 0.03em; }
+  .zws__label  { font-size: 7.4px; padding: 1px 2px; letter-spacing: 0.02em; }
   .zws__sep    { margin: 0 2px; height: 6px; }
   .zws__labels { bottom: 2px; }
 }
@@ -331,7 +327,7 @@
     right: calc(0.8rem + 34px + 0.5rem + env(safe-area-inset-right, 0px));
     height: 34px;
     padding: 0 3px;
-    border-radius: 16px;
+    border-radius: 0;
   }
 
   .zws__tick-zone {
@@ -343,17 +339,31 @@
   .zws__tick.mid::after   { height: 4px; }
   .zws__tick.minor::after { height: 3px; }
 
-  .zws__label { font-size: 6px; padding: 1px 1px; }
+  .zws__label { font-size: 7px; padding: 1px 1px; }
   .zws__sep   { margin: 0 1px; height: 5px; }
+}
+
+@media (max-width: 1024px) {
+  [data-lang="hi"] .zws__label {
+    font-size: 8.8px;
+    padding: 1px 3px;
+  }
+}
+
+@media (max-width: 640px) {
+  [data-lang="hi"] .zws__label {
+    font-size: 8.2px;
+    padding: 1px 2px;
+  }
 }
 
 @media (min-width: 641px) and (max-width: 1024px) {
   .zws {
     top: 14px;
-    width: min(580px, calc(100vw - 7.5rem));
-    height: 44px;
-    padding: 0 6px;
-    border-radius: 22px;
+    width: min(440px, calc(100vw - 7.5rem));
+    height: 42px;
+    padding: 0 4px;
+    border-radius: 0;
   }
 
   .zws__tick-zone {
@@ -366,8 +376,8 @@
   .zws__tick.minor::after { height: 5px; }
 
   .zws__label {
-    font-size: 7.8px;
-    letter-spacing: 0.06em;
+    font-size: 8.8px;
+    letter-spacing: 0.05em;
     padding: 1px 3px;
   }
 
@@ -380,10 +390,10 @@
 @media (orientation: landscape) and (max-height: 600px) {
   .zws {
     top: 10px;
-    width: min(560px, 86vw);
-    height: 40px;
-    padding: 0 5px;
-    border-radius: 20px;
+    width: min(420px, 86vw);
+    height: 39px;
+    padding: 0 3px;
+    border-radius: 0;
   }
 
   .zws__pointer {
@@ -412,8 +422,8 @@
   }
 
   .zws__label {
-    font-size: 6.5px;
-    letter-spacing: 0.04em;
+    font-size: 7.2px;
+    letter-spacing: 0.03em;
     padding: 1px 2px;
   }
 
@@ -430,7 +440,7 @@
     right: calc(0.72rem + 32px + 0.45rem + env(safe-area-inset-right, 0px));
     height: 32px;
     padding: 0 2px;
-    border-radius: 15px;
+    border-radius: 0;
   }
 
   .zws__pointer {
@@ -452,7 +462,12 @@
   .zws__tick.minor::after { height: 2px; }
   .zws__tick.pad::after   { height: 2px; }
 
-  .zws__label { font-size: 5.6px; padding: 0 1px; letter-spacing: 0.02em; }
+  .zws__label { font-size: 6.2px; padding: 0 1px; letter-spacing: 0.02em; }
   .zws__sep   { margin: 0 1px; height: 5px; }
   .zws__labels { bottom: 1px; }
+
+  [data-lang="hi"] .zws__label {
+    font-size: 7.4px;
+    padding: 0 2px;
+  }
 }
