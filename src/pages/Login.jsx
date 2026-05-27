@@ -529,7 +529,7 @@ export default function Login() {
       </main>
 
       <div className="lp-source-caption-wrap" aria-label="Data source">
-        <div className="lp-source-caption">Image Source: Amabra Village, District Ambala, Haryana</div>
+        <div className="lp-source-caption">{t("login.imageSourceCaption")}</div>
       </div>
 
       {/* ── FOOTER ─────────────────────────────────── */}

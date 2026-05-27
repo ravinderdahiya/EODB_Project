@@ -4,12 +4,13 @@ import "./SaarthiChatbotWidget.css";
 
 const CHATBOT_LOCALE = {
   en: {
-    subtitle: "Assistant + FAQ",
-    welcomeMessage: "Welcome! I am EODB Saarthi.\nAsk your question in English or Hinglish.",
+    assistantName: "EODB AI Saarthi",
+    subtitle: "AI Assistant + FAQ",
+    welcomeMessage: "Welcome! I am EODB AI Saarthi.\nAsk your question in English or Hinglish.",
     faqTitle: "FAQ Questions (Click to Ask)",
     inputPlaceholder: "Ask in English or Hinglish...",
     launcherHints: [
-      "Hi! Ask EODB Saarthi.",
+      "Hi! Ask EODB AI Saarthi.",
       "Need GIS help?",
       "Need FAQ help",
     ],
@@ -47,12 +48,13 @@ const CHATBOT_LOCALE = {
     ],
   },
   hi: {
+    assistantName: "EODB AI सारथी",
     subtitle: "सहायक + सामान्य प्रश्न",
-    welcomeMessage: "स्वागत है! मैं EODB सारथी हूँ।\nअपना सवाल हिंदी में पूछें।",
+    welcomeMessage: "स्वागत है! मैं EODB AI सारथी हूँ।\nअपना सवाल हिंदी में पूछें।",
     faqTitle: "सामान्य प्रश्न (पूछने के लिए क्लिक करें)",
     inputPlaceholder: "यहाँ हिंदी में लिखें...",
     launcherHints: [
-      "नमस्ते! EODB सारथी से पूछें।",
+      "नमस्ते! EODB AI सारथी से पूछें।",
       "GIS मदद चाहिए?",
       "भूमि रिकॉर्ड जल्दी खोजें।",
     ],
@@ -975,7 +977,7 @@ function createMessageRow(frameDoc, message, iconUrl, session) {
     botAvatar.className = "avatar bot-avatar-img";
     const img = frameDoc.createElement("img");
     img.src = iconUrl;
-    img.alt = "EODB Saarthi";
+    img.alt = "EODB AI Saarthi";
     botAvatar.appendChild(img);
     row.appendChild(botAvatar);
   }
@@ -1256,7 +1258,10 @@ function clearChatHistoryRows(frameDoc) {
   const isWelcomeRow = (row) => {
     const text = normalizeText(row.querySelector(".message-bubble")?.textContent || "");
     return (
-      (text.includes("welcome") && text.includes("eodb saarthi"))
+      (
+        text.includes("welcome")
+        && (text.includes("eodb ai saarthi") || text.includes("eodb saarthi"))
+      )
       || (text.includes("saarthi") && text.includes("ask your question"))
     );
   };
@@ -2674,6 +2679,11 @@ export default function SaarthiChatbotWidget({ lang = "en", blurred = false, hid
         subtitleNode.textContent = activeLocale.subtitle;
       }
 
+      const titleNode = frameDoc.querySelector(".header-text h3");
+      if (titleNode && titleNode.textContent?.trim() !== activeLocale.assistantName) {
+        titleNode.textContent = activeLocale.assistantName;
+      }
+
       const faqTitleNode = frameDoc.querySelector(".faq-suggestions-title");
       if (faqTitleNode && faqTitleNode.textContent?.trim() !== activeLocale.faqTitle) {
         faqTitleNode.textContent = activeLocale.faqTitle;
@@ -2703,12 +2713,16 @@ export default function SaarthiChatbotWidget({ lang = "en", blurred = false, hid
           current === englishWelcome
           || current === hindiWelcome
           || (
+            current.includes("welcome! i am eodb ai saarthi")
+            && current.includes("ask your question in english or hinglish")
+          )
+          || (
             current.includes("welcome! i am eodb saarthi")
             && current.includes("ask your question in english or hinglish")
           )
           || (
             current.includes("à¤¸à¥à¤µà¤¾à¤—à¤¤ à¤¹à¥ˆ")
-            && current.includes("eodb saarthi")
+            && (current.includes("eodb ai saarthi") || current.includes("eodb saarthi"))
           );
         if (looksLikeWelcome && welcomeNode.textContent?.trim() !== activeLocale.welcomeMessage) {
           welcomeNode.textContent = activeLocale.welcomeMessage;
@@ -2950,9 +2964,9 @@ export default function SaarthiChatbotWidget({ lang = "en", blurred = false, hid
           type="button"
           className="saarthi-chatbot-widget__launcher"
           onClick={openChatFromHost}
-          aria-label="Open EODB Saarthi chatbot"
+          aria-label="Open EODB AI Saarthi chatbot"
         >
-          <img src={chatbotIconPath} alt="EODB Saarthi" />
+          <img src={chatbotIconPath} alt="EODB AI Saarthi" />
         </button>
       ) : null}
       {!isOpen && launcherHints.length ? (
@@ -2972,7 +2986,7 @@ export default function SaarthiChatbotWidget({ lang = "en", blurred = false, hid
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>EODB Saarthi Chatbot</title>
+    <title>EODB AI Saarthi Chatbot</title>
     <style>
       html, body, #root {
         width: 100%;
@@ -2992,7 +3006,7 @@ export default function SaarthiChatbotWidget({ lang = "en", blurred = false, hid
     <div id="root"></div>
   </body>
 </html>`}
-        title="EODB Saarthi Chatbot"
+        title="EODB AI Saarthi Chatbot"
         loading="lazy"
       />
     </div>
