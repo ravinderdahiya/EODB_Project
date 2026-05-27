@@ -896,6 +896,24 @@
   word-break: break-word;
 }
 
+.map-click-popup .info-row--owner {
+  align-items: flex-start;
+}
+
+.map-click-popup .info-row--owner span {
+  flex-shrink: 0;
+  padding-top: 0.12rem;
+}
+
+.map-click-popup .info-row--owner strong {
+  flex: 1;
+  min-width: 0;
+  max-width: none;
+  text-align: justify;
+  text-justify: inter-word;
+  line-height: 1.5;
+}
+
 .map-click-popup__overview {
   margin: 0.65rem 0.72rem 0;
   padding: 0.68rem 0.72rem;

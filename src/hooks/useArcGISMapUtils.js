@@ -305,7 +305,7 @@ export function createLandRecordPopupContent({
         </div>
 
         <div class="record-panel__details map-click-popup__details">
-          <div class="info-row">
+          <div class="info-row info-row--owner">
             <span>${s.ownerName}</span>
             <strong data-field="ownerName">${preview.ownerName}</strong>
           </div>

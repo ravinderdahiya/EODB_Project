@@ -32,7 +32,7 @@ export default function ParcelDetailsModal({ open, parcel, onClose }) {
         <div className="parcel-modal__body">
           <div className="parcel-modal__summary">
             <h3>{t("modal.ownershipSummary")}</h3>
-            <p>{safeParcel.ownerName}</p>
+            <p className="parcel-modal__owner">{safeParcel.ownerName}</p>
             <p>{safeParcel.breadcrumb}</p>
           </div>
 

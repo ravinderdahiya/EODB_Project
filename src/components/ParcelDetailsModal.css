@@ -103,6 +103,11 @@
   line-height: 1.65;
 }
 
+.parcel-modal__owner {
+  text-align: justify;
+  text-justify: inter-word;
+}
+
 /* ── Dark mode overrides ──────────────────────────────────── */
 
 :root[data-theme="dark"] .modal-info-card {
