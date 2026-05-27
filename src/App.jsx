@@ -109,6 +109,7 @@ export default function App() {
   const [voiceVillages, setVoiceVillages] = useState([]);
   const hasSelectedParcel = selectedParcel.registryRef !== "DLR-UNAVAILABLE";
   const adminSuggestionRequestIdRef = useRef(0);
+  const voiceSuggestionRequestIdRef = useRef(0);
 
   useEffect(() => {
     // If the map route mounted a splash screen, remove it once the app has painted.
@@ -496,10 +497,75 @@ export default function App() {
     setSystemMessage,
   });
 
-  const openSuggestionsFromVoiceQuery = (rawText) => {
+  const openSuggestionsFromVoiceQuery = async (rawText) => {
     const value = `${rawText ?? ""}`.trim();
-    if (!value) return;
+    if (!value) return { autoSelected: false, suggestionCount: 0 };
 
+    const requestId = voiceSuggestionRequestIdRef.current + 1;
+    voiceSuggestionRequestIdRef.current = requestId;
+
+    const normalized = value.toLowerCase();
+    const parcelMatches = parcelHistory
+      .filter((parcel) =>
+        [
+          parcel.khasraNo,
+          parcel.ownerName,
+          parcel.village,
+          parcel.tehsil,
+          parcel.district,
+        ]
+          .join(" ")
+          .toLowerCase()
+          .includes(normalized),
+      )
+      .slice(0, 3)
+      .map((parcel) => ({
+        ...parcel,
+        kind: "parcel",
+        title: `Khasra ${parcel.khasraNo}`,
+        description: [parcel.ownerName, parcel.village, parcel.tehsil]
+          .filter(Boolean)
+          .join(" | "),
+      }));
+
+    let adminMatches = [];
+    try {
+      const matches = await searchAdministrativeAreas(value, { limit: 6 });
+      if (requestId !== voiceSuggestionRequestIdRef.current) {
+        return { autoSelected: false, suggestionCount: 0, stale: true };
+      }
+      adminMatches = Array.isArray(matches) ? matches.map((match) => toAdminSuggestionItem(match)) : [];
+    } catch {
+      if (requestId !== voiceSuggestionRequestIdRef.current) {
+        return { autoSelected: false, suggestionCount: 0, stale: true };
+      }
+      adminMatches = [];
+    }
+
+    const combinedSuggestions = [...adminMatches, ...parcelMatches].slice(0, 8);
+    if (combinedSuggestions.length === 1) {
+      const suggestion = combinedSuggestions[0];
+      setForceSearchSuggestionsOpen(false);
+
+      if (suggestion.kind === "admin") {
+        const handled = await highlightAdminBoundary(
+          {
+            type: suggestion.boundaryType,
+            label: suggestion.title,
+            codes: suggestion.codes,
+          },
+          { exactMatch: true },
+        );
+        return { autoSelected: Boolean(handled), suggestionCount: 1 };
+      }
+
+      applyParcelSelection(suggestion, {
+        statusMessage: `Loaded land information ${suggestion.registryRef} from recent selections.`,
+      });
+      return { autoSelected: true, suggestionCount: 1 };
+    }
+
+    setAdminSuggestions(adminMatches);
     setSearchValue(value);
     setForceSearchSuggestionsOpen(true);
     setActiveNav("search");
@@ -507,6 +573,8 @@ export default function App() {
     window.setTimeout(() => {
       document.getElementById("portal-search")?.focus();
     }, 30);
+
+    return { autoSelected: false, suggestionCount: combinedSuggestions.length };
   };
 
   const resolveHindiLandRecordFromBackend = async (queryText) => {
@@ -1101,7 +1169,14 @@ export default function App() {
       const shouldPreferSuggestion = rawText.length >= 2 && tokens.length <= 3 && !hasExplicitIntent;
 
       if (shouldPreferSuggestion) {
-        openSuggestionsFromVoiceQuery(rawText);
+        const voiceSuggestionOutcome = await openSuggestionsFromVoiceQuery(rawText);
+        if (voiceSuggestionOutcome?.autoSelected) {
+          return {
+            ok: true,
+            pendingSelection: false,
+            message: `Found one match for "${rawText}" and opened it on map.`,
+          };
+        }
         return {
           ok: true,
           pendingSelection: true,
@@ -1115,7 +1190,14 @@ export default function App() {
       }
 
       if (rawText.length >= 2) {
-        openSuggestionsFromVoiceQuery(rawText);
+        const voiceSuggestionOutcome = await openSuggestionsFromVoiceQuery(rawText);
+        if (voiceSuggestionOutcome?.autoSelected) {
+          return {
+            ok: true,
+            pendingSelection: false,
+            message: `Found one match for "${rawText}" and opened it on map.`,
+          };
+        }
         return {
           ok: true,
           pendingSelection: true,

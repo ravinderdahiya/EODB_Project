@@ -106,6 +106,8 @@ export default function AppHeader({
     return fallbackParts.join(" • ");
   };
 
+  const searchSuggestionHint = t("header.searchSuggestionsHint");
+
   return (
     <header
       ref={headerRef}
@@ -170,6 +172,7 @@ export default function AppHeader({
 
           {(isSearchFocused || forceSearchSuggestionsOpen) && searchSuggestions.length > 0 ? (
             <div className="search-shell__suggestions" role="listbox">
+              <p className="search-shell__suggestions-hint">{searchSuggestionHint}</p>
               {searchSuggestions.map((suggestion, index) => {
                 const suggestionTitle = getSuggestionTitle(suggestion);
                 const suggestionCopy  = getSuggestionCopy(suggestion);
