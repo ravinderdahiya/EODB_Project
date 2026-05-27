@@ -871,7 +871,7 @@
 
 .map-click-popup__metric strong {
   color: var(--ink);
-  font-size: 0.82rem;
+  font-size: 0.84rem;
   line-height: 1.3;
 }
 
@@ -888,11 +888,20 @@
 }
 
 .map-click-popup .info-row {
+  padding: 0.72rem 0;
   border-bottom-color: var(--popup-row-border);
+}
+
+.map-click-popup .info-row span {
+  font-size: 0.75rem;
+  font-weight: 700;
 }
 
 .map-click-popup .info-row strong {
   max-width: 58%;
+  font-size: 0.86rem;
+  font-weight: 600;
+  line-height: 1.4;
   word-break: break-word;
 }
 
@@ -909,9 +918,10 @@
   flex: 1;
   min-width: 0;
   max-width: none;
+  font-size: 0.84rem;
   text-align: justify;
   text-justify: inter-word;
-  line-height: 1.5;
+  line-height: 1.48;
 }
 
 .map-click-popup__overview {

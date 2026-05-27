@@ -1,7 +1,7 @@
 const hi = {
   header: {
     title: "डिजिटल भूमि अभिलेख, हरियाणा",
-    subtitle: "व्यवसाय सुगमता, हरियाणा",
+    subtitle: "44212-GeoStack EODB, हरियाणा",
     adminSubtitle: "प्रशासन डैशबोर्ड",
     searchLabel: "भूमि अभिलेख या स्थान खोजें",
     searchPlaceholderDefault: "हरियाणा में स्थान खोजें या साइडबार से रिकॉर्ड खोजें",
@@ -233,7 +233,7 @@ const hi = {
     statsParcels:   "भूमि अभिलेख",
     announcementsTitle: "नवीनतम घोषणाएं",
     viewAll:       "सभी अपडेट देखें →",
-    cardTitle:     "व्यवसाय सुगमता",
+    cardTitle:     "44212-GeoStack EODB",
     cardSubtitle:  "अपने भूमि अभिलेख एक्सेस करने और जानकारी सुरक्षित रूप से प्रबंधित करने के लिए लॉगिन करें",
     tabOtp:        "पब्लिक लॉगिन",
     tabAdmin:      "एडमिन लॉगिन",
