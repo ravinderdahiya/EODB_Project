@@ -272,7 +272,7 @@ export default function Login() {
             <img src={import.meta.env.BASE_URL + "branding/harsac.png"}   alt="HARSAC Logo" />
           </div>
           <div className="lp-logo-text-group">
-            <div className="lp-main-title">EODB</div>
+            <div className="lp-main-title">44212-Geo Stack-EODB-Land</div>
             <div className="lp-tagline">Ease of Doing Business</div>
             <div className="lp-sub-title">Haryana</div>
           </div>
@@ -519,7 +519,7 @@ export default function Login() {
             </div>
             <div className="lp-announcement-content">
               <h5>Running Project</h5>
-              <p>EODB (Ease of Doing Business) platform is currently under active development,
+              <p>EODB (44212-Geo Stack-EODB-Land) platform is currently under active development,
                 including GIS mapping, and admin dashboard modules.</p>
             </div>
           </div>

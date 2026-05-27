@@ -62,7 +62,7 @@
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 0.85rem;
-  margin-top: 1.25rem;
+  margin-top: 0;
 }
 
 .modal-info-card {
@@ -87,7 +87,7 @@
 /* ── Modal Summary ────────────────────────────────────────── */
 
 .parcel-modal__summary {
-  margin-top: 1.25rem;
+  margin: 1rem 0 1.25rem;
   padding: 1.1rem 1.15rem;
   border-radius: 24px;
   background: linear-gradient(135deg, rgba(47, 141, 93, 0.08), rgba(46, 115, 180, 0.07));

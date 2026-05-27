@@ -253,7 +253,7 @@ function SearchSection({
                     const opt = fieldOptions.find((o) => o.code === e.target.value);
                     handleChange(fieldKey, e.target.value, opt?.name ?? e.target.value);
                   }}
-                  className="search-section__select"
+                  className={`search-section__select${selected ? " is-filled" : ""}`}
                 >
                   <option value="">
                     {isLoading ? t("searchPanel.loading") : fieldLabel}
