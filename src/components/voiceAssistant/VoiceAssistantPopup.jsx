@@ -11,6 +11,7 @@ import {
   MicOff,
   Navigation,
   Route,
+  LoaderCircle,
   TreePine,
   ZoomIn,
 } from "lucide-react";
@@ -259,6 +260,7 @@ export default function VoiceAssistantPopup({
   const noSpeechTimerRef      = useRef(null);
   const noSpeechCountdownRef  = useRef(null);
   const speechRetryTimerRef   = useRef(null);
+  const processingTimerRef    = useRef(null);
   const isProcessingRef       = useRef(false);
   const transcriptRef         = useRef("");
   const interimRef            = useRef("");
@@ -277,6 +279,7 @@ export default function VoiceAssistantPopup({
   const [transcriptText,     setTranscriptText]     = useState("");
   const [interimText,        setInterimText]        = useState("");
   const [typedPreview,       setTypedPreview]       = useState("");
+  const [processingPercent,  setProcessingPercent]  = useState(0);
   const [micPermissionState, setMicPermissionState] = useState("unknown");
   const [listenCountdown,    setListenCountdown]    = useState(6);
 
@@ -292,6 +295,7 @@ export default function VoiceAssistantPopup({
           saySomething:    "कुछ बोलिए...",
           listening:       "वॉइस कमांड के लिए सुन रहा हूँ...",
           noSpeechTimedOut:"Try again.",
+          processingRequest: "प्रोसेसिंग रिक्वेस्ट",
           speakingNow:     "सुन रहा हूँ",
           waiting:         "माइक दबाएं",
           examples: [
@@ -308,6 +312,7 @@ export default function VoiceAssistantPopup({
           saySomething:    "Say something...",
           listening:       "Listening for voice command...",
           noSpeechTimedOut:"Try again.",
+          processingRequest: "Processing request",
           speakingNow:     "Listening",
           waiting:         "Press mic to speak",
           examples: [
@@ -350,6 +355,32 @@ export default function VoiceAssistantPopup({
 
   const clearSpeechRetryTimer = () => {
     if (speechRetryTimerRef.current) { window.clearTimeout(speechRetryTimerRef.current); speechRetryTimerRef.current = null; }
+  };
+
+  const clearProcessingTimer = () => {
+    if (processingTimerRef.current) {
+      window.clearInterval(processingTimerRef.current);
+      processingTimerRef.current = null;
+    }
+  };
+
+  const startProcessingProgress = (startingPct = 52) => {
+    clearProcessingTimer();
+    setProcessingPercent((current) => Math.max(current, startingPct));
+    processingTimerRef.current = window.setInterval(() => {
+      setProcessingPercent((current) => {
+        if (current >= 95) return 95;
+        if (current < 70) return current + 4;
+        if (current < 85) return current + 2;
+        return current + 1;
+      });
+    }, 240);
+  };
+
+  const finishProcessingProgress = () => {
+    clearProcessingTimer();
+    setProcessingPercent(100);
+    window.setTimeout(() => setProcessingPercent(0), 280);
   };
 
   const buildSpeechLangOptions = (nextLang) => {
@@ -465,113 +496,120 @@ export default function VoiceAssistantPopup({
 
   const runCommandFromTranscript = async (sourceText, forcedCommand = null) => {
     const commandText = sourceText?.trim();
-    if (!commandText) {
-      setVoicePanelStatus("No command heard. Please try again.");
-      return;
-    }
-
-    const hindiOwnerQuery = analyzeHindiOwnerDetailQuery(commandText);
-    if (hindiOwnerQuery.isCandidate) {
-      if (!hindiOwnerQuery.isComplete) {
-        const missing = hindiOwnerQuery.missingLabels.join(", ");
-        const message = missing
-          ? `Hindi land query detected. Missing fields: ${missing}.`
-          : "Hindi land query detected, but details are incomplete.";
-        setVoicePanelStatus(message);
-        onStatusChange(message);
+    try {
+      if (!commandText) {
+        setVoicePanelStatus("No command heard. Please try again.");
         return;
       }
 
-      setVoicePanelStatus("Hindi land query detected. Checking backend...");
-      onStatusChange("Hindi land-details query detected. Fetching from backend...");
-      try {
-        const ownerLookup = await resolveHindiOwnerSelectionFromBackend(commandText);
-        let resolvedSelection = ownerLookup?.selection || null;
-
-        if (!resolvedSelection) {
-          setVoicePanelStatus("Owner API did not return full parcel. Trying cadastral resolver...");
-          onStatusChange("Trying cadastral resolver with spoken query...");
-          const cadastralLookup = await resolveHindiSelectionFromCadastralBackend(commandText);
-          if (cadastralLookup?.ok && cadastralLookup?.selection) {
-            resolvedSelection = cadastralLookup.selection;
-          }
-        }
-
-        if (resolvedSelection) {
-          setVoicePanelStatus("Owner details matched. Opening cadastral parcel...");
-          onStatusChange("Owner details matched. Opening parcel on map...");
-          const openResult = await requestOpenCadastralOnMap(resolvedSelection);
-          if (openResult?.ok) {
-            setVoicePanelStatus("Hindi cadastral parcel opened on map.");
-            onStatusChange(openResult?.message || "Opened cadastral parcel on map.");
-            closePanelLater(1000);
-            return;
-          }
-          const failMessage = openResult?.message || "Could not open cadastral parcel on map.";
-          setVoicePanelStatus(failMessage);
-          onStatusChange(failMessage);
+      const hindiOwnerQuery = analyzeHindiOwnerDetailQuery(commandText);
+      if (hindiOwnerQuery.isCandidate) {
+        if (!hindiOwnerQuery.isComplete) {
+          const missing = hindiOwnerQuery.missingLabels.join(", ");
+          const message = missing
+            ? `Hindi land query detected. Missing fields: ${missing}.`
+            : "Hindi land query detected, but details are incomplete.";
+          setVoicePanelStatus(message);
+          onStatusChange(message);
           return;
         }
 
-        const failMessage = ownerLookup?.message || "Hindi query processed, but parcel details were not found.";
-        setVoicePanelStatus(failMessage);
-        onStatusChange(failMessage);
-        return;
-      } catch {
-        setVoicePanelStatus("Hindi query failed while calling backend.");
-        onStatusChange("Hindi query failed while calling backend.");
-        return;
-      }
-    }
+        setVoicePanelStatus("Hindi land query detected. Checking backend...");
+        onStatusChange("Hindi land-details query detected. Fetching from backend...");
+        try {
+          const ownerLookup = await resolveHindiOwnerSelectionFromBackend(commandText);
+          let resolvedSelection = ownerLookup?.selection || null;
 
-    const command = forcedCommand || resolveVoiceCommand(commandText);
-    if (!command) {
-      const norm = normalizeVoiceTranscript(commandText);
-      let fb = { ok: false };
-      try {
-        fb = await Promise.resolve(executeVoiceCommand(
-          { id: "voice.fallback.transcript", actionId: VOICE_COMMAND_ACTIONS.HANDLE_FALLBACK_TRANSCRIPT, normalizedTranscript: norm },
-          actionHandlersRef.current,
-          { transcript: commandText, normalizedTranscript: norm },
-        ));
-      } catch { fb = { ok: false }; }
-      if (fb?.pendingSelection) {
-        const message = fb?.message || "Suggestions are ready. Please select one from the search list.";
-        setVoicePanelStatus(message);
-        onStatusChange(message);
-        stopAndClosePanel();
-        return;
+          if (!resolvedSelection) {
+            setVoicePanelStatus("Owner API did not return full parcel. Trying cadastral resolver...");
+            onStatusChange("Trying cadastral resolver with spoken query...");
+            const cadastralLookup = await resolveHindiSelectionFromCadastralBackend(commandText);
+            if (cadastralLookup?.ok && cadastralLookup?.selection) {
+              resolvedSelection = cadastralLookup.selection;
+            }
+          }
+
+          if (resolvedSelection) {
+            setVoicePanelStatus("Owner details matched. Opening cadastral parcel...");
+            onStatusChange("Owner details matched. Opening parcel on map...");
+            const openResult = await requestOpenCadastralOnMap(resolvedSelection);
+            if (openResult?.ok) {
+              setVoicePanelStatus("Hindi cadastral parcel opened on map.");
+              onStatusChange(openResult?.message || "Opened cadastral parcel on map.");
+              closePanelLater(1000);
+              return;
+            }
+            const failMessage = openResult?.message || "Could not open cadastral parcel on map.";
+            setVoicePanelStatus(failMessage);
+            onStatusChange(failMessage);
+            return;
+          }
+
+          const failMessage = ownerLookup?.message || "Hindi query processed, but parcel details were not found.";
+          setVoicePanelStatus(failMessage);
+          onStatusChange(failMessage);
+          return;
+        } catch {
+          setVoicePanelStatus("Hindi query failed while calling backend.");
+          onStatusChange("Hindi query failed while calling backend.");
+          return;
+        }
       }
-      if (fb?.ok === false) {
-        setVoicePanelStatus("Command not recognized. Please try again.");
-        onStatusChange("Command not recognized. Please try again.");
+
+      const command = forcedCommand || resolveVoiceCommand(commandText);
+      if (!command) {
+        const norm = normalizeVoiceTranscript(commandText);
+        let fb = { ok: false };
+        try {
+          fb = await Promise.resolve(executeVoiceCommand(
+            { id: "voice.fallback.transcript", actionId: VOICE_COMMAND_ACTIONS.HANDLE_FALLBACK_TRANSCRIPT, normalizedTranscript: norm },
+            actionHandlersRef.current,
+            { transcript: commandText, normalizedTranscript: norm },
+          ));
+        } catch { fb = { ok: false }; }
+        if (fb?.pendingSelection) {
+          const message = fb?.message || "Suggestions are ready. Please select one from the search list.";
+          setVoicePanelStatus(message);
+          onStatusChange(message);
+          stopAndClosePanel();
+          return;
+        }
+        if (fb?.ok === false) {
+          setVoicePanelStatus("Command not recognized. Please try again.");
+          onStatusChange("Command not recognized. Please try again.");
+          return;
+        }
+        setVoicePanelStatus(`Command recognized: "${commandText}"`);
+        closePanelLater(1000);
         return;
       }
       setVoicePanelStatus(`Command recognized: "${commandText}"`);
+      onStatusChange(`Command recognized: "${commandText}".`);
+      let outcome = { ok: false };
+      try {
+        outcome = await Promise.resolve(executeVoiceCommand(command, actionHandlersRef.current, {
+          transcript: commandText,
+          normalizedTranscript: normalizeVoiceTranscript(commandText),
+        }));
+      } catch { outcome = { ok: false }; }
+      if (outcome?.ok === false) {
+        setVoicePanelStatus("Command action failed. Please try again.");
+        onStatusChange("Command action failed. Please try again.");
+        return;
+      }
       closePanelLater(1000);
-      return;
+    } finally {
+      finishProcessingProgress();
+      setIsProcessingCmd(false);
+      isProcessingRef.current = false;
     }
-    setVoicePanelStatus(`Command recognized: "${commandText}"`);
-    onStatusChange(`Command recognized: "${commandText}".`);
-    let outcome = { ok: false };
-    try {
-      outcome = await Promise.resolve(executeVoiceCommand(command, actionHandlersRef.current, {
-        transcript: commandText,
-        normalizedTranscript: normalizeVoiceTranscript(commandText),
-      }));
-    } catch { outcome = { ok: false }; }
-    if (outcome?.ok === false) {
-      setVoicePanelStatus("Command action failed. Please try again.");
-      onStatusChange("Command action failed. Please try again.");
-      return;
-    }
-    closePanelLater(1000);
   };
 
   const animateTypingThenRunCommand = (sourceText, forcedCommand = null) => {
     const txt = sourceText?.trim();
     if (!txt || isProcessingRef.current) return;
     clearTypingTimers();
+    clearProcessingTimer();
     isProcessingRef.current = true;
     setIsProcessingCmd(true);
     setIsListening(false);
@@ -579,20 +617,23 @@ export default function VoiceAssistantPopup({
     setInterimText("");
     setTranscriptText("");
     setTypedPreview("");
-    setVoicePanelStatus("Processing command...");
+    setProcessingPercent(12);
+    setVoicePanelStatus(`${promptText.processingRequest}...`);
     onStatusChange("Processing voice command...");
     let idx = 0;
     const ms = Math.min(42, Math.max(16, Math.floor(820 / txt.length)));
     typingTimerRef.current = window.setInterval(() => {
       idx += 1;
+      const typingPct = Math.min(46, Math.floor((idx / txt.length) * 46));
+      setProcessingPercent(typingPct);
       setTypedPreview(txt.slice(0, idx));
       if (idx >= txt.length) {
         clearTypingTimers();
         typingDoneTimerRef.current = window.setTimeout(() => {
           setTranscriptText(txt);
           setTypedPreview("");
-          setIsProcessingCmd(false);
-          isProcessingRef.current = false;
+          setVoicePanelStatus(`${promptText.processingRequest}...`);
+          startProcessingProgress(52);
           runCommandFromTranscript(txt, forcedCommand);
         }, 140);
       }
@@ -607,6 +648,8 @@ export default function VoiceAssistantPopup({
     try { recognitionRef.current?.stop(); } catch { /* ignore */ }
     setIsListening(false);
     setIsProcessingCmd(false);
+    clearProcessingTimer();
+    setProcessingPercent(0);
     isProcessingRef.current = false;
     clearSpeechRetryTimer();
     clearTypingTimers();
@@ -629,6 +672,8 @@ export default function VoiceAssistantPopup({
     r.onstart = () => {
       setIsListening(true);
       setIsProcessingCmd(false);
+      clearProcessingTimer();
+      setProcessingPercent(0);
       isProcessingRef.current = false;
       transcriptRef.current = "";
       interimRef.current = "";
@@ -665,6 +710,8 @@ export default function VoiceAssistantPopup({
     r.onerror = (event) => {
       setIsListening(false);
       setIsProcessingCmd(false);
+      clearProcessingTimer();
+      setProcessingPercent(0);
       isProcessingRef.current = false;
       clearTypingTimers();
       clearNoSpeechTimer();
@@ -708,7 +755,7 @@ export default function VoiceAssistantPopup({
     setIsSupported(true);
 
     return () => {
-      clearSpeechRetryTimer(); clearTypingTimers(); clearNoSpeechTimer();
+      clearSpeechRetryTimer(); clearTypingTimers(); clearNoSpeechTimer(); clearProcessingTimer();
       r.onstart = null; r.onend = null; r.onerror = null; r.onresult = null;
       r.stop();
       recognitionRef.current = null;
@@ -717,6 +764,7 @@ export default function VoiceAssistantPopup({
 
   useEffect(() => () => {
     if (autoCloseTimerRef.current) { window.clearTimeout(autoCloseTimerRef.current); autoCloseTimerRef.current = null; }
+    clearProcessingTimer();
   }, []);
 
   useEffect(() => { void refreshPermission(); }, []);
@@ -909,6 +957,10 @@ export default function VoiceAssistantPopup({
       }),
     [shuffledExamples],
   );
+  const statusBadgeText = isListening
+    ? `Listening • ${listenCountdown}s`
+    : (isProcessingCmd ? `${promptText.processingRequest} • ${Math.max(0, Math.min(100, processingPercent))}%` : voicePanelStatus);
+  const showBusyDot = isListening || isProcessingCmd;
 
   // Bar content: [badge] [waveform-left] [transcript]
   // Replaces the search input in the same flex row.
@@ -921,9 +973,10 @@ export default function VoiceAssistantPopup({
         aria-live="polite"
         onClick={() => { void handleMicPermissionHintClick(); }}
       >
-        <span className={`voice-bar__dot${isListening ? " voice-bar__dot--active" : ""}`} />
+        <span className={`voice-bar__dot${showBusyDot ? " voice-bar__dot--active" : ""}`} />
+        {isProcessingCmd ? <LoaderCircle size={11} className="voice-bar__loader" aria-hidden="true" /> : null}
         <span className="voice-bar__badge-text">
-          {isListening ? `Listening • ${listenCountdown}s` : voicePanelStatus}
+          {statusBadgeText}
         </span>
       </button>
 
