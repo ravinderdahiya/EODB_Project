@@ -11,6 +11,11 @@ import "./styles/global.css";
 import { mountSplash, removeSplash } from "./splash";
 
 
+const rootElement = document.getElementById("root");
+const ROOT_CACHE_KEY = "__EODB_REACT_ROOT__";
+const root = window[ROOT_CACHE_KEY] || ReactDOM.createRoot(rootElement);
+window[ROOT_CACHE_KEY] = root;
+
 function normalizeBaseUrl(baseUrl) {
   if (!baseUrl) return "/";
   return baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`;
@@ -118,7 +123,7 @@ async function bootstrap() {
     });
   }
 
-  ReactDOM.createRoot(document.getElementById("root")).render(
+  root.render(
     <React.StrictMode>
       <LanguageProvider>
         <BrowserRouter basename={resolveRouterBase()}>
@@ -158,7 +163,7 @@ if (shouldShowInitialSplash()) {
 
 bootstrap().catch(() => {
   removeSplash();
-  ReactDOM.createRoot(document.getElementById("root")).render(
+  root.render(
     <div style={{ padding: "1rem", fontFamily: "sans-serif" }}>
       Failed to initialize the application.
     </div>,
