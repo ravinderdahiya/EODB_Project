@@ -21,10 +21,7 @@ export default function ParcelDetailsModal({ open, parcel, onClose }) {
       >
         <div className="parcel-modal__header">
           <div>
-            <span className="eyebrow">{t("modal.eyebrow")}</span>
-            <h2 id="parcel-modal-title">
-              {safeParcel.district} &gt; {safeParcel.tehsil} &gt; {safeParcel.village}
-            </h2>
+            <span className="eyebrow" id="parcel-modal-title">{t("modal.eyebrow")}</span>
           </div>
 
           <button type="button" className="icon-button icon-button--soft" onClick={onClose}>
@@ -33,6 +30,12 @@ export default function ParcelDetailsModal({ open, parcel, onClose }) {
         </div>
 
         <div className="parcel-modal__body">
+          <div className="parcel-modal__summary">
+            <h3>{t("modal.ownershipSummary")}</h3>
+            <p>{safeParcel.ownerName}</p>
+            <p>{safeParcel.breadcrumb}</p>
+          </div>
+
           <div className="parcel-modal__grid">
             <div className="modal-info-card">
               <span>{t("modal.murabba")}</span>
@@ -45,10 +48,6 @@ export default function ParcelDetailsModal({ open, parcel, onClose }) {
             <div className="modal-info-card">
               <span>{t("modal.area")}</span>
               <strong>{safeParcel.area}</strong>
-            </div>
-            <div className="modal-info-card">
-              <span>{t("modal.recordType")}</span>
-              <strong>{safeParcel.recordType}</strong>
             </div>
             <div className="modal-info-card">
               <span>{t("modal.jamabandi")}</span>
@@ -70,12 +69,6 @@ export default function ParcelDetailsModal({ open, parcel, onClose }) {
               <span>{t("modal.lastUpdated")}</span>
               <strong>{safeParcel.lastUpdated}</strong>
             </div>
-          </div>
-
-          <div className="parcel-modal__summary">
-            <h3>{t("modal.ownershipSummary")}</h3>
-            <p>{safeParcel.ownerName}</p>
-            <p>{safeParcel.breadcrumb}</p>
           </div>
         </div>
       </div>
