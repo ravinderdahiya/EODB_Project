@@ -64,6 +64,8 @@ const ARCGIS_API_KEY = getRuntimeConfigValue(
 const INITIAL_EXTENT_ZOOM_OUT_FACTOR = 1.222;
 // Positive value pans the initial camera slightly north so the state appears lower on screen.
 const INITIAL_EXTENT_VERTICAL_SHIFT_RATIO = 0.045;
+// Positive value pans the initial camera slightly west so the state appears right on screen.
+const INITIAL_EXTENT_HORIZONTAL_SHIFT_RATIO = 0.035;
 const STATE_BOUNDARY_MIN_VISIBLE_SCALE = 7354296;
 // Layer 31 service metadata limit: maxScale = 5000001.
 // Below this scale (more zoomed-in), the server does not render this sublayer.
@@ -115,6 +117,21 @@ const shiftExtentVertically = (extent, shiftRatio = 0) => {
     ymin: extent.ymin + yOffset,
     xmax: extent.xmax,
     ymax: extent.ymax + yOffset,
+    spatialReference: extent.spatialReference,
+  });
+};
+
+const shiftExtentHorizontally = (extent, shiftRatio = 0) => {
+  if (!extent || !Number.isFinite(shiftRatio) || shiftRatio === 0) return extent;
+  const width = extent.xmax - extent.xmin;
+  if (!Number.isFinite(width) || width <= 0) return extent;
+
+  const xOffset = width * shiftRatio;
+  return new Extent({
+    xmin: extent.xmin - xOffset,
+    ymin: extent.ymin,
+    xmax: extent.xmax - xOffset,
+    ymax: extent.ymax,
     spatialReference: extent.spatialReference,
   });
 };
@@ -248,9 +265,12 @@ export function useArcGISMap({
     }
 
     const defaultExtent = new Extent(arcgisPortalConfig.defaultExtent);
-    const initialExtent = shiftExtentVertically(
-      defaultExtent.clone().expand(INITIAL_EXTENT_ZOOM_OUT_FACTOR),
-      INITIAL_EXTENT_VERTICAL_SHIFT_RATIO,
+    const initialExtent = shiftExtentHorizontally(
+      shiftExtentVertically(
+        defaultExtent.clone().expand(INITIAL_EXTENT_ZOOM_OUT_FACTOR),
+        INITIAL_EXTENT_VERTICAL_SHIFT_RATIO,
+      ),
+      INITIAL_EXTENT_HORIZONTAL_SHIFT_RATIO,
     );
     defaultExtentRef.current = initialExtent.clone();
 
