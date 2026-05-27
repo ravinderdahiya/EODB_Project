@@ -61,7 +61,9 @@ const ARCGIS_API_KEY = getRuntimeConfigValue(
   import.meta.env.VITE_ARCGIS_API_KEY,
 );
 
-const INITIAL_EXTENT_ZOOM_OUT_FACTOR = 1.5;
+const INITIAL_EXTENT_ZOOM_OUT_FACTOR = 1.222;
+// Positive value pans the initial camera slightly north so the state appears lower on screen.
+const INITIAL_EXTENT_VERTICAL_SHIFT_RATIO = 0.045;
 const STATE_BOUNDARY_MIN_VISIBLE_SCALE = 7354296;
 // Layer 31 service metadata limit: maxScale = 5000001.
 // Below this scale (more zoomed-in), the server does not render this sublayer.
@@ -101,6 +103,21 @@ const DRAWING_BLOCK_STALE_MS = 45000;
 
 const findSublayerById = (layer, id) =>
   layer?.findSublayerById?.(id) ?? layer?.findSublayerById?.(String(id));
+
+const shiftExtentVertically = (extent, shiftRatio = 0) => {
+  if (!extent || !Number.isFinite(shiftRatio) || shiftRatio === 0) return extent;
+  const height = extent.ymax - extent.ymin;
+  if (!Number.isFinite(height) || height <= 0) return extent;
+
+  const yOffset = height * shiftRatio;
+  return new Extent({
+    xmin: extent.xmin,
+    ymin: extent.ymin + yOffset,
+    xmax: extent.xmax,
+    ymax: extent.ymax + yOffset,
+    spatialReference: extent.spatialReference,
+  });
+};
 
 const syncStateBoundaryAndNearbyPlacesVisibility = ({
   layers,
@@ -231,7 +248,10 @@ export function useArcGISMap({
     }
 
     const defaultExtent = new Extent(arcgisPortalConfig.defaultExtent);
-    const initialExtent = defaultExtent.clone().expand(INITIAL_EXTENT_ZOOM_OUT_FACTOR);
+    const initialExtent = shiftExtentVertically(
+      defaultExtent.clone().expand(INITIAL_EXTENT_ZOOM_OUT_FACTOR),
+      INITIAL_EXTENT_VERTICAL_SHIFT_RATIO,
+    );
     defaultExtentRef.current = initialExtent.clone();
 
     const updateHealth = (key, value) =>
