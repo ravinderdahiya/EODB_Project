@@ -528,6 +528,10 @@ export default function Login() {
         </div>
       </main>
 
+      <div className="lp-source-caption-wrap" aria-label="Data source">
+        <div className="lp-source-caption">Image Source: Amabra Village, District Ambala, Haryana</div>
+      </div>
+
       {/* ── FOOTER ─────────────────────────────────── */}
       <footer className="lp-footer">
         <div className="lp-footer-top" />
