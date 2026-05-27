@@ -61,9 +61,9 @@ const ARCGIS_API_KEY = getRuntimeConfigValue(
   import.meta.env.VITE_ARCGIS_API_KEY,
 );
 
-const INITIAL_EXTENT_ZOOM_OUT_FACTOR = 1.212;
+const INITIAL_EXTENT_ZOOM_OUT_FACTOR = 1.222;
 // Positive value pans the initial camera slightly north so the state appears lower on screen.
-const INITIAL_EXTENT_VERTICAL_SHIFT_RATIO = 0.04;
+const INITIAL_EXTENT_VERTICAL_SHIFT_RATIO = 0.045;
 const STATE_BOUNDARY_MIN_VISIBLE_SCALE = 7354296;
 // Layer 31 service metadata limit: maxScale = 5000001.
 // Below this scale (more zoomed-in), the server does not render this sublayer.
