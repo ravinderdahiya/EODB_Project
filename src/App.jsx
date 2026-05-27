@@ -769,6 +769,30 @@ export default function App() {
     return { district: districtCode, tehsil: tehsilCode, village: villageCode };
   };
 
+  const waitForCadastralZoomCompletion = async (maxWaitMs = 14000) => {
+    const view = viewRef.current;
+    if (!view) return;
+
+    const start = Date.now();
+    let highlightDetected = false;
+
+    while (Date.now() - start < maxWaitMs) {
+      const highlightCount = layersRef.current?.highlightLayer?.graphics?.length ?? 0;
+      if (highlightCount > 0) {
+        highlightDetected = true;
+      }
+
+      if (highlightDetected && !view.updating) {
+        await waitForMapToSettle(view, 900);
+        return;
+      }
+
+      await new Promise((resolve) => window.setTimeout(resolve, 120));
+    }
+
+    await waitForMapToSettle(view, 2600);
+  };
+
   const openCadastralFromChatbot = async (payload = {}) => {
     const codes = payload?.codes ?? {};
     const names = payload?.names ?? {};
@@ -812,6 +836,7 @@ export default function App() {
           { dCode: district, tCode: tehsil, vCode: village },
           { expandFactor: 1.2 },
         );
+        await waitForMapToSettle(viewRef.current, 2600);
         const message = boundaryResult?.ok
           ? "Village boundary opened from chatbot result. Add murabba and khasra to open exact parcel."
           : "Village boundary could not be opened from chatbot result.";
@@ -851,6 +876,7 @@ export default function App() {
         openTable: true,
         statusMessage: `Loaded Khasra ${parcel.khasraNo} from chatbot owner result.`,
       });
+      await waitForCadastralZoomCompletion();
       return { ok: true, message: lang === "hi" ? "कैडस्ट्रल पार्सल मैप पर खोल दिया गया है।" : "Opened cadastral parcel on map." };
     } catch (error) {
       const message = error?.message || "Failed to open cadastral parcel from chatbot result.";
