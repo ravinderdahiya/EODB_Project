@@ -6,6 +6,7 @@ import * as urlUtils from "@arcgis/core/core/urlUtils.js";
 import "@arcgis/core/assets/esri/themes/light/main.css";
 import { initGA } from "./services/analyticsService";
 import { getRuntimeConfigValue, loadRuntimeConfig } from "./config/runtimeConfig";
+import useDisableDevTools from "./hooks/useDisableDevTools";
 import "./styles/global.css";
 import { mountSplash, removeSplash } from "./splash";
 
@@ -56,6 +57,11 @@ function attachArcgisAuthInterceptor() {
       params.requestOptions.credentials = "include";
     },
   });
+}
+
+function GlobalSecurityGuards() {
+  useDisableDevTools();
+  return null;
 }
 
 async function bootstrap() {
@@ -116,6 +122,7 @@ async function bootstrap() {
     <React.StrictMode>
       <LanguageProvider>
         <BrowserRouter basename={resolveRouterBase()}>
+          <GlobalSecurityGuards />
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/" element={<Navigate to="/login" replace />} />
