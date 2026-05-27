@@ -1,4 +1,5 @@
 import axios from "axios";
+import { getOrCreateDeviceId, getDeviceInfoSummary, getProvidedDeviceImei } from "./deviceIdentity";
 
 function normalizeBasePath(value) {
   const raw = `${value || ""}`.trim();
@@ -89,6 +90,18 @@ const apiBaseUrl = resolveApiBaseUrl();
 const axiosInstance = axios.create({
   baseURL: apiBaseUrl,
   withCredentials: true,
+});
+
+axiosInstance.interceptors.request.use((config) => {
+  const nextConfig = { ...config };
+  const providedImei = getProvidedDeviceImei();
+  nextConfig.headers = {
+    ...(config.headers || {}),
+    "X-Device-Id": getOrCreateDeviceId(),
+    "X-Device-Info": getDeviceInfoSummary(),
+    ...(providedImei ? { "X-Device-Imei": providedImei } : {}),
+  };
+  return nextConfig;
 });
 
 // Handle 401 globally and bounce user to login.
