@@ -122,15 +122,28 @@
   transition: border-color 160ms ease, box-shadow 160ms ease, background 160ms ease, color 160ms ease;
 }
 
-.search-section__select.is-filled {
-  border-color: rgba(47, 141, 93, 0.75);
-  background: linear-gradient(135deg, rgba(47, 141, 93, 0.45), rgba(46, 115, 180, 0.35));
-  color: rgba(255, 255, 255, 0.92);
+.search-section__select.is-filled,
+.search-section__select:hover:not(:disabled),
+.search-section__select:focus-visible {
+  border-color: transparent;
+  background: linear-gradient(135deg, rgba(47, 141, 93, 0.95), rgba(46, 115, 180, 0.87));
+  color: #ffffff;
+  box-shadow: 0 4px 16px rgba(46, 115, 180, 0.22);
+}
+
+.search-section__select:focus {
+  outline: none;
 }
 
 .search-section__select:disabled {
   cursor: not-allowed;
   opacity: 0.72;
+}
+
+.search-section__field:has(.search-section__select.is-filled) .search-section__select-arrow,
+.search-section__field:has(.search-section__select:hover:not(:disabled)) .search-section__select-arrow,
+.search-section__field:has(.search-section__select:focus-visible) .search-section__select-arrow {
+  color: #ffffff;
 }
 
 /* Prevent Devanagari matra clipping inside selects */
@@ -140,29 +153,25 @@
   padding-bottom: 0.60rem;
 }
 
-.search-section__select:focus {
-  outline: none;
-  border-color: rgba(47, 141, 93, 0.85);
-  box-shadow: 0 0 0 3px rgba(46, 115, 180, 0.14);
+/* Native dropdown list — keep readable (avoid inheriting white text from .is-filled) */
+.search-section__select option {
+  color: #173248;
+  background-color: #ffffff;
 }
 
-.search-section__select:hover {
-  border-color: rgba(47, 141, 93, 0.80);
-  box-shadow: 0 0 0 3px rgba(46, 115, 180, 0.12);
-  background: linear-gradient(135deg, rgba(47, 141, 93, 0.34), rgba(46, 115, 180, 0.26));
-}
-
-/* Dark mode: filled + hover states */
-:root[data-theme="dark"] .search-section__select.is-filled {
+/* Dark mode: filled + hover (same gradient as selected) */
+:root[data-theme="dark"] .search-section__select.is-filled,
+:root[data-theme="dark"] .search-section__select:hover:not(:disabled),
+:root[data-theme="dark"] .search-section__select:focus-visible {
   border-color: rgba(47, 141, 93, 0.85);
-  background: linear-gradient(135deg, rgba(47, 141, 93, 0.50), rgba(46, 115, 180, 0.40));
+  background: linear-gradient(135deg, rgba(47, 141, 93, 0.5), rgba(46, 115, 180, 0.4));
   color: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 0 0 3px rgba(46, 115, 180, 0.14);
 }
 
-:root[data-theme="dark"] .search-section__select:hover {
-  border-color: rgba(47, 141, 93, 0.90);
-  box-shadow: 0 0 0 3px rgba(46, 115, 180, 0.14);
-  background: linear-gradient(135deg, rgba(47, 141, 93, 0.40), rgba(46, 115, 180, 0.32));
+:root[data-theme="dark"] .search-section__select option {
+  color: #eef7ff;
+  background-color: #1a3044;
 }
 
 .search-section__select-arrow {

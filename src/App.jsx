@@ -22,7 +22,6 @@ import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { MEDIA_MOBILE, MEDIA_TABLET } from "@/constants/layoutBreakpoints";
 import { useMeasurement } from "@/hooks/useMeasurement";
 import { useSelectFeatures } from "@/hooks/useSelectFeatures";
-import useDisableDevTools from "@/hooks/useDisableDevTools";
 import { useLanguage } from "@/context/LanguageContext";
 import {
   getAllTehsils,
@@ -79,9 +78,6 @@ const initialLayers = {
 export default function App() {
   const navigate = useNavigate();
   const { trackPageView, trackUserInteraction, trackMapInteraction, trackSearch, trackFeatureUsage } = useAnalytics();
-
-  // Disable developer tools in production
-  useDisableDevTools();
   const isTablet = useMediaQuery(MEDIA_TABLET);
   const isMobile = useMediaQuery(MEDIA_MOBILE);
   const [isPending, startTransition] = useTransition();
