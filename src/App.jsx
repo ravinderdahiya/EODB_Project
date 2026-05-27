@@ -1138,12 +1138,12 @@ export default function App() {
       applyLayerVisibilityPatchFromVoice({ village: false }, "Village boundary disabled."),
     [VOICE_COMMAND_ACTIONS.TURN_ON_ALL_BOUNDARIES]: () =>
       applyLayerVisibilityPatchFromVoice(
-        { district: true, tehsil: true, village: true },
+        { stateBoundary: true, district: true, tehsil: true, village: true },
         "All boundaries enabled.",
       ),
     [VOICE_COMMAND_ACTIONS.TURN_OFF_ALL_BOUNDARIES]: () =>
       applyLayerVisibilityPatchFromVoice(
-        { district: false, tehsil: false, village: false },
+        { stateBoundary: false, district: false, tehsil: false, village: false },
         "All boundaries disabled.",
       ),
     [VOICE_COMMAND_ACTIONS.APPLY_LAYER_VISIBILITY]: ({ command }) =>

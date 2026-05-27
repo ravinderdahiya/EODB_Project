@@ -21,9 +21,9 @@
   HANDLE_FALLBACK_TRANSCRIPT: "HANDLE_FALLBACK_TRANSCRIPT",
 });
 
-const ALL_BOUNDARY_LAYER_KEYS = ["district", "tehsil", "village", "cadastral", "assets", "roads"];
-const ALL_LAYER_ON_KEYS = ["district", "tehsil", "village", "cadastral", "assets", "roads"];
-const ALL_LAYER_OFF_KEYS = ["district", "tehsil", "village", "cadastral", "assets", "roads", "nhai"];
+const ALL_BOUNDARY_LAYER_KEYS = ["stateBoundary", "district", "tehsil", "village", "murabba", "murrabaGrid", "cadastral", "assets", "roads"];
+const ALL_LAYER_ON_KEYS = ["stateBoundary", "district", "tehsil", "village", "murabba", "murrabaGrid", "cadastral", "assets", "roads"];
+const ALL_LAYER_OFF_KEYS = ["stateBoundary", "district", "tehsil", "village", "murabba", "murrabaGrid", "cadastral", "assets", "roads", "nhai"];
 
 export const voiceCommandRegistry = Object.freeze([
   {
@@ -272,6 +272,60 @@ export const voiceCommandRegistry = Object.freeze([
     ],
   },
   {
+    id: "boundary.state.on",
+    actionId: VOICE_COMMAND_ACTIONS.APPLY_LAYER_VISIBILITY,
+    layerPatch: { stateBoundary: true },
+    phrases: [
+      "state boundary on",
+      "state boundary on karo",
+      "state boundary on kro",
+      "state layer on",
+      "state layer on karo",
+      "state layer on kro",
+      "turn on state boundary",
+      "turn on state layer",
+      "show state boundary",
+      "show state layer",
+      "state boundary dikhao",
+      "state layer dikhao",
+      "state boundary kholo",
+      "state layer kholo",
+      "राज्य सीमा चालू करो",
+      "राज्य बाउंड्री चालू करो",
+      "राज्य लेयर चालू करो",
+      "राज्य सीमा दिखाओ",
+      "स्टेट सीमा चालू करो",
+      "स्टेट लेयर चालू करो",
+    ],
+  },
+  {
+    id: "boundary.state.off",
+    actionId: VOICE_COMMAND_ACTIONS.APPLY_LAYER_VISIBILITY,
+    layerPatch: { stateBoundary: false },
+    phrases: [
+      "state boundary off",
+      "state boundary off karo",
+      "state boundary off kro",
+      "state layer off",
+      "state layer off karo",
+      "state layer off kro",
+      "turn off state boundary",
+      "turn off state layer",
+      "hide state boundary",
+      "hide state layer",
+      "state boundary close",
+      "state layer close",
+      "state boundary band karo",
+      "state layer band karo",
+      "राज्य सीमा बंद करो",
+      "राज्य बाउंड्री बंद करो",
+      "राज्य लेयर बंद करो",
+      "राज्य सीमा हटाओ",
+      "स्टेट सीमा बंद करो",
+      "स्टेट लेयर बंद करो",
+    ],
+  },
+  {
     id: "boundary.all.on",
     actionId: VOICE_COMMAND_ACTIONS.TURN_ON_ALL_BOUNDARIES,
     phrases: [
@@ -417,6 +471,10 @@ const LANGUAGE_HINTS = [
 ];
 
 const LAYER_TOKENS = {
+  stateBoundary: [
+    "state", "state boundary", "state borders", "state border", "state layer",
+    "rajya", "rajy", "राज्य", "राज्य सीमा", "राज्य बाउंड्री", "स्टेट", "स्टेट सीमा", "स्टेट बाउंड्री", "स्टेट लेयर",
+  ],
   district: ["district", "districts", "zila", "जिला"],
   tehsil: ["tehsil", "tehsils", "tahsil", "thsil", "तहसील"],
   village: [
@@ -424,10 +482,16 @@ const LAYER_TOKENS = {
     "gaon", "gram",
     "गांव", "गाँव", "विलेज", "विलेज़", "विलेज्",
   ],
+  murabba: [
+    "murabba", "murraba", "muraba", "murrabba", "murba", "murabba grid", "murabba layer",
+    "मुरब्बा", "मुरबा", "मुरब्बा ग्रिड", "मुरब्बा लेयर", "मुरबा लेयर",
+  ],
   cadastral: [
-    "cadastral", "khasra", "land record", "land records", "land info", "bhumi", "bhu naksha",
+    "cadastral", "cadastral layer", "khasra", "khasra layer", "khasra layers",
+    "land record", "land records", "land info", "bhumi", "bhu naksha",
+    "khasara", "khasraa",
     "cadstral", "cadastal", "cadaster", "pedastral", "pedastal", "pedestal",
-    "कैडस्ट्रल", "खसरा", "भू अभिलेख",
+    "कैडस्ट्रल", "खसरा", "खसरा लेयर", "खसरा परत", "भू अभिलेख",
   ],
   roads: [
     "road", "roads", "road infra", "road network", "haryana road", "hr road", "haryana road infra", "haryana road network",
@@ -502,22 +566,25 @@ const ALL_BOUNDARY_HINTS = [
   "all boundary", "all boundaries", "sab boundary", "sab boundaries", "boundary all", "boundaries all",
   "sari boundary", "saari boundary", "sabhi boundary", "sbhi boundary", "shbi boundary", "saree boundary",
   "all layer", "all layers", "sab layer", "sabhi layer", "shbi layer", "sbhi layer",
+  "all layers on", "all layers off", "turn on all layers", "turn off all layers",
+  "sabhi layers on", "sabhi layers off", "sab layer on", "sab layer off",
   "all parat", "sab parat", "sabhi parat", "shbi parat",
   "all seema", "all sima", "all shima", "sab seema", "sabhi seema", "shbi seema",
+  "सभी लेयर ऑन", "सभी लेयर ऑफ", "सभी लेयर बंद", "सभी लेयर चालू",
   "सभी बाउंड्री", "सभी सीमा", "सारी बाउंड्री", "सभी लेयर", "सारी लेयर", "सभी परत",
 ];
 
 const ON_TOGGLE_WORDS = [
   "on", "on karo", "on kro", "enable", "show", "apply", "use", "start", "open",
-  "chalu", "chalu karo", "chalu kro",
+  "chalu", "chalu karo", "chalu kro", "start karo",
   "dikhao", "dikha do", "lagao", "lgao", "laga do",
-  "ऑन", "ऑन करो", "चालू", "चालू करो", "दिखाओ", "लगाओ",
+  "ऑन", "ऑन करो", "चालू", "चालू करो", "दिखाओ", "लगाओ", "खोलो",
 ];
 
 const OFF_TOGGLE_WORDS = [
   "off", "off karo", "off kro", "disable", "hide", "remove", "stop", "close",
-  "band", "band karo", "band kro", "hatao", "hata do", "hato",
-  "ऑफ", "ऑफ करो", "बंद", "बंद करो", "हटाओ",
+  "band", "band karo", "band kro", "hatao", "hata do", "hato", "turn off",
+  "ऑफ", "ऑफ करो", "बंद", "बंद करो", "हटाओ", "बंद कर दो",
 ];
 const TOGGLE_INTENT_WORDS = [...ON_TOGGLE_WORDS, ...OFF_TOGGLE_WORDS];
 
@@ -682,6 +749,10 @@ function resolveLayerVisibilityCommand(normalizedTranscript) {
     return patch;
   }, {});
 
+  if (Object.prototype.hasOwnProperty.call(layerPatch, "murabba")) {
+    layerPatch.murrabaGrid = shouldEnable;
+  }
+
   if (explicitAllBoundary && shouldEnable) {
     // Keep NHAI off for "all layers on" commands until data is available.
     layerPatch.nhai = false;
@@ -704,6 +775,9 @@ function detectLayerTargets(normalizedTranscript) {
   if (hasAllBoundaryHint) {
     layerKeys.push(...ALL_BOUNDARY_LAYER_KEYS);
   } else {
+    if (matchesLayerTerms(normalizedTranscript, "stateBoundary") && hasBoundaryHint) {
+      layerKeys.push("stateBoundary");
+    }
     if (matchesLayerTerms(normalizedTranscript, "district") && hasBoundaryHint) {
       layerKeys.push("district");
     }
@@ -720,6 +794,10 @@ function detectLayerTargets(normalizedTranscript) {
 
   if (matchesLayerTerms(normalizedTranscript, "cadastral")) {
     layerKeys.push("cadastral");
+  }
+
+  if (matchesLayerTerms(normalizedTranscript, "murabba")) {
+    layerKeys.push("murabba");
   }
 
   if (matchesLayerTerms(normalizedTranscript, "roads")) {

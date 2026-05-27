@@ -6,7 +6,7 @@ const en = {
     searchLabel: "Search land records or places",
     searchPlaceholderDefault: "Search places across Haryana or use the sidebar record search",
     searchSubmit: "Search",
-    searchSuggestionsHint: "Here are similar results. Please choose one.",
+    searchSuggestionsHint: "Did you mean one of these?",
     toggleNav: "Toggle navigation",
 
     switchToDark: "Switch to dark mode",
