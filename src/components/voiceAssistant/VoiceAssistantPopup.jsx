@@ -98,7 +98,7 @@ async function resolveHindiOwnerSelectionFromBackend(queryText) {
       payload: ownerLookup?.payload,
     };
   }
-  const selection = extractCadastralSelectionFromAnyPayload(ownerLookup.payload);
+  const selection = extractCadastralSelectionFromAnyPayload(ownerLookup.payload, queryText);
   if (!selection) {
     return { ok: false, handled: true, message: "Hindi owner details could not be mapped to cadastral codes.", payload: ownerLookup.payload };
   }
@@ -116,7 +116,7 @@ async function resolveHindiSelectionFromCadastralBackend(queryText) {
     };
   }
 
-  const selection = extractCadastralSelectionFromAnyPayload(cadastralLookup.payload);
+  const selection = extractCadastralSelectionFromAnyPayload(cadastralLookup.payload, queryText);
   if (!selection) {
     return { ok: false, handled: true, message: "Cadastral lookup returned incomplete parcel codes.", payload: cadastralLookup.payload };
   }
@@ -133,7 +133,7 @@ function requestOpenCadastralOnMap(selectionPayload) {
     const timeoutId = window.setTimeout(() => {
       cleanup(onResult);
       resolve({ ok: false, message: "Map did not respond in time." });
-    }, 12000);
+    }, 30000);
 
     const onResult = (event) => {
       const detail = event?.detail || {};
@@ -503,19 +503,9 @@ export default function VoiceAssistantPopup({
         return;
       }
 
-      const command = forcedCommand || resolveVoiceCommand(commandText);
-
       const hindiOwnerQuery = analyzeHindiOwnerDetailQuery(commandText);
-      if (!command && hindiOwnerQuery.isCandidate) {
-        if (!hindiOwnerQuery.isComplete) {
-          const missing = hindiOwnerQuery.missingLabels.join(", ");
-          const message = missing
-            ? `Hindi land query detected. Missing fields: ${missing}.`
-            : "Hindi land query detected, but details are incomplete.";
-          setVoicePanelStatus(message);
-          onStatusChange(message);
-          return;
-        }
+      const shouldRunHindiLandResolver = hindiOwnerQuery.isCandidate && hindiOwnerQuery.isComplete;
+      if (shouldRunHindiLandResolver) {
 
         setVoicePanelStatus("Hindi land query detected. Checking backend...");
         onStatusChange("Hindi land-details query detected. Fetching from backend...");
@@ -533,8 +523,8 @@ export default function VoiceAssistantPopup({
           }
 
           if (resolvedSelection) {
-            setVoicePanelStatus("Owner details matched. Opening cadastral parcel...");
-            onStatusChange("Owner details matched. Opening parcel on map...");
+            setVoicePanelStatus("Owner details matched. Opening cadastral parcel and waiting for map zoom...");
+            onStatusChange("Owner details matched. Opening parcel on map and waiting for zoom...");
             const openResult = await requestOpenCadastralOnMap(resolvedSelection);
             if (openResult?.ok) {
               setVoicePanelStatus("Hindi cadastral parcel opened on map.");
@@ -557,6 +547,17 @@ export default function VoiceAssistantPopup({
           onStatusChange("Hindi query failed while calling backend.");
           return;
         }
+      }
+
+      const command = forcedCommand || resolveVoiceCommand(commandText);
+      if (!command && hindiOwnerQuery.isCandidate) {
+        const missing = hindiOwnerQuery.missingLabels.join(", ");
+        const message = missing
+          ? `Hindi land query detected. Missing fields: ${missing}.`
+          : "Hindi land query detected, but details are incomplete.";
+        setVoicePanelStatus(message);
+        onStatusChange(message);
+        return;
       }
 
       if (!command) {
