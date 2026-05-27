@@ -6,7 +6,7 @@ const hi = {
     searchLabel: "भूमि अभिलेख या स्थान खोजें",
     searchPlaceholderDefault: "हरियाणा में स्थान खोजें या साइडबार से रिकॉर्ड खोजें",
     searchSubmit: "खोजें",
-    searchSuggestionsHint: "यहाँ मिलते-जुलते परिणाम हैं। कृपया एक चुनें।",
+    searchSuggestionsHint: "क्या आपका मतलब इनमें से किसी एक से है?",
     toggleNav: "नेविगेशन टॉगल करें",
 
     switchToDark: "डार्क मोड में जाएं",

@@ -11,7 +11,6 @@ import {
   MicOff,
   Navigation,
   Route,
-  LoaderCircle,
   TreePine,
   ZoomIn,
 } from "lucide-react";
@@ -294,8 +293,9 @@ export default function VoiceAssistantPopup({
       ? {
           saySomething:    "कुछ बोलिए...",
           listening:       "वॉइस कमांड के लिए सुन रहा हूँ...",
-          noSpeechTimedOut:"Try again.",
-          processingRequest: "प्रोसेसिंग रिक्वेस्ट",
+          noSpeechTimedOut:"फिर से प्रयास करें।",
+          speechNotDetected: "आवाज़ नहीं मिली।",
+          processingRequest: "प्रक्रिया जारी",
           speakingNow:     "सुन रहा हूँ",
           waiting:         "माइक दबाएं",
           examples: [
@@ -312,7 +312,8 @@ export default function VoiceAssistantPopup({
           saySomething:    "Say something...",
           listening:       "Listening for voice command...",
           noSpeechTimedOut:"Try again.",
-          processingRequest: "Processing request",
+          speechNotDetected: "Speech not detected.",
+          processingRequest: "Processing",
           speakingNow:     "Listening",
           waiting:         "Press mic to speak",
           examples: [
@@ -502,8 +503,10 @@ export default function VoiceAssistantPopup({
         return;
       }
 
+      const command = forcedCommand || resolveVoiceCommand(commandText);
+
       const hindiOwnerQuery = analyzeHindiOwnerDetailQuery(commandText);
-      if (hindiOwnerQuery.isCandidate) {
+      if (!command && hindiOwnerQuery.isCandidate) {
         if (!hindiOwnerQuery.isComplete) {
           const missing = hindiOwnerQuery.missingLabels.join(", ");
           const message = missing
@@ -556,7 +559,6 @@ export default function VoiceAssistantPopup({
         }
       }
 
-      const command = forcedCommand || resolveVoiceCommand(commandText);
       if (!command) {
         const norm = normalizeVoiceTranscript(commandText);
         let fb = { ok: false };
@@ -702,7 +704,7 @@ export default function VoiceAssistantPopup({
         setVoicePanelStatus(
           heardSpeechRef.current
             ? "Listening ended."
-            : "Listening ended without speech. Tap mic and allow microphone if prompted.",
+            : promptText.speechNotDetected,
         );
       }
     };
@@ -733,7 +735,7 @@ export default function VoiceAssistantPopup({
       if (e === "not-allowed")      { setMicPermissionState("denied"); setVoicePanelStatus("Microphone permission denied."); closePanelLater(2200); return; }
       if (e === "audio-capture")    { setVoicePanelStatus("Audio capture failed. Check microphone device."); return; }
       if (e === "service-not-allowed") { setVoicePanelStatus("Speech service blocked by browser."); return; }
-      if (e === "no-speech")        { setVoicePanelStatus("No speech detected. Try again."); closePanelLater(1800); return; }
+      if (e === "no-speech")        { setVoicePanelStatus(promptText.noSpeechTimedOut); closePanelLater(1800); return; }
       setVoicePanelStatus(`Voice error (${e || "unknown"}).`);
       closePanelLater(1800);
     };
@@ -959,7 +961,7 @@ export default function VoiceAssistantPopup({
   );
   const statusBadgeText = isListening
     ? `Listening • ${listenCountdown}s`
-    : (isProcessingCmd ? `${promptText.processingRequest} • ${Math.max(0, Math.min(100, processingPercent))}%` : voicePanelStatus);
+    : (isProcessingCmd ? `${Math.max(0, Math.min(100, processingPercent))}% • ${promptText.processingRequest}` : voicePanelStatus);
   const showBusyDot = isListening || isProcessingCmd;
 
   // Bar content: [badge] [waveform-left] [transcript]
@@ -974,7 +976,6 @@ export default function VoiceAssistantPopup({
         onClick={() => { void handleMicPermissionHintClick(); }}
       >
         <span className={`voice-bar__dot${showBusyDot ? " voice-bar__dot--active" : ""}`} />
-        {isProcessingCmd ? <LoaderCircle size={11} className="voice-bar__loader" aria-hidden="true" /> : null}
         <span className="voice-bar__badge-text">
           {statusBadgeText}
         </span>

@@ -6,6 +6,7 @@ import axiosInstance from "../utils/axiosInstance";
 import LanguageToggle from "@/components/LanguageToggle";
 import { reloadRuntimeConfig } from "@/config/runtimeConfig";
 import { mountSplash } from "../splash";
+import { buildDevicePayload } from "../utils/deviceIdentity";
 
 const LOGIN_FONT_FADE_OUT_MS = 380;
 const LOGIN_FONT_FADE_IN_MS = 420;
@@ -149,6 +150,7 @@ export default function Login() {
       await axiosInstance.post("/otp/verify-otp", {
         phone,
         otp: enteredOtp,
+        ...buildDevicePayload(),
       });
       await establishTrustedSession({ requireAdmin: false });
       commitLanguage();
@@ -169,7 +171,10 @@ export default function Login() {
 
     try {
       setIsResendingOtp(true);
-      const res = await axiosInstance.post("/otp/resend-otp", { phone });
+      const res = await axiosInstance.post("/otp/resend-otp", {
+        phone,
+        ...buildDevicePayload(),
+      });
       if (res.data.message) {
         setOtp(["", "", "", ""]);
         setOtpTimer(120);
@@ -202,7 +207,10 @@ export default function Login() {
 
     try {
       setIsSendingOtp(true);
-      const res = await axiosInstance.post("/otp/send-otp", { phone });
+      const res = await axiosInstance.post("/otp/send-otp", {
+        phone,
+        ...buildDevicePayload(),
+      });
       if (res.data?.vipLogin && res.data?.user) {
         await establishTrustedSession({ requireAdmin: false });
         commitLanguage();
@@ -238,7 +246,8 @@ export default function Login() {
       setIsAdminLoggingIn(true);
       await axiosInstance.post("/user/admin-login", {
         adminId,
-        password
+        password,
+        ...buildDevicePayload(),
       });
       await establishTrustedSession({ requireAdmin: true });
       commitLanguage();
