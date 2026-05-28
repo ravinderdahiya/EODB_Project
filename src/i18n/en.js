@@ -251,6 +251,7 @@ const en = {
     termsTos:      "Terms of Service",
     termsAnd:      "and",
     termsPrivacy:  "Privacy Policy",
+    imageSourceCaption: "Image Source: Ambra Village, Haryana",
     copyright:     "© 2026 HARSAC — Haryana Space Applications Centre. All rights reserved.",
     chatBtn:       "💬 Chat with Us",
     langBtn:       "EN",
