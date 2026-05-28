@@ -2,6 +2,7 @@ import { getBoundaryGeometry } from "@/services/mapQueryService";
 import { getJamabandiPeriod, getOwnerNames } from "@/services/landRecordService";
 
 const EMPTY_VALUE = "--";
+const UPCOMING_VALUE = "Upcoming";
 const AREA_DEFAULT = "--";
 
 /**
@@ -67,8 +68,8 @@ export function createEmptyParcelRecord() {
     murabbaNo: EMPTY_VALUE,
     khasraNo: EMPTY_VALUE,
     ownerName: EMPTY_VALUE,
-    khewatNo: EMPTY_VALUE,
-    khatoniNo: EMPTY_VALUE,
+    khewatNo: UPCOMING_VALUE,
+    khatoniNo: UPCOMING_VALUE,
     jamabandiYear: EMPTY_VALUE,
     area: AREA_DEFAULT,
     landUse: EMPTY_VALUE,
@@ -89,8 +90,8 @@ export async function createParcelRecordFromSelection({ sectionId, codes = {}, n
   const villageCode = toDisplayValue(codes.village, "");
   const murabbaNo = toDisplayValue(codes.murabba);
   const khasraNo = toDisplayValue(codes.khasra);
-  const khewatNo = toDisplayValue(codes.khewat);
-  const khatoniNo = toDisplayValue(codes.khatoni);
+  const khewatNo = toDisplayValue(codes.khewat, UPCOMING_VALUE);
+  const khatoniNo = toDisplayValue(codes.khatoni, UPCOMING_VALUE);
   const district = toDisplayValue(names.district);
   const tehsil = toDisplayValue(names.tehsil);
   const village = toDisplayValue(names.village);
@@ -206,8 +207,8 @@ export async function createParcelRecordFromMapFeature({
     murabbaNo,
     khasraNo,
     ownerName,
-    khewatNo: toDisplayValue(fallbackParcel?.khewatNo),
-    khatoniNo: toDisplayValue(fallbackParcel?.khatoniNo),
+    khewatNo: toDisplayValue(fallbackParcel?.khewatNo, UPCOMING_VALUE),
+    khatoniNo: toDisplayValue(fallbackParcel?.khatoniNo, UPCOMING_VALUE),
     jamabandiYear: toDisplayValue(jamabandiYear, fallbackParcel?.jamabandiYear ?? EMPTY_VALUE),
     area,
     landUse: toDisplayValue(fallbackParcel?.landUse),
