@@ -431,6 +431,39 @@
   color: var(--ink-muted);
 }
 
+.admin-log-device {
+  max-width: 480px;
+}
+
+.admin-log-device__text {
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.admin-log-device__text--expanded {
+  white-space: normal;
+  word-break: break-word;
+}
+
+.admin-log-device__toggle {
+  margin-left: 0.45rem;
+  border: none;
+  background: transparent;
+  color: var(--accent);
+  cursor: pointer;
+  font-size: 0.76rem;
+  font-weight: 600;
+  padding: 0;
+}
+
+.admin-log-device__toggle:hover {
+  text-decoration: underline;
+}
+
 .admin-label-cell {
   display: flex;
   align-items: center;

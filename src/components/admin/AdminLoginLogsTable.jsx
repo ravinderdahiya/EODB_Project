@@ -1,6 +1,23 @@
+import { useState } from "react";
+
+const DEVICE_PREVIEW_LIMIT = 30;
+
+const getSafeDeviceText = (value) => {
+  const text = String(value || "").trim();
+  return text || "-";
+};
+
 export default function AdminLoginLogsTable({ logs, loading, error, page, pageSize, totalCount, onPageChange }) {
+  const [expandedDeviceRows, setExpandedDeviceRows] = useState({});
   const startIndex = totalCount === 0 ? 0 : (page - 1) * pageSize + 1;
   const endIndex = Math.min(startIndex + logs.length - 1, totalCount);
+
+  const toggleDeviceRow = (rowKey) => {
+    setExpandedDeviceRows((prev) => ({
+      ...prev,
+      [rowKey]: !prev[rowKey],
+    }));
+  };
 
   return (
     <article className="admin-card admin-table-card">
@@ -71,8 +88,17 @@ export default function AdminLoginLogsTable({ logs, loading, error, page, pageSi
                     </td>
                   </tr>
                 ) : (
-                  logs.map((entry, index) => (
-                    <tr key={entry.id || index}>
+                  logs.map((entry, index) => {
+                    const rowKey = entry.id ? `${entry.id}-${index}` : `row-${index}`;
+                    const deviceText = getSafeDeviceText(entry.device);
+                    const isLongDeviceText = deviceText.length > DEVICE_PREVIEW_LIMIT;
+                    const isExpanded = Boolean(expandedDeviceRows[rowKey]);
+                    const displayDeviceText = isExpanded || !isLongDeviceText
+                      ? deviceText
+                      : `${deviceText.slice(0, DEVICE_PREVIEW_LIMIT)}...`;
+
+                    return (
+                    <tr key={rowKey}>
                       <td>{startIndex + index}</td>
                       <td>
                         <strong>{entry.name}</strong>
@@ -82,7 +108,25 @@ export default function AdminLoginLogsTable({ logs, loading, error, page, pageSi
                       <td>{entry.role}</td>
                       <td>{entry.timestamp}</td>
                       <td>{entry.ipAddress}</td>
-                      <td>{entry.device}</td>
+                      <td>
+                        <div className="admin-log-device">
+                          <span
+                            className={`admin-log-device__text${isExpanded ? " admin-log-device__text--expanded" : ""}`}
+                            title={deviceText}
+                          >
+                            {displayDeviceText}
+                          </span>
+                          {isLongDeviceText ? (
+                            <button
+                              type="button"
+                              className="admin-log-device__toggle"
+                              onClick={() => toggleDeviceRow(rowKey)}
+                            >
+                              {isExpanded ? "Read less" : "Read more"}
+                            </button>
+                          ) : null}
+                        </div>
+                      </td>
                       <td>{entry.mobile || "-"}</td>
                       <td>{entry.city || "-"}</td>
                       <td>{entry.country || "-"}</td>
@@ -93,7 +137,7 @@ export default function AdminLoginLogsTable({ logs, loading, error, page, pageSi
                         </span>
                       </td>
                     </tr>
-                  ))
+                  )})
                 )}
               </tbody>
             </table>
