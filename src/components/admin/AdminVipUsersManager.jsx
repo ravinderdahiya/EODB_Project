@@ -19,6 +19,9 @@ import {
 
 const initialFormState = {
   mobile: "",
+  deviceId: "",
+  deviceImei: "",
+  deviceLabel: "",
   notes: "",
   isActive: true,
 };
@@ -91,6 +94,7 @@ export default function AdminVipUsersManager() {
       if (!query) return true;
 
       return [item.mobile, item.notes]
+        .concat([item.deviceId, item.deviceImei, item.deviceLabel])
         .filter(Boolean)
         .some((value) => `${value}`.toLowerCase().includes(query));
     });
@@ -121,6 +125,9 @@ export default function AdminVipUsersManager() {
     setEditingId(vipUser.id);
     setFormData({
       mobile: normalizeMobileInput(vipUser.mobile || ""),
+      deviceId: vipUser.deviceId || "",
+      deviceImei: vipUser.deviceImei || "",
+      deviceLabel: vipUser.deviceLabel || "",
       notes: vipUser.notes || "",
       isActive: vipUser.isActive ?? true,
     });
@@ -167,10 +174,18 @@ export default function AdminVipUsersManager() {
       return;
     }
 
+    if (!formData.deviceId.trim() && !formData.deviceImei.trim()) {
+      setFormError("Enter Device ID or Device IMEI for VIP binding.");
+      return;
+    }
+
     try {
       setSaving(true);
       const payload = {
         mobile: formData.mobile.trim(),
+        deviceId: formData.deviceId.trim() || null,
+        deviceImei: formData.deviceImei.trim() || null,
+        deviceLabel: formData.deviceLabel.trim() || null,
         notes: formData.notes.trim() || null,
         isActive: formData.isActive,
       };
@@ -242,6 +257,37 @@ export default function AdminVipUsersManager() {
               </label>
             </div>
 
+            <div className="admin-api-url-form__row">
+              <label>
+                Device ID
+                <input
+                  type="text"
+                  value={formData.deviceId}
+                  onChange={(e) => setFormData({ ...formData, deviceId: e.target.value })}
+                  placeholder="Example: web-1717-abcd1234"
+                />
+              </label>
+              <label>
+                Device IMEI
+                <input
+                  type="text"
+                  value={formData.deviceImei}
+                  onChange={(e) => setFormData({ ...formData, deviceImei: e.target.value })}
+                  placeholder="Example: 359881234567890"
+                />
+              </label>
+            </div>
+
+            <label className="admin-api-url-form__fieldwide">
+              Device Label
+              <input
+                type="text"
+                value={formData.deviceLabel}
+                onChange={(e) => setFormData({ ...formData, deviceLabel: e.target.value })}
+                placeholder="Example: Director Cabin Laptop"
+              />
+            </label>
+
             <label className="admin-api-url-form__fieldwide">
               Notes
               <textarea
@@ -280,6 +326,15 @@ export default function AdminVipUsersManager() {
                 </p>
                 <p>
                   <strong>Notes:</strong> {selectedUser.notes || "-"}
+                </p>
+                <p>
+                  <strong>Device ID:</strong> {selectedUser.deviceId || "-"}
+                </p>
+                <p>
+                  <strong>Device IMEI:</strong> {selectedUser.deviceImei || "-"}
+                </p>
+                <p>
+                  <strong>Device Label:</strong> {selectedUser.deviceLabel || "-"}
                 </p>
                 <p>
                   <strong>Created:</strong> {formatDateTime(selectedUser.createdAt)}
@@ -342,6 +397,7 @@ export default function AdminVipUsersManager() {
                 <tr>
                   <th>#</th>
                   <th>Mobile</th>
+                  <th>Device</th>
                   <th>Notes</th>
                   <th>Status</th>
                   <th>Actions</th>
@@ -350,7 +406,7 @@ export default function AdminVipUsersManager() {
               <tbody>
                 {filteredVipUsers.length === 0 ? (
                   <tr>
-                    <td colSpan="5" style={{ padding: "1rem", textAlign: "center" }}>
+                    <td colSpan="6" style={{ padding: "1rem", textAlign: "center" }}>
                       No VIP users found for the current filters.
                     </td>
                   </tr>
@@ -367,6 +423,9 @@ export default function AdminVipUsersManager() {
                           <Phone size={13} />
                           <span>{item.mobile}</span>
                         </span>
+                      </td>
+                      <td title={item.deviceLabel || item.deviceImei || item.deviceId || "-"}>
+                        {item.deviceLabel || item.deviceImei || item.deviceId || "-"}
                       </td>
                       <td title={item.notes || "-"}>{item.notes || "-"}</td>
                       <td>
