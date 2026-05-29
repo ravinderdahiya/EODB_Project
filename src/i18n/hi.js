@@ -1,4 +1,4 @@
-const hi = {
+﻿const hi = {
   header: {
     title: "डिजिटल भूमि अभिलेख, हरियाणा",
     subtitle: "44212-GeoStack EODB, हरियाणा",
