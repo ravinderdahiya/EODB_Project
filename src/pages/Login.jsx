@@ -10,6 +10,49 @@ import { buildDevicePayload } from "../utils/deviceIdentity";
 
 const LOGIN_FONT_FADE_OUT_MS = 380;
 const LOGIN_FONT_FADE_IN_MS = 420;
+const INSIGHTS_REFRESH_INTERVAL_MS = 60 * 1000;
+
+const FALLBACK_INSIGHT_METRICS = {
+  totalRegisteredUsers: 0,
+  activeSessions: 0,
+  activeUsers: 0,
+  loggedInToday: 0,
+};
+
+const FALLBACK_ANNOUNCEMENTS = [
+  {
+    id: "fallback-announcement",
+    title: "Platform Update",
+    description: "Latest announcement will appear here shortly.",
+    createdAt: new Date().toISOString(),
+  },
+];
+
+const formatCompactNumber = (value) => {
+  const numericValue = Number(value);
+  if (!Number.isFinite(numericValue)) return "0";
+
+  return new Intl.NumberFormat("en-IN", {
+    notation: "compact",
+    maximumFractionDigits: 1,
+  }).format(numericValue);
+};
+
+const getDateParts = (value) => {
+  const parsed = value ? new Date(value) : new Date();
+  if (Number.isNaN(parsed.getTime())) {
+    const now = new Date();
+    return {
+      month: now.toLocaleString("default", { month: "short" }).toUpperCase(),
+      day: now.getDate(),
+    };
+  }
+
+  return {
+    month: parsed.toLocaleString("default", { month: "short" }).toUpperCase(),
+    day: parsed.getDate(),
+  };
+};
 
 export default function Login() {
   const navigate = useNavigate();
@@ -34,6 +77,9 @@ export default function Login() {
   const [isResendingOtp, setIsResendingOtp] = useState(false);
   const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
   const [isAdminLoggingIn, setIsAdminLoggingIn] = useState(false);
+  const [insightMetrics, setInsightMetrics] = useState(FALLBACK_INSIGHT_METRICS);
+  const [latestAnnouncements, setLatestAnnouncements] = useState(FALLBACK_ANNOUNCEMENTS);
+  const [insightsLoading, setInsightsLoading] = useState(true);
 
   const isOtpExpired = showOtpInput && otpTimer === 0;
   const canResendOtp = showOtpInput && otpTimer === 0 && !isResendingOtp && !isSendingOtp;
@@ -103,6 +149,74 @@ export default function Login() {
       }
     };
   }, [hasPersistedLanguage, setPreviewLang]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadPublicInsights = async () => {
+      try {
+        const response = await axiosInstance.get("/user/public-login-insights");
+        if (!isMounted) return;
+
+        const nextMetrics = response?.data?.metrics || FALLBACK_INSIGHT_METRICS;
+        const nextAnnouncements = Array.isArray(response?.data?.announcements)
+          && response.data.announcements.length
+          ? response.data.announcements
+          : FALLBACK_ANNOUNCEMENTS;
+
+        setInsightMetrics({
+          totalRegisteredUsers: Number(nextMetrics.totalRegisteredUsers || 0),
+          activeSessions: Number(nextMetrics.activeSessions || 0),
+          activeUsers: Number(nextMetrics.activeUsers || 0),
+          loggedInToday: Number(nextMetrics.loggedInToday || 0),
+        });
+        setLatestAnnouncements(nextAnnouncements.slice(0, 3));
+      } catch {
+        if (!isMounted) return;
+        setInsightMetrics(FALLBACK_INSIGHT_METRICS);
+        setLatestAnnouncements(FALLBACK_ANNOUNCEMENTS);
+      } finally {
+        if (isMounted) {
+          setInsightsLoading(false);
+        }
+      }
+    };
+
+    loadPublicInsights();
+    const refreshId = window.setInterval(loadPublicInsights, INSIGHTS_REFRESH_INTERVAL_MS);
+
+    return () => {
+      isMounted = false;
+      window.clearInterval(refreshId);
+    };
+  }, []);
+
+  const liveMetricCards = useMemo(() => ([
+    {
+      id: "registered",
+      icon: "U",
+      label: t("login.liveRegisteredUsers"),
+      value: formatCompactNumber(insightMetrics.totalRegisteredUsers),
+    },
+    {
+      id: "active-sessions",
+      icon: "S",
+      label: t("login.liveActiveSessions"),
+      value: formatCompactNumber(insightMetrics.activeSessions),
+    },
+    {
+      id: "active-users",
+      icon: "A",
+      label: t("login.liveActiveUsers"),
+      value: formatCompactNumber(insightMetrics.activeUsers),
+    },
+    {
+      id: "today-logins",
+      icon: "T",
+      label: t("login.liveTodayLogins"),
+      value: formatCompactNumber(insightMetrics.loggedInToday),
+    },
+  ]), [insightMetrics, t]);
 
   const clearAuthMarkers = () => {
     sessionStorage.removeItem("isAuthenticated");
@@ -307,6 +421,7 @@ export default function Login() {
           </button>
         </div>
       </header>
+
 
       {/* ── MAIN SPLIT ─────────────────────────────── */}
       <main className="lp-main">
@@ -513,30 +628,26 @@ export default function Login() {
             <h4>{t("login.announcementsTitle")}</h4>
           </div>
 
-          <div className="lp-announcement-item">
-            <div className="lp-date-box">
-              <span className="lp-month">{new Date().toLocaleString("default", { month: "short" }).toUpperCase()}</span>
-              <span className="lp-day"> {new Date().getDate()}</span>
-            </div>
-            <div className="lp-announcement-content">
-              <h5>Cadastral Map Update: Kaithal and 5 more districts</h5>
-              <p>Newly digitized maps are now available for public access.</p>
-            </div>
-          </div>
+          {latestAnnouncements.map((announcement) => {
+            const dateParts = getDateParts(announcement?.createdAt);
 
-          <div className="lp-announcement-item">
-            <div className="lp-date-box">
-              <span className="lp-month">{new Date().toLocaleString("default", { month: "short" }).toUpperCase()}</span>
-              <span className="lp-day"> {new Date().getDate()}</span>
-            </div>
-            <div className="lp-announcement-content">
-              <h5>Running Project</h5>
-              <p>EODB (44212-GeoStack EODB) platform is currently under active development,
-                including GIS mapping, and admin dashboard modules.</p>
-            </div>
-          </div>
+            return (
+              <div className="lp-announcement-item" key={announcement.id || `${announcement.title}-${announcement.createdAt}`}>
+                <div className="lp-date-box">
+                  <span className="lp-month">{dateParts.month}</span>
+                  <span className="lp-day"> {dateParts.day}</span>
+                </div>
+                <div className="lp-announcement-content">
+                  <h5>{announcement?.title || t("login.noAnnouncementsYet")}</h5>
+                  <p>{announcement?.description || t("login.noAnnouncementsYet")}</p>
+                </div>
+              </div>
+            );
+          })}
 
-          <div className="lp-view-all">{t("login.viewAll")}</div>
+          <div className="lp-view-all">
+            {insightsLoading ? t("login.loadingUpdates") : t("login.viewAll")}
+          </div>
         </div>
       </main>
 
@@ -546,7 +657,19 @@ export default function Login() {
 
       {/* ── FOOTER ─────────────────────────────────── */}
       <footer className="lp-footer">
-        <div className="lp-footer-top" />
+        <div className="lp-footer-top">
+          <section className="lp-live-strip" aria-label="Live platform insights">
+            {liveMetricCards.map((card) => (
+              <article className="lp-live-card" key={card.id}>
+                <div className="lp-live-icon" aria-hidden="true">{card.icon}</div>
+                <div className="lp-live-meta">
+                  <h3>{card.value}</h3>
+                  <p>{card.label}</p>
+                </div>
+              </article>
+            ))}
+          </section>
+        </div>
         <div className="lp-footer-bottom">
           <p>{t("login.copyright")}</p>
           <div className="lp-socials" aria-label="Social links" />
