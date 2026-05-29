@@ -352,7 +352,7 @@ export default function Login() {
 
             {/* Form */}
             {showAdminPanel ? (
-              <form className="lp-admin-card-form" onSubmit={handleAdminLogin} noValidate>
+              <form className="lp-admin-card-form" onSubmit={handleAdminLogin} noValidate autoComplete="off">
                 <label className="lp-label" htmlFor="lp-admin-id">
                   {t("login.adminIdLabel")}
                 </label>
@@ -360,6 +360,7 @@ export default function Login() {
                   id="lp-admin-id"
                   className="lp-full-input"
                   type="text"
+                  autoComplete="off"
                   value={adminId}
                   onChange={(e) => setAdminId(e.target.value)}
                 />
@@ -371,6 +372,7 @@ export default function Login() {
                   id="lp-admin-password"
                   className="lp-full-input"
                   type="password"
+                  autoComplete="off"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                 />
@@ -392,7 +394,7 @@ export default function Login() {
                 </button>
               </form>
             ) : (
-            <form onSubmit={handlePublicLogin} noValidate>
+            <form onSubmit={handlePublicLogin} noValidate autoComplete="off">
               {!showOtpInput ? (
                 <>
                   <label className="lp-label" htmlFor="lp-phone">
@@ -405,6 +407,7 @@ export default function Login() {
                       id="lp-phone"
                       className="lp-phone-input"
                       type="tel"
+                      autoComplete="off"
                       inputMode="numeric"
                       pattern="[0-9]*"
                       maxLength={10}
@@ -442,7 +445,7 @@ export default function Login() {
                         maxLength="1"
                         className="otp-input"
                         value={digit}
-                        autoComplete={index === 0 ? "one-time-code" : "off"}
+                        autoComplete="off"
                         onChange={(e) => {
                           const value = e.target.value.replace(/\D/, "");
                           const newOtp = [...otp];

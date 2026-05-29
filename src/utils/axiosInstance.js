@@ -40,6 +40,25 @@ function isLoopbackAbsoluteUrl(value) {
   }
 }
 
+function forceHttpsForProductionOrigin(value) {
+  const raw = `${value || ""}`.trim();
+  if (!raw) return raw;
+
+  try {
+    const parsed = new URL(raw);
+    if (import.meta.env.DEV) return raw;
+    if (parsed.protocol.toLowerCase() !== "http:") return raw;
+
+    const host = parsed.hostname.toLowerCase();
+    if (host === "localhost" || host === "127.0.0.1" || host === "::1") return raw;
+
+    parsed.protocol = "https:";
+    return parsed.toString().replace(/\/$/, "");
+  } catch {
+    return raw;
+  }
+}
+
 function inferBackendBasePathFromLocation() {
   if (typeof window === "undefined") return "";
   const pathname = `${window.location?.pathname || ""}`;
@@ -85,7 +104,7 @@ function resolveApiBaseUrl() {
   return configuredApiBaseUrl;
 }
 
-const apiBaseUrl = resolveApiBaseUrl();
+const apiBaseUrl = forceHttpsForProductionOrigin(resolveApiBaseUrl());
 
 const axiosInstance = axios.create({
   baseURL: apiBaseUrl,

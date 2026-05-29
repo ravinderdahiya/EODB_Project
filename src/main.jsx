@@ -13,8 +13,19 @@ import { mountSplash, removeSplash } from "./splash";
 
 const rootElement = document.getElementById("root");
 const ROOT_CACHE_KEY = "__EODB_REACT_ROOT__";
+const CONTEXT_MENU_GUARD_KEY = "__EODB_DISABLE_CONTEXT_MENU_GUARD__";
 const root = window[ROOT_CACHE_KEY] || ReactDOM.createRoot(rootElement);
 window[ROOT_CACHE_KEY] = root;
+
+function disableRightClickGlobally() {
+  if (window[CONTEXT_MENU_GUARD_KEY]) return;
+
+  window.addEventListener("contextmenu", (event) => {
+    event.preventDefault();
+  });
+
+  window[CONTEXT_MENU_GUARD_KEY] = true;
+}
 
 function normalizeBaseUrl(baseUrl) {
   if (!baseUrl) return "/";
@@ -160,6 +171,8 @@ async function bootstrap() {
 if (shouldShowInitialSplash()) {
   mountSplash();
 }
+
+disableRightClickGlobally();
 
 bootstrap().catch(() => {
   removeSplash();
