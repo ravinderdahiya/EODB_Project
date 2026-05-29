@@ -292,7 +292,7 @@
     isolation: isolate;
     border: 1px solid rgba(255, 255, 255, 0.22);
     border-radius: 20px;
-    padding: 2px;
+    padding: 0;
     overflow: hidden;
     width: 134px;
     height: 31.39px;
@@ -322,6 +322,8 @@
     align-items: center;
     justify-content: center;
     overflow: hidden;
+    height: 100%;
+    border-radius: 18px;
 }
 
 .lp-lang-btn:hover:not(.lp-lang-btn--active) {
@@ -334,6 +336,7 @@
     color: #022010;
     box-shadow: 0 6px 14px rgba(0, 255, 136, 0.28);
     text-shadow: 0 1px 0 rgba(255, 255, 255, 0.22);
+    border-radius: 18px;
 }
 
 .lp-lang-btn--active:hover {
