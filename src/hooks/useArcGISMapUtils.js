@@ -630,10 +630,27 @@ export function getTileServiceUrls() {
 
 const _basemapInstanceCache = {};
 
+function isBasemapDestroyed(basemap) {
+  return !basemap || basemap.destroyed === true;
+}
+
+/** Drop cached Basemap instances (e.g. after MapView.destroy in React StrictMode). */
+export function clearBasemapCache() {
+  Object.keys(_basemapInstanceCache).forEach((key) => {
+    delete _basemapInstanceCache[key];
+  });
+}
+
 export function resolveBasemap(activeBasemap) {
   const tileUrls = getTileServiceUrls();
   const id = basemapPresets[activeBasemap]?.basemapId ?? basemapPresets.satellite.basemapId;
-  if (_basemapInstanceCache[id]) return _basemapInstanceCache[id];
+  const cached = _basemapInstanceCache[id];
+  if (cached && !isBasemapDestroyed(cached)) {
+    return cached;
+  }
+  if (cached) {
+    delete _basemapInstanceCache[id];
+  }
 
   let basemap;
   switch (id) {

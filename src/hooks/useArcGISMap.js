@@ -44,6 +44,7 @@ import {
   loadLayerWithRetry,
   normalizeParcelGeometry,
   queryCadastralParcelAtClick,
+  clearBasemapCache,
   resolveBasemap,
   showLandRecordMiniPopup,
   syncLandRecordMiniPopup,
@@ -818,6 +819,7 @@ export function useArcGISMap({
       popupStateRef.current.host?.remove();
       popupStateRef.current.host = null;
       view?.destroy?.();
+      clearBasemapCache();
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
