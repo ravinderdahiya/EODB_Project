@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { TrendingUp } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import "./Login.css";
 import { createTranslator, useLanguage } from "@/context/LanguageContext";
@@ -19,15 +20,6 @@ const FALLBACK_INSIGHT_METRICS = {
   loggedInToday: 0,
 };
 
-const FALLBACK_ANNOUNCEMENTS = [
-  {
-    id: "fallback-announcement",
-    title: "Platform Update",
-    description: "Latest announcement will appear here shortly.",
-    createdAt: new Date().toISOString(),
-  },
-];
-
 const formatCompactNumber = (value) => {
   const numericValue = Number(value);
   if (!Number.isFinite(numericValue)) return "0";
@@ -36,22 +28,6 @@ const formatCompactNumber = (value) => {
     notation: "compact",
     maximumFractionDigits: 1,
   }).format(numericValue);
-};
-
-const getDateParts = (value) => {
-  const parsed = value ? new Date(value) : new Date();
-  if (Number.isNaN(parsed.getTime())) {
-    const now = new Date();
-    return {
-      month: now.toLocaleString("default", { month: "short" }).toUpperCase(),
-      day: now.getDate(),
-    };
-  }
-
-  return {
-    month: parsed.toLocaleString("default", { month: "short" }).toUpperCase(),
-    day: parsed.getDate(),
-  };
 };
 
 export default function Login() {
@@ -78,7 +54,6 @@ export default function Login() {
   const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
   const [isAdminLoggingIn, setIsAdminLoggingIn] = useState(false);
   const [insightMetrics, setInsightMetrics] = useState(FALLBACK_INSIGHT_METRICS);
-  const [latestAnnouncements, setLatestAnnouncements] = useState(FALLBACK_ANNOUNCEMENTS);
   const [insightsLoading, setInsightsLoading] = useState(true);
 
   const isOtpExpired = showOtpInput && otpTimer === 0;
@@ -159,10 +134,6 @@ export default function Login() {
         if (!isMounted) return;
 
         const nextMetrics = response?.data?.metrics || FALLBACK_INSIGHT_METRICS;
-        const nextAnnouncements = Array.isArray(response?.data?.announcements)
-          && response.data.announcements.length
-          ? response.data.announcements
-          : FALLBACK_ANNOUNCEMENTS;
 
         setInsightMetrics({
           totalRegisteredUsers: Number(nextMetrics.totalRegisteredUsers || 0),
@@ -170,11 +141,9 @@ export default function Login() {
           activeUsers: Number(nextMetrics.activeUsers || 0),
           loggedInToday: Number(nextMetrics.loggedInToday || 0),
         });
-        setLatestAnnouncements(nextAnnouncements.slice(0, 3));
       } catch {
         if (!isMounted) return;
         setInsightMetrics(FALLBACK_INSIGHT_METRICS);
-        setLatestAnnouncements(FALLBACK_ANNOUNCEMENTS);
       } finally {
         if (isMounted) {
           setInsightsLoading(false);
@@ -622,33 +591,31 @@ export default function Login() {
           </p>
         </aside>
 
-        {/* Announcements — separate grid child so order can differ per breakpoint */}
-        <div className="lp-announcement">
-          <div className="lp-announcement-header">
-            <h4>{t("login.announcementsTitle")}</h4>
-          </div>
+        {/* Live system overview — replaces latest announcements */}
+        <section
+          className="lp-live-overview"
+          aria-label={t("login.liveSystemOverview")}
+          aria-busy={insightsLoading}
+        >
+          <header className="lp-live-overview__header">
+            <TrendingUp size={14} strokeWidth={2.25} aria-hidden="true" />
+            <h4>{t("login.liveSystemOverview")}</h4>
+          </header>
 
-          {latestAnnouncements.map((announcement) => {
-            const dateParts = getDateParts(announcement?.createdAt);
-
-            return (
-              <div className="lp-announcement-item" key={announcement.id || `${announcement.title}-${announcement.createdAt}`}>
-                <div className="lp-date-box">
-                  <span className="lp-month">{dateParts.month}</span>
-                  <span className="lp-day"> {dateParts.day}</span>
+          <div className="lp-live-overview__grid">
+            {liveMetricCards.map((card) => (
+              <article className="lp-live-overview__card" key={card.id}>
+                <div className="lp-live-overview__icon" aria-hidden="true">
+                  {card.icon}
                 </div>
-                <div className="lp-announcement-content">
-                  <h5>{announcement?.title || t("login.noAnnouncementsYet")}</h5>
-                  <p>{announcement?.description || t("login.noAnnouncementsYet")}</p>
+                <div className="lp-live-overview__meta">
+                  <h3>{insightsLoading ? "—" : card.value}</h3>
+                  <p>{card.label}</p>
                 </div>
-              </div>
-            );
-          })}
-
-          <div className="lp-view-all">
-            {insightsLoading ? t("login.loadingUpdates") : t("login.viewAll")}
+              </article>
+            ))}
           </div>
-        </div>
+        </section>
       </main>
 
       <div className="lp-source-caption-wrap" aria-label="Data source">
@@ -657,19 +624,6 @@ export default function Login() {
 
       {/* ── FOOTER ─────────────────────────────────── */}
       <footer className="lp-footer">
-        <div className="lp-footer-top">
-          <section className="lp-live-strip" aria-label="Live platform insights">
-            {liveMetricCards.map((card) => (
-              <article className="lp-live-card" key={card.id}>
-                <div className="lp-live-icon" aria-hidden="true">{card.icon}</div>
-                <div className="lp-live-meta">
-                  <h3>{card.value}</h3>
-                  <p>{card.label}</p>
-                </div>
-              </article>
-            ))}
-          </section>
-        </div>
         <div className="lp-footer-bottom">
           <p>{t("login.copyright")}</p>
           <div className="lp-socials" aria-label="Social links" />

@@ -69,7 +69,7 @@
     transition: none;
 }
 
-/* Login + announcement cards — font only; fixed layout on EN/HI (all breakpoints) */
+/* Login + live overview cards — font only; fixed layout on EN/HI (all breakpoints) */
 .lp-card :is(
     h2, p, label, button, input,
     .lp-card-title, .lp-subtext, .lp-tab,
@@ -79,26 +79,25 @@
     .lp-phone-input, .lp-full-input,
     .otp-input
 ),
-.lp-announcement :is(
-    h4, h5, p,
-    .lp-announcement-header h4,
-    .lp-announcement-content h5,
-    .lp-announcement-content p,
-    .lp-view-all,
-    .lp-month, .lp-day
+.lp-live-overview :is(
+    h4, h3, p,
+    .lp-live-overview__header h4,
+    .lp-live-overview__meta h3,
+    .lp-live-overview__meta p
 ) {
     font-family: var(--lp-font-active);
-    transition: none;
+    /* Opacity only — no font-size transition (keeps panel footprint static EN/HI) */
+    transition: opacity var(--lp-font-fade-duration) var(--lp-font-fade-ease);
 }
 
 .lp-root.lp-font-phase-out .lp-card,
 .lp-root.lp-font-phase-in .lp-card,
 .lp-root.lp-font-phase-out .lp-card *,
 .lp-root.lp-font-phase-in .lp-card *,
-.lp-root.lp-font-phase-out .lp-announcement,
-.lp-root.lp-font-phase-in .lp-announcement,
-.lp-root.lp-font-phase-out .lp-announcement *,
-.lp-root.lp-font-phase-in .lp-announcement * {
+.lp-root.lp-font-phase-out .lp-live-overview,
+.lp-root.lp-font-phase-in .lp-live-overview,
+.lp-root.lp-font-phase-out .lp-live-overview *,
+.lp-root.lp-font-phase-in .lp-live-overview * {
     opacity: 1;
 }
 
@@ -284,56 +283,6 @@
     position: relative;
 }
 
-/* Live metrics strip (backend-driven) */
-.lp-live-strip {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 14px;
-    padding: 10px 16px 0;
-}
-
-.lp-live-card {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    min-height: 80px;
-    border-radius: 24px;
-    padding: 14px 20px;
-    background: linear-gradient(135deg, rgba(6, 24, 48, 0.92), rgba(3, 17, 35, 0.9));
-    border: 1px solid rgba(70, 153, 255, 0.16);
-    box-shadow: inset 0 1px 0 rgba(130, 196, 255, 0.08), 0 10px 28px rgba(0, 0, 0, 0.28);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-}
-
-.lp-live-icon {
-    width: 44px;
-    height: 44px;
-    border-radius: 14px;
-    display: grid;
-    place-items: center;
-    background: linear-gradient(180deg, rgba(0, 255, 136, 0.22), rgba(0, 137, 74, 0.16));
-    color: #a8ffd4;
-    font-size: 19px;
-    font-weight: 700;
-    letter-spacing: 0.04em;
-}
-
-.lp-live-meta h3 {
-    margin: 0;
-    color: #f4fbff;
-    font-size: clamp(1.35rem, 2.6vw, 2rem);
-    line-height: 1.1;
-    letter-spacing: 0.01em;
-}
-
-.lp-live-meta p {
-    margin: 2px 0 0;
-    color: rgba(214, 232, 252, 0.82);
-    font-size: 0.98rem;
-    line-height: 1.25;
-}
-
 /* ── Language toggle for Login page ────────────────────────────── */
 
 .lp-lang-toggle {
@@ -403,10 +352,10 @@
 /* Desktop:  [lp-left      ] [lp-card (rows 1–2)]                  */
 
 
-/*           [lp-announcement]                                       */
+/*           [lp-live-overview]                                      */
 
 
-/* Mobile:   [lp-left] → [lp-card] → [lp-announcement]             */
+/* Mobile:   [lp-left] → [lp-card] → [lp-live-overview]            */
 
 .lp-main {
     flex: 1;
@@ -423,35 +372,6 @@
     padding: 16px 48px;
     overflow: visible;
 }
-
-@media (max-width: 1180px) {
-    .lp-live-strip {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 12px;
-        padding: 10px 14px 0;
-    }
-
-    .lp-live-card {
-        min-height: 72px;
-        border-radius: 20px;
-        padding: 12px 16px;
-    }
-}
-
-@media (max-width: 640px) {
-    .lp-live-strip {
-        grid-template-columns: 1fr;
-        gap: 10px;
-        padding: 8px 12px 0;
-    }
-
-    .lp-live-card {
-        min-height: 66px;
-        border-radius: 16px;
-        padding: 10px 14px;
-    }
-}
-
 
 /* ── LEFT SECTION ───────────────────────────────────────────────── */
 
@@ -607,107 +527,162 @@
 }
 
 
-/* ── Announcements ── */
+/* ── Live System Overview (compact dark-green panel) ── */
 
-.lp-announcement {
+.lp-live-overview {
+    --lp-live-panel-h: 176px;
+    --lp-live-header-h: 24px;
+    --lp-live-card-h: 56px;
+    --lp-live-label-max-h: 2.65em;
+
     grid-area: news;
     align-self: start;
-    padding: 13px 15px;
-    border-radius: 14px;
-    background: rgba(0, 40, 20, 0.60);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(0, 255, 136, 0.13);
     width: 100%;
-    max-width: 500px;
+    max-width: 380px;
     min-width: 0;
-    height: 187.88px;
+    height: var(--lp-live-panel-h);
+    min-height: var(--lp-live-panel-h);
+    max-height: var(--lp-live-panel-h);
+    box-sizing: border-box;
+    padding: 10px 12px 12px;
+    border-radius: 20px;
+    backdrop-filter: blur(30px);
+    -webkit-backdrop-filter: blur(30px);
+    background: rgba(0, 28, 14, 0.86);
+    border: 1px solid rgba(0, 255, 136, 0.15);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.lp-live-overview__header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex: 0 0 var(--lp-live-header-h);
+    height: var(--lp-live-header-h);
+    min-height: var(--lp-live-header-h);
+    max-height: var(--lp-live-header-h);
+    margin-bottom: 6px;
+    color: #00ff88;
+    overflow: hidden;
+}
+
+.lp-live-overview__header svg {
+    flex-shrink: 0;
+    stroke-width: 2.25px;
+    filter: drop-shadow(0 0 6px rgba(0, 255, 136, 0.35));
+}
+
+.lp-live-overview__header h4 {
+    margin: 0;
+    flex: 1;
+    min-width: 0;
+    font-size: 12.5px;
+    line-height: var(--lp-live-header-h);
+    font-weight: 700;
+    color: #ffffff;
+    letter-spacing: 0.01em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.lp-live-overview__grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: repeat(2, var(--lp-live-card-h));
+    gap: 7px;
+    flex: 1 1 auto;
+    min-height: 0;
+    align-content: start;
+}
+
+.lp-live-overview__card {
+    display: grid;
+    grid-template-columns: 32px minmax(0, 1fr);
+    align-items: center;
+    column-gap: 8px;
+    height: var(--lp-live-card-h);
+    min-height: var(--lp-live-card-h);
+    max-height: var(--lp-live-card-h);
+    padding: 7px 9px;
+    border-radius: 11px;
+    background: linear-gradient(145deg, #0c1810 0%, #0a140a 100%);
+    border: 1px solid rgba(0, 255, 136, 0.14);
+    box-shadow: inset 0 1px 0 rgba(0, 255, 136, 0.04);
     box-sizing: border-box;
     overflow: hidden;
 }
 
-.lp-announcement-header {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 10px;
-    height: 15px;
-    overflow: hidden;
+.lp-live-overview__icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 9px;
+    display: grid;
+    place-items: center;
+    align-self: center;
+    justify-self: center;
+    flex-shrink: 0;
+    background: #060e08;
+    border: 1px solid rgba(0, 255, 136, 0.38);
+    color: #00ff88;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    box-shadow: 0 0 10px rgba(0, 255, 136, 0.08);
 }
 
-.lp-announcement-header h4 {
-    margin: 0;
-    font-size: 13px;
-    line-height: 15px;
-    font-weight: 600;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.lp-announcement-item {
-    display: flex;
-    gap: 11px;
-    margin-bottom: 9px;
-    height: 44px;
-    overflow: hidden;
-}
-
-.lp-announcement-item:last-of-type {
-    margin-bottom: 0;
-}
-
-.lp-date-box {
-    min-width: 44px;
-    height: 44px;
-    border-radius: 10px;
-    background: linear-gradient(180deg, #0f5132 0%, #022c1f 100%);
+.lp-live-overview__meta {
+    min-width: 0;
+    align-self: center;
     display: flex;
     flex-direction: column;
-    align-items: center;
     justify-content: center;
-    color: #00ff88;
+    gap: 3px;
+    min-height: 32px;
+    padding: 0;
+}
+
+.lp-live-overview__meta h3 {
+    margin: 0;
+    padding: 0;
+    height: auto;
+    line-height: 1.05;
+    color: #ffffff;
+    font-size: 0.9rem;
     font-weight: 700;
-    flex-shrink: 0;
+    letter-spacing: 0.01em;
+    font-variant-numeric: tabular-nums;
 }
 
-.lp-month {
-    font-family: "Poppins", sans-serif;
-    font-size: 9px;
-    line-height: 1.2;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-}
-
-.lp-day {
-    font-family: "Poppins", sans-serif;
-    font-size: 16px;
-    line-height: 1;
-}
-
-.lp-announcement-content h5 {
-    font-family: "Poppins", sans-serif;
-    margin: 0 0 2px;
-    font-size: 12px;
-    line-height: 15px;
-    font-weight: 600;
-    white-space: nowrap;
+.lp-live-overview__meta p {
+    margin: 0;
+    height: auto;
+    min-height: 0;
+    max-height: var(--lp-live-label-max-h);
+    color: rgba(168, 190, 176, 0.88);
+    font-size: 0.64rem;
+    line-height: 1.25;
+    font-weight: 500;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    white-space: normal;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
-.lp-announcement-content p {
-    font-family: "Poppins", sans-serif;
-    margin: 0;
-    font-size: 11px;
-    opacity: 0.70;
-    line-height: 1.45;
-    max-height: calc(11px * 1.45 * 2);
-    overflow: hidden;
-    display: -webkit-box;
-    -webkit-box-orient: vertical;
-    line-clamp: 2;
-    -webkit-line-clamp: 2;
+/* Hindi: smaller glyphs only — same fixed panel/card/label box sizes */
+.lp-root[data-lang="hi"] .lp-live-overview__header h4 {
+    font-size: 10.5px;
+}
+
+.lp-root[data-lang="hi"] .lp-live-overview__meta p {
+    font-size: 0.54rem;
+    line-height: 1.38;
 }
 
 .lp-view-all {
@@ -1092,9 +1067,19 @@
     }
 }
 
-/* Keep Hindi copy inside same footprint as English (hero/nav only; cards stay fixed) */
-[data-lang="hi"] .lp-stat-card p {
-    font-size: clamp(9.5px, 0.72vw, 10.5px);
+/* Hindi stat labels — smaller type + room for matras; box size unchanged */
+.lp-root[data-lang="hi"] .lp-stat-card h3 {
+    margin-bottom: 0;
+    line-height: 1.1;
+}
+
+.lp-root[data-lang="hi"] .lp-stat-card p {
+    font-size: clamp(8px, 0.62vw, 9.25px);
+    line-height: 1.55;
+    overflow: visible;
+    text-overflow: clip;
+    padding-top: 2px;
+    transform: translateY(1px);
 }
 
 [data-lang="hi"] .lp-footer-bottom p {
@@ -1135,15 +1120,6 @@
     height: auto;
     box-sizing: border-box;
     overflow: visible;
-}
-
-.lp-footer-top {
-    display: block;
-    padding-bottom: 8px;
-}
-
-.lp-footer .lp-live-strip {
-    padding: 0;
 }
 
 .lp-chat-btn {
@@ -1214,7 +1190,7 @@
         row-gap: 10px;
     }
 
-    .lp-announcement {
+    .lp-live-overview {
         max-width: 100%;
     }
 
@@ -1263,14 +1239,9 @@
     .lp-footer {
         padding: 10px 20px;
     }
-    .lp-footer-top {
-        flex-wrap: wrap;
-    }
-    .lp-announcement {
+    .lp-live-overview {
         width: 100%;
         max-width: 100%;
-        min-height: 187.88px;
-        height: auto;
     }
 
     .lp-headline {
@@ -1398,11 +1369,9 @@
         padding: 16px 14px 12px;
     }
 
-    .lp-announcement {
+    .lp-live-overview {
         width: 100%;
         max-width: 100%;
-        min-height: 187.88px;
-        height: 187.88px;
     }
 }
 
@@ -1536,7 +1505,7 @@
         min-width: 60px;
     }
 
-    .lp-announcement {
+    .lp-live-overview {
         padding: 10px 12px;
         max-width: 100%;
     }
@@ -1672,7 +1641,12 @@
         font-size: 9.5px;
     }
 
-    .lp-announcement {
+    .lp-root[data-lang="hi"] .lp-stat-card p {
+        font-size: 8.5px;
+        line-height: 1.55;
+    }
+
+    .lp-live-overview {
         padding: 8px 10px;
         border-radius: 12px;
         max-width: 100%;
@@ -1857,57 +1831,67 @@
         font-size: 9px;
     }
 
-    .lp-announcement {
-        display: block;
+    .lp-root[data-lang="hi"] .lp-stat-card p {
+        font-size: 8px;
+        line-height: 1.55;
+    }
+
+    .lp-live-overview {
+        --lp-live-panel-h: 156px;
+        --lp-live-header-h: 22px;
+        --lp-live-card-h: 50px;
+        --lp-live-label-max-h: 2.5em;
+
+        display: flex;
         grid-area: news;
-        align-self: start;
+        padding: 8px 10px 10px;
+        border-radius: 12px;
+        max-width: 100%;
+    }
+
+    .lp-live-overview__header h4 {
+        font-size: 11px;
+    }
+
+    .lp-live-overview__grid {
+        gap: 6px;
+    }
+
+    .lp-live-overview__card {
+        grid-template-columns: 28px minmax(0, 1fr);
+        column-gap: 7px;
         padding: 6px 8px;
         border-radius: 10px;
-        max-width: 100%;
-        max-height: 150px;
-        overflow: hidden;
     }
 
-    .lp-announcement-header {
-        margin-bottom: 5px;
-    }
-
-    .lp-announcement-header h4 {
-        font-size: 10.5px;
-    }
-
-    .lp-announcement-item {
-        gap: 7px;
-        margin-bottom: 5px;
-    }
-
-    .lp-date-box {
-        min-width: 32px;
-        height: 32px;
-        border-radius: 7px;
-    }
-
-    .lp-month {
-        font-size: 7px;
-    }
-
-    .lp-day {
+    .lp-live-overview__icon {
+        width: 28px;
+        height: 28px;
         font-size: 12px;
+        border-radius: 8px;
     }
 
-    .lp-announcement-content h5 {
-        font-size: 10px;
-        margin-bottom: 1px;
+    .lp-live-overview__meta {
+        min-height: 28px;
+        gap: 2px;
     }
 
-    .lp-announcement-content p {
-        font-size: 9px;
-        line-height: 1.25;
+    .lp-live-overview__meta h3 {
+        font-size: 0.84rem;
+        line-height: 1.05;
     }
 
-    .lp-view-all {
-        margin-top: 4px;
+    .lp-live-overview__meta p {
+        font-size: 0.6rem;
+    }
+
+    .lp-root[data-lang="hi"] .lp-live-overview__header h4 {
         font-size: 9.5px;
+    }
+
+    .lp-root[data-lang="hi"] .lp-live-overview__meta p {
+        font-size: 0.5rem;
+        line-height: 1.36;
     }
 
     .lp-card {
