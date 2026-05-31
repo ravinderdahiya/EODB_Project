@@ -258,9 +258,11 @@ export default function Login() {
         phone,
         ...buildDevicePayload(),
       });
-      if (res.data.message) {
+      if (res.data?.smsSent === true) {
         setOtp(["", "", "", ""]);
         setOtpTimer(120);
+      } else {
+        setError(res.data?.message || res.data?.warning || t("login.errSendFailed"));
       }
     } catch (err) {
       setError(err.response?.data?.message || t("login.errSendFailed"));
@@ -303,10 +305,12 @@ export default function Login() {
         return;
       }
 
-      if (res.data.message) {
+      if (res.data?.smsSent === true) {
         setShowOtpInput(true);
         setOtp(["", "", "", ""]);
         setOtpTimer(120);
+      } else {
+        setError(res.data?.message || res.data?.warning || t("login.errSendFailed"));
       }
     } catch (err) {
       clearAuthMarkers();
