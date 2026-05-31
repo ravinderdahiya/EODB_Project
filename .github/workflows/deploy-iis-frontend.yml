@@ -16,7 +16,7 @@ jobs:
       - windows
       - iis
     env:
-      IIS_FRONTEND_PATH: D:\inetpub\wwwroot\eodb
+      IIS_FRONTEND_PATH: D:\Host\Application\msme_backend\eodb
       IIS_FRONTEND_APP_POOL: EODB_Frontend
     steps:
       - name: Checkout
