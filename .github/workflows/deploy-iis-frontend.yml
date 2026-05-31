@@ -1,0 +1,37 @@
+name: Deploy Frontend To IIS
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on:
+      - self-hosted
+      - windows
+      - iis
+    env:
+      IIS_FRONTEND_PATH: D:\inetpub\wwwroot\eodb
+      IIS_FRONTEND_APP_POOL: EODB_Frontend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Deploy frontend
+        shell: pwsh
+        run: >
+          .\.github\scripts\deploy-frontend.ps1
+          -SourceDir "${{ github.workspace }}"
+          -TargetDir "$env:IIS_FRONTEND_PATH"
+          -AppPoolName "$env:IIS_FRONTEND_APP_POOL"
