@@ -152,6 +152,14 @@ const en = {
     "zoom-out":  "Zoom out",
   },
 
+  mapToolbarCaption: {
+    basemap:     "Maps",
+    layers:      "Layers",
+    reset:       "Reset",
+    locate:      "Locate",
+    measurement: "Measure",
+  },
+
   zoomBar: {
     region: "Map zoom control",
     dragHint: "Drag left or right to zoom the map",

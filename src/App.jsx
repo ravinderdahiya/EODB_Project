@@ -8,6 +8,8 @@ import MapToolbar from "@/components/MapToolbar";
 import MeasurementPanel from "@/components/MeasurementPanel";
 import ParcelDetailsModal from "@/components/ParcelDetailsModal";
 import SidebarNav from "@/components/SidebarNav";
+import "@/components/SidebarToggle.css";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import SaarthiChatbotWidget from "@/components/chatbot/SaarthiChatbotWidget";
 import VoiceAssistantPopup from "@/components/voiceAssistant/VoiceAssistantPopup";
 import ZoomWheelSlider from "@/components/map/ZoomWheelSlider";
@@ -1287,6 +1289,17 @@ export default function App() {
           !sidebarOpen && !isTablet ? "dashboard-shell--sidebar-closed" : ""
         }`}
       >
+        <button
+          type="button"
+          className={`sidebar-toggle ${sidebarOpen ? "sidebar-toggle--open" : "sidebar-toggle--closed"}`}
+          onClick={() => setSidebarOpen((current) => !current)}
+          aria-expanded={sidebarOpen}
+          aria-label={t("header.toggleNav")}
+          title={t("header.toggleNav")}
+        >
+          {sidebarOpen ? <ChevronLeft size={26} strokeWidth={3} /> : <ChevronRight size={26} strokeWidth={3} />}
+        </button>
+
         <SidebarNav
           activeId={activeNav}
           items={navigationItems}

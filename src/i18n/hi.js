@@ -1,4 +1,4 @@
-﻿const hi = {
+const hi = {
   header: {
     title: "डिजिटल भूमि अभिलेख, हरियाणा",
     subtitle: "44212-GeoStack EODB, हरियाणा",
@@ -150,6 +150,14 @@
     measurement: "मापन उपकरण",
     "zoom-in":   "ज़ूम इन",
     "zoom-out":  "ज़ूम आउट",
+  },
+
+  mapToolbarCaption: {
+    basemap:     "मानचित्र",
+    layers:      "परतें",
+    reset:       "रीसेट",
+    locate:      "ढूंढें",
+    measurement: "मापन",
   },
 
   zoomBar: {

@@ -23,12 +23,15 @@ const TOOL_ICONS = {
   "zoom-out":  Minus,
 };
 
+const CAPTIONED_TOOL_IDS = new Set(["basemap", "layers", "reset", "locate", "measurement"]);
+
 function ToolButton({ toolId, isActive, onAction }) {
   const { t } = useLanguage();
-  const Icon  = TOOL_ICONS[toolId];
-  const label = t(`mapToolbar.${toolId}`);
+  const Icon    = TOOL_ICONS[toolId];
+  const caption = CAPTIONED_TOOL_IDS.has(toolId) ? t(`mapToolbarCaption.${toolId}`) : null;
+  const label   = t(`mapToolbar.${toolId}`);
 
-  return (
+  const button = (
     <button
       type="button"
       className={`map-toolbar__button ${isActive ? "map-toolbar__button--active" : ""}`}
@@ -36,8 +39,15 @@ function ToolButton({ toolId, isActive, onAction }) {
       aria-label={label}
       title={label}
     >
-      <Icon size={18} />
+      <Icon size={16} />
     </button>
+  );
+
+  return (
+    <div className="map-toolbar__tool">
+      {button}
+      {caption && <span className="map-toolbar__tool-caption">{caption}</span>}
+    </div>
   );
 }
 
@@ -62,7 +72,7 @@ export default function MapToolbar({
         ))}
       </div>
 
-      <div className="map-toolbar" role="toolbar" aria-label={t("mapToolbar.mapControls")}>
+      <div className="map-toolbar map-toolbar--zoom" role="toolbar" aria-label={t("mapToolbar.mapControls")}>
         {RIGHT_TOOL_IDS.map((id) => (
           <ToolButton key={id} toolId={id} isActive={isActive(id)} onAction={onAction} />
         ))}
