@@ -216,7 +216,9 @@ export default defineConfig(({ mode }) => {
     env.VITE_HSAC_DOTNET_PROXY_DEV_URL || "/__hsac_proxy__",
   );
   const devPort    = parseInt(env.VITE_DEV_PORT || "5173", 10);
-  const baseURL    = env.VITE_SERVER_BASE_URL || "https://hsac.org.in/eodb_backend";
+  // Keep production default domain-agnostic to avoid cross-origin CORS breakage
+  // when the app is served from a different host (for example harsac.online).
+  const baseURL    = env.VITE_SERVER_BASE_URL || "/eodb_backend";
   const backendOriginForPrefixedProxy = resolveProxyOrigin(baseURL);
   const rawBase    = env.VITE_BASENAME || "/";
   const base       = rawBase.endsWith("/") ? rawBase : rawBase + "/";
