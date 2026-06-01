@@ -488,8 +488,8 @@ export function useArcGISMap({
         startUserLocationWatch();
 
         // Slower, smoother mouse-wheel zoom at the cursor (small fractional steps + animation).
-        const MOUSE_WHEEL_ZOOM_STEP = 0.08;
-        const MOUSE_WHEEL_ZOOM_DURATION_MS = 400;
+        const MOUSE_WHEEL_ZOOM_STEP = 0.12;
+        const MOUSE_WHEEL_ZOOM_DURATION_MS = 130;
         let wheelTargetZoom = null;
         let wheelAnchorMap = null;
         let wheelAnimating = false;
