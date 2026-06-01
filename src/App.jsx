@@ -994,6 +994,8 @@ export default function App() {
 
     setActiveMapPanel(null);
     setSystemMessage(result.message);
+    // On mobile/tablet, close the overlay sidebar so the located point is visible.
+    if (isTablet) setSidebarOpen(false);
     return result;
   };
 
@@ -1307,11 +1309,14 @@ export default function App() {
           onBoundaryDraw={drawBoundary}
           onSelectionStart={resetParcelSelection}
           onFindLatLong={handleFindLatLong}
-          onRecordSelect={(parcel) =>
+          onRecordSelect={(parcel) => {
             applyParcelSelection(parcel, {
               statusMessage: `Loaded ${parcel.recordType || "land record"} from sidebar search.`,
-            })
-          }
+            });
+            // On mobile/tablet the sidebar overlays the map — once the final
+            // selector resolves a record, auto-close it so the map is visible.
+            if (isTablet) setSidebarOpen(false);
+          }}
           onStatusChange={setSystemMessage}
           onSelect={(id) => {
             setActiveNav(id);
@@ -1332,6 +1337,9 @@ export default function App() {
             }
             resetParcelSelection();
             sf.startSelect(tool);
+            // On mobile/tablet, close the overlay sidebar so the user can
+            // interact with the map to select data.
+            if (isTablet) setSidebarOpen(false);
           }}
           onSfClear={sf.clearSelection}
         />

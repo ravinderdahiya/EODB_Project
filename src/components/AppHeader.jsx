@@ -5,6 +5,7 @@ import {
   Menu,
   MoonStar,
   Search,
+  Settings,
   SunMedium,
 } from "lucide-react";
 import { MEDIA_MOBILE, MEDIA_TABLET } from "@/constants/layoutBreakpoints";
@@ -31,9 +32,40 @@ export default function AppHeader({
   const { t, lang } = useLanguage();
   const headerRef = useRef(null);
   const searchBlurTimerRef = useRef(0);
+  const settingsRef = useRef(null);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const isTablet = useMediaQuery(MEDIA_TABLET);
   const isMobile = useMediaQuery(MEDIA_MOBILE);
+
+  /* Close the mobile settings menu on outside click / Escape. */
+  useEffect(() => {
+    if (!settingsOpen) return undefined;
+
+    const handlePointer = (event) => {
+      if (settingsRef.current && !settingsRef.current.contains(event.target)) {
+        setSettingsOpen(false);
+      }
+    };
+    const handleKey = (event) => {
+      if (event.key === "Escape") setSettingsOpen(false);
+    };
+
+    document.addEventListener("mousedown", handlePointer);
+    document.addEventListener("touchstart", handlePointer);
+    document.addEventListener("keydown", handleKey);
+
+    return () => {
+      document.removeEventListener("mousedown", handlePointer);
+      document.removeEventListener("touchstart", handlePointer);
+      document.removeEventListener("keydown", handleKey);
+    };
+  }, [settingsOpen]);
+
+  /* Auto-close the settings menu when leaving the mobile breakpoint. */
+  useEffect(() => {
+    if (!isMobile) setSettingsOpen(false);
+  }, [isMobile]);
 
   const title    = t("header.title");
   const subtitle = isAdmin ? t("header.adminSubtitle") : t("header.subtitle");
@@ -197,27 +229,76 @@ export default function AppHeader({
       ) : null}
 
       <div className="app-header__actions">
-        <button
-          type="button"
-          className="header-action-button header-action-button--theme"
-          onClick={onToggleTheme}
-          aria-label={theme === "dark" ? t("header.switchToLight") : t("header.switchToDark")}
-          title={theme === "dark" ? t("header.switchToLight") : t("header.switchToDark")}
-        >
-          {theme === "dark" ? <SunMedium size={16} /> : <MoonStar size={16} />}
-        </button>
+        {isMobile ? (
+          <div className="app-header__settings" ref={settingsRef}>
+            <button
+              type="button"
+              className={`header-action-button header-action-button--settings ${
+                settingsOpen ? "header-action-button--settings-open" : ""
+              }`}
+              onClick={() => setSettingsOpen((open) => !open)}
+              aria-label={t("header.settings")}
+              aria-expanded={settingsOpen}
+              aria-haspopup="menu"
+              title={t("header.settings")}
+            >
+              <Settings size={18} />
+            </button>
 
-        <LanguageToggle label={t("header.selectLanguage")} />
+            {settingsOpen ? (
+              <div className="app-header__settings-menu" role="menu">
+                <button
+                  type="button"
+                  className="app-header__settings-item"
+                  onClick={onToggleTheme}
+                  role="menuitem"
+                >
+                  {theme === "dark" ? <SunMedium size={16} /> : <MoonStar size={16} />}
+                  <span>{theme === "dark" ? t("header.switchToLight") : t("header.switchToDark")}</span>
+                </button>
 
-        <button
-          type="button"
-          className="header-action-button header-action-button--logout"
-          onClick={onLogout}
-          aria-label={t("header.logout")}
-        >
-          <LogOut size={16} />
-          <span>{t("header.logout")}</span>
-        </button>
+                <div className="app-header__settings-item app-header__settings-item--lang">
+                  <span className="app-header__settings-label">{t("header.selectLanguage")}</span>
+                  <LanguageToggle label={t("header.selectLanguage")} compact={false} />
+                </div>
+
+                <button
+                  type="button"
+                  className="app-header__settings-item app-header__settings-item--logout"
+                  onClick={onLogout}
+                  role="menuitem"
+                >
+                  <LogOut size={16} />
+                  <span>{t("header.logout")}</span>
+                </button>
+              </div>
+            ) : null}
+          </div>
+        ) : (
+          <>
+            <button
+              type="button"
+              className="header-action-button header-action-button--theme"
+              onClick={onToggleTheme}
+              aria-label={theme === "dark" ? t("header.switchToLight") : t("header.switchToDark")}
+              title={theme === "dark" ? t("header.switchToLight") : t("header.switchToDark")}
+            >
+              {theme === "dark" ? <SunMedium size={16} /> : <MoonStar size={16} />}
+            </button>
+
+            <LanguageToggle label={t("header.selectLanguage")} />
+
+            <button
+              type="button"
+              className="header-action-button header-action-button--logout"
+              onClick={onLogout}
+              aria-label={t("header.logout")}
+            >
+              <LogOut size={16} />
+              <span>{t("header.logout")}</span>
+            </button>
+          </>
+        )}
       </div>
     </header>
   );

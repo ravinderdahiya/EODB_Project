@@ -13,6 +13,7 @@ const en = {
     switchToLight: "Switch to light mode",
     selectLanguage: "Select language",
     logout: "Logout",
+    settings: "Settings",
     closeNav: "Close navigation",
   },
 
@@ -54,7 +55,7 @@ const en = {
     clear: "Clear",
     clearLabel: "Clear selection",
     hint: "You Can Select Maximum {max} Khasra",
-    tools: { rectangle: "Rectangle", polygon: "Polygon", polyline: "Polyline" },
+    tools: { point: "Single Tap", rectangle: "Rectangle", polygon: "Polygon", polyline: "Polyline" },
     selectByLabel: "Select by {label}",
     progressRunning: "{current} / {total}",
     progressDone: "Done — {total} parcel(s)",

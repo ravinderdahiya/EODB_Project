@@ -13,6 +13,7 @@ const hi = {
     switchToLight: "लाइट मोड में जाएं",
     selectLanguage: "भाषा चुनें",
     logout: "लॉग आउट",
+    settings: "सेटिंग्स",
     closeNav: "नेविगेशन बंद करें",
   },
 
@@ -54,7 +55,7 @@ const hi = {
     clear: "साफ़ करें",
     clearLabel: "चयन साफ़ करें",
     hint: "आप अधिकतम {max} खसरा चुन सकते हैं",
-    tools: { rectangle: "आयत", polygon: "बहुभुज", polyline: "बहुरेखा" },
+    tools: { point: "एकल टैप", rectangle: "आयत", polygon: "बहुभुज", polyline: "बहुरेखा" },
     selectByLabel: "{label} द्वारा चुनें",
     progressRunning: "{current} / {total}",
     progressDone: "पूर्ण — {total} खसरा",

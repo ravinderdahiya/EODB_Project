@@ -1,13 +1,13 @@
 import "./SidebarNav.css";
 import { Fragment, useState } from "react";
-import { BoxSelect, Hexagon, Spline, Trash2 } from "lucide-react";
+import { BoxSelect, Hexagon, MousePointerClick, Spline, Trash2 } from "lucide-react";
 import SearchPanel from "./SearchPanel";
 import { MAX_KHASRA_SELECTION } from "@/constants/selectFeatures";
 import { useLanguage } from "@/context/LanguageContext";
 import { resolveMapLink } from "@/services/mapLinkService";
 
-const SF_TOOL_IDS = ["rectangle", "polygon", "polyline"];
-const SF_TOOL_ICONS = { rectangle: BoxSelect, polygon: Hexagon, polyline: Spline };
+const SF_TOOL_IDS = ["point", "rectangle", "polygon", "polyline"];
+const SF_TOOL_ICONS = { point: MousePointerClick, rectangle: BoxSelect, polygon: Hexagon, polyline: Spline };
 
 export default function SidebarNav({
   activeId,

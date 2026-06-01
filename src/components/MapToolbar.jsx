@@ -1,7 +1,7 @@
 import "./MapToolbar.css";
 import {
   Layers3,
-  LocateFixed,
+  MapPin,
   Map,
   Minus,
   Plus,
@@ -17,7 +17,7 @@ const TOOL_ICONS = {
   basemap:     Map,
   layers:      Layers3,
   reset:       RefreshCcw,
-  locate:      LocateFixed,
+  locate:      MapPin,
   measurement: Ruler,
   "zoom-in":   Plus,
   "zoom-out":  Minus,

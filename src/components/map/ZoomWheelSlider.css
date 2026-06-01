@@ -284,8 +284,8 @@
 @media (max-width: 768px) {
   .zws {
     top: 11px;
-    left: calc(0.85rem + 40px + 0.55rem + env(safe-area-inset-left, 0px));
-    right: calc(0.85rem + 34px + 0.55rem + env(safe-area-inset-right, 0px));
+    left: calc(0.85rem + 42px + 0.6rem + env(safe-area-inset-left, 0px));
+    right: calc(0.85rem + 42px + 0.6rem + env(safe-area-inset-right, 0px));
     transform: none;
     width: auto;
     max-width: none;
@@ -324,7 +324,7 @@
   .zws {
     top: 10px;
     left: calc(0.8rem + 42px + 0.5rem + env(safe-area-inset-left, 0px));
-    right: calc(0.8rem + 34px + 0.5rem + env(safe-area-inset-right, 0px));
+    right: calc(0.8rem + 42px + 0.5rem + env(safe-area-inset-right, 0px));
     height: 34px;
     padding: 0 3px;
     border-radius: 0;
@@ -437,7 +437,7 @@
   .zws {
     top: 9px;
     left: calc(0.72rem + 40px + 0.45rem + env(safe-area-inset-left, 0px));
-    right: calc(0.72rem + 32px + 0.45rem + env(safe-area-inset-right, 0px));
+    right: calc(0.72rem + 40px + 0.45rem + env(safe-area-inset-right, 0px));
     height: 32px;
     padding: 0 2px;
     border-radius: 0;

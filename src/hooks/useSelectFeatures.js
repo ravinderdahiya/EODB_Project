@@ -34,6 +34,12 @@ export function useSelectFeatures({ viewRef, layersRef }) {
   const tokenRef        = useRef(0);
   const createHandleRef = useRef(null);
 
+  // ── Point ("Single tap") tool refs ───────────────────────────────────────────
+  const clickHandleRef   = useRef(null);   // view "click" listener for the point tool
+  const pointRowsRef     = useRef([]);      // accumulated result rows across taps
+  const pointKeysRef     = useRef(new Set()); // unique khasra keys (dedupe)
+  const flagRefreshRef   = useRef(null);    // interval keeping the drawing flag fresh
+
   // ── Exposed state ────────────────────────────────────────────────────────────
   const [activeTool,    setActiveTool]    = useState(null);   // 'rectangle'|'polygon'|'polyline'|null
   const [isActive,      setIsActive]      = useState(false);  // true after first startSelect; false after clear
@@ -53,6 +59,8 @@ export function useSelectFeatures({ viewRef, layersRef }) {
   useEffect(() => {
     return () => {
       createHandleRef.current?.remove();
+      clickHandleRef.current?.remove();
+      if (flagRefreshRef.current) clearInterval(flagRefreshRef.current);
       sketchVmRef.current?.destroy?.();
       sketchVmRef.current = null;
       sketchLayerRef.current = null;
@@ -256,17 +264,183 @@ export function useSelectFeatures({ viewRef, layersRef }) {
     }
   }
 
+  // ── Single-tap (point) processing ────────────────────────────────────────────
+  // Each map tap resolves the khasra parcel under the point and APPENDS it to the
+  // running selection (deduped, capped at MAX_KHASRA_SELECTION).
+  function buildRowFromAttrs(attrs, index, key) {
+    const dCode  = `${attrs.n_d_code  ?? ""}`.trim();
+    const tCode  = `${attrs.n_t_code  ?? ""}`.trim();
+    const vCode  = `${attrs.n_v_code  ?? ""}`.trim();
+    const murr   = `${attrs.n_murr_no ?? ""}`.trim();
+    const khas   = `${attrs.n_khas_no ?? ""}`.trim();
+    const kanal  = attrs.N_KANAL ?? attrs.n_kanal;
+    const marla  = attrs.N_MARLA ?? attrs.n_marla;
+    const area   =
+      kanal != null || marla != null ? `${kanal ?? 0}-${marla ?? 0}` : "--";
+
+    return {
+      id:           `${key}-${index}`,
+      districtName: `${attrs.n_d_name ?? ""}`.trim() || "--",
+      districtCode: dCode  || "--",
+      tehsilName:   `${attrs.n_t_name ?? ""}`.trim() || "--",
+      tehsilCode:   tCode  || "--",
+      villageName:  `${attrs.n_v_name ?? ""}`.trim() || "--",
+      nvCode:       vCode  || "--",
+      murrabbaNo:   murr   || "--",
+      khasraNo:     khas   || "--",
+      area,
+      ownerName:    "No Owner Name",
+      __dCode: dCode, __tCode: tCode, __vCode: vCode, __murr: murr, __khas: khas,
+    };
+  }
+
+  async function processPointTap(mapPoint, token) {
+    const view   = viewRef.current;
+    const layers = layersRef.current;
+    if (!view || !layers) return;
+
+    if (pointRowsRef.current.length >= MAX_KHASRA_SELECTION) {
+      setStatusMessage(`You Can Select Maximum ${MAX_KHASRA_SELECTION} Khasra`);
+      return;
+    }
+
+    setStatusMessage("Resolving Khasra at the tapped location…");
+
+    try {
+      // ── District guard at the tapped point ──────────────────────────────────
+      const distRes = await restQuery.executeQueryJSON(
+        `${getHsacMainUrl()}/26`,
+        new Query({
+          geometry: mapPoint,
+          spatialRelationship: "intersects",
+          returnGeometry: false,
+          outFields: ["n_d_code", "n_d_name"],
+          where: "n_d_code IS NOT NULL AND n_d_code <> ''",
+          outSpatialReference: view.spatialReference,
+          num: 1,
+        }),
+      );
+      if (tokenRef.current !== token) return;
+
+      const distFeatures = distRes?.features ?? [];
+      if (distFeatures.length === 0) {
+        setStatusMessage("No district found at the tapped location.");
+        return;
+      }
+
+      const rawDCode = `${distFeatures[0]?.attributes?.n_d_code ?? ""}`.trim();
+      const layerId  = await getCadastralLayerId(rawDCode);
+      if (tokenRef.current !== token) return;
+
+      // ── Khasra parcel under the tapped point ────────────────────────────────
+      const khasRes = await restQuery.executeQueryJSON(
+        `${getHsacMainUrl()}/${layerId}`,
+        new Query({
+          geometry: mapPoint,
+          spatialRelationship: "intersects",
+          returnGeometry: true,
+          outFields: ["*"],
+          where: "n_khas_no IS NOT NULL AND n_khas_no <> ''",
+          outSpatialReference: view.spatialReference,
+          num: 1,
+        }),
+      );
+      if (tokenRef.current !== token) return;
+
+      const feat = (khasRes?.features ?? [])[0];
+      if (!feat) {
+        setStatusMessage("No Khasra parcel found at the tapped location.");
+        return;
+      }
+
+      const attrs = feat.attributes ?? {};
+      const dCode = `${attrs.n_d_code  ?? ""}`.trim();
+      const tCode = `${attrs.n_t_code  ?? ""}`.trim();
+      const vCode = `${attrs.n_v_code  ?? ""}`.trim();
+      const murr  = `${attrs.n_murr_no ?? ""}`.trim();
+      const khas  = `${attrs.n_khas_no ?? ""}`.trim();
+      const key   = `${dCode}-${tCode}-${vCode}-${murr}-${khas}`;
+
+      if (pointKeysRef.current.has(key)) {
+        setStatusMessage("That Khasra is already selected.");
+        return;
+      }
+      if (pointRowsRef.current.length >= MAX_KHASRA_SELECTION) {
+        setStatusMessage(`You Can Select Maximum ${MAX_KHASRA_SELECTION} Khasra`);
+        return;
+      }
+
+      // ── Highlight on map ────────────────────────────────────────────────────
+      const selLayer = layers.selectionLayer;
+      if (selLayer && feat.geometry) {
+        selLayer.add(
+          new Graphic({
+            geometry: feat.geometry,
+            symbol: SELECTION_FILL_SYMBOL,
+            attributes: { __khasKey: key },
+          }),
+        );
+      }
+
+      // ── Append row immediately, then resolve owner name ─────────────────────
+      const index = pointRowsRef.current.length;
+      const row   = buildRowFromAttrs(attrs, index, key);
+      pointKeysRef.current.add(key);
+      pointRowsRef.current = [...pointRowsRef.current, row];
+      setRows(pointRowsRef.current);
+
+      const count = pointRowsRef.current.length;
+      setProgress({ current: count, total: count, running: true });
+
+      if (dCode && tCode && vCode && murr && khas) {
+        try {
+          const owners = await getOwnerNames(dCode, tCode, vCode, murr, khas);
+          if (tokenRef.current !== token) return;
+          if (owners.length) {
+            pointRowsRef.current = pointRowsRef.current.map((r) =>
+              r.id === row.id ? { ...r, ownerName: owners.join(", ") } : r,
+            );
+            setRows(pointRowsRef.current);
+          }
+        } catch {
+          // keep "No Owner Name"
+        }
+      }
+
+      if (tokenRef.current !== token) return;
+      const total = pointRowsRef.current.length;
+      setProgress({ current: total, total, running: false });
+      setStatusMessage(
+        total >= MAX_KHASRA_SELECTION
+          ? `Maximum ${MAX_KHASRA_SELECTION} Khasra selected.`
+          : `${total} Khasra selected. Tap more parcels or Clear. (max ${MAX_KHASRA_SELECTION})`,
+      );
+    } catch (err) {
+      if (tokenRef.current !== token) return;
+      setStatusMessage(err?.message || "Selection query failed. Please try again.");
+    }
+  }
+
   // ── Public API ───────────────────────────────────────────────────────────────
 
   const clearSelection = useCallback(() => {
     tokenRef.current += 1;
     createHandleRef.current?.remove();
     createHandleRef.current = null;
+    clickHandleRef.current?.remove();
+    clickHandleRef.current = null;
+    if (flagRefreshRef.current) {
+      clearInterval(flagRefreshRef.current);
+      flagRefreshRef.current = null;
+    }
     sketchVmRef.current?.cancel?.();
     sketchLayerRef.current?.removeAll();
 
     const selLayer = layersRef.current?.selectionLayer;
     if (selLayer) selLayer.removeAll();
+
+    pointRowsRef.current = [];
+    pointKeysRef.current = new Set();
 
     setActiveTool(null);
     setIsActive(false);
@@ -276,15 +450,75 @@ export function useSelectFeatures({ viewRef, layersRef }) {
     setSelectionDrawingFlag(false);
   }, [layersRef, setSelectionDrawingFlag]);
 
+  // Single-tap selection: keep listening for map clicks and accumulate parcels.
+  const startPointSelect = useCallback(() => {
+    const view = viewRef.current;
+    if (!view) return;
+
+    // Tear down any draw / previous point session
+    createHandleRef.current?.remove();
+    createHandleRef.current = null;
+    clickHandleRef.current?.remove();
+    clickHandleRef.current = null;
+    sketchVmRef.current?.cancel?.();
+    sketchLayerRef.current?.removeAll();
+    tokenRef.current += 1;
+    const token = tokenRef.current;
+
+    const selLayer = layersRef.current?.selectionLayer;
+    if (selLayer) selLayer.removeAll();
+
+    pointRowsRef.current = [];
+    pointKeysRef.current = new Set();
+
+    setIsActive(true);
+    setActiveTool("point");
+    setRows([]);
+    setProgress({ current: 0, total: 0, running: false });
+    setStatusMessage(`Tap parcels on the map to select Khasra (max ${MAX_KHASRA_SELECTION})…`);
+    setSelectionDrawingFlag(true);
+
+    // Keep the "drawing" flag fresh so the default map-click popup stays suppressed
+    // throughout the (potentially long) tap session.
+    if (flagRefreshRef.current) clearInterval(flagRefreshRef.current);
+    flagRefreshRef.current = setInterval(() => {
+      if (tokenRef.current === token) setSelectionDrawingFlag(true);
+      else clearInterval(flagRefreshRef.current);
+    }, 20000);
+
+    clickHandleRef.current = view.on("click", async (event) => {
+      if (tokenRef.current !== token) return;
+      event.stopPropagation?.();
+      setSelectionDrawingFlag(true);
+      const mapPoint = event.mapPoint;
+      if (!mapPoint) return;
+      await processPointTap(mapPoint, token);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [setSelectionDrawingFlag]);
+
   const startSelect = useCallback((tool) => {
+    if (tool === "point") {
+      startPointSelect();
+      return;
+    }
+
     const vm = getOrCreateSketchVm();
     if (!vm) {
       return;
     }
 
-    // Cancel any ongoing draw and invalidate in-flight async ops
+    // Cancel any ongoing draw / point session and invalidate in-flight async ops
     createHandleRef.current?.remove();
     createHandleRef.current = null;
+    clickHandleRef.current?.remove();
+    clickHandleRef.current = null;
+    if (flagRefreshRef.current) {
+      clearInterval(flagRefreshRef.current);
+      flagRefreshRef.current = null;
+    }
+    pointRowsRef.current = [];
+    pointKeysRef.current = new Set();
     vm.cancel?.();
     tokenRef.current += 1;
     const token = tokenRef.current;
@@ -343,7 +577,7 @@ export function useSelectFeatures({ viewRef, layersRef }) {
       await processGeometry(drawn, token);
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [setSelectionDrawingFlag]); // All other referenced values are refs or stable imported functions
+  }, [setSelectionDrawingFlag, startPointSelect]); // All other referenced values are refs or stable imported functions
 
   return {
     activeTool,
