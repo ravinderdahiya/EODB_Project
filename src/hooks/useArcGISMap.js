@@ -434,7 +434,7 @@ export function useArcGISMap({
         map,
         extent: initialExtent.clone(),
         constraints: { minZoom: 6, snapToZoom: false, rotationEnabled: true },
-        navigation: { mouseWheelZoomEnabled: true, browserTouchPanEnabled: true },
+        navigation: { mouseWheelZoomEnabled: false, browserTouchPanEnabled: true },
         popup: {
           dockEnabled: false,
           collapseEnabled: false,
@@ -486,6 +486,54 @@ export function useArcGISMap({
         };
 
         startUserLocationWatch();
+
+        // Slower, smoother mouse-wheel zoom at the cursor (small fractional steps + animation).
+        const MOUSE_WHEEL_ZOOM_STEP = 0.08;
+        const MOUSE_WHEEL_ZOOM_DURATION_MS = 400;
+        let wheelTargetZoom = null;
+        let wheelAnchorMap = null;
+        let wheelAnimating = false;
+        const runWheelZoom = () => {
+          if (wheelTargetZoom == null) {
+            wheelAnimating = false;
+            return;
+          }
+          wheelAnimating = true;
+          const nextZoom = wheelTargetZoom;
+          const center = view.center;
+          let target = { zoom: nextZoom };
+          if (wheelAnchorMap && center) {
+            const factor = 2 ** (view.zoom - nextZoom);
+            target = {
+              zoom: nextZoom,
+              center: new Point({
+                x: wheelAnchorMap.x + (center.x - wheelAnchorMap.x) * factor,
+                y: wheelAnchorMap.y + (center.y - wheelAnchorMap.y) * factor,
+                spatialReference: center.spatialReference,
+              }),
+            };
+          }
+          view
+            .goTo(target, {
+              animate: true,
+              duration: MOUSE_WHEEL_ZOOM_DURATION_MS,
+              easing: "ease-out",
+            })
+            .catch(() => {})
+            .finally(() => {
+              if (wheelTargetZoom === nextZoom) wheelTargetZoom = null;
+              runWheelZoom();
+            });
+        };
+        view.on("mouse-wheel", (event) => {
+          event.stopPropagation();
+          if (isDisposed) return;
+          const direction = event.deltaY > 0 ? -1 : 1;
+          wheelAnchorMap = view.toMap({ x: event.x, y: event.y });
+          const base = wheelTargetZoom ?? view.zoom;
+          wheelTargetZoom = base + direction * MOUSE_WHEEL_ZOOM_STEP;
+          if (!wheelAnimating) runWheelZoom();
+        });
 
         // Live scale ratio — updates on every zoom/pan
         reactiveUtils.watch(
