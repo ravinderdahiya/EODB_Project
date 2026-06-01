@@ -27,14 +27,40 @@
   cursor: pointer;
   transform: translateY(-6px);
 }
-.saarthi-chatbot-widget__launcher img {
+.saarthi-chatbot-widget__launcher-flip {
   width: 100%;
   height: 100%;
+  position: relative;
+  display: block;
   border-radius: 50%;
-  object-fit: contain;
+  -webkit-perspective: 600px;
+  perspective: 600px;
+  -webkit-transform-style: preserve-3d;
+  transform-style: preserve-3d;
+}
+.saarthi-chatbot-widget__launcher-flip img {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  object-fit: cover;
   object-position: center;
   background: transparent !important;
   display: block;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  -webkit-transform-style: preserve-3d;
+  transform-style: preserve-3d;
+  will-change: transform, opacity;
+}
+.saarthi-chatbot-widget__launcher-flip img:nth-child(1) {
+  transform: rotateY(0deg);
+  animation: saarthiLauncherFlipFront 6s ease-in-out infinite;
+}
+.saarthi-chatbot-widget__launcher-flip img:nth-child(2) {
+  transform: rotateY(180deg);
+  animation: saarthiLauncherFlipBack 6s ease-in-out infinite;
 }
 .saarthi-chatbot-widget__launcher::before {
   content: "";
@@ -168,6 +194,36 @@ body.dark .saarthi-chatbot-widget iframe {
   100% {
     transform: scale(1.27);
     opacity: 0;
+  }
+}
+
+@keyframes saarthiLauncherFlipFront {
+  0%, 22% {
+    transform: rotateY(0deg);
+    opacity: 1;
+  }
+  50%, 72% {
+    transform: rotateY(180deg);
+    opacity: 0.95;
+  }
+  100% {
+    transform: rotateY(360deg);
+    opacity: 1;
+  }
+}
+
+@keyframes saarthiLauncherFlipBack {
+  0%, 22% {
+    transform: rotateY(180deg);
+    opacity: 0.95;
+  }
+  50%, 72% {
+    transform: rotateY(360deg);
+    opacity: 1;
+  }
+  100% {
+    transform: rotateY(540deg);
+    opacity: 0.95;
   }
 }
 

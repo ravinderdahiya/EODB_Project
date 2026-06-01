@@ -1508,13 +1508,14 @@ body {
   background: transparent !important;
 }
 .floating-bot-img img,
-.bot-logo-img img {
+.bot-logo-img img,
+.bot-avatar-img img {
   width: 100% !important;
   height: 100% !important;
   border-radius: 50% !important;
-  object-fit: contain !important;
+  object-fit: cover !important;
   object-position: center center !important;
-  transform: scale(0.98) !important;
+  transform: scale(1.04) !important;
   transform-origin: center center !important;
   background: transparent !important;
   display: block !important;
@@ -1723,7 +1724,8 @@ export default function SaarthiChatbotWidget({ lang = "en", blurred = false, hid
   const [showLauncherHint, setShowLauncherHint] = useState(false);
   const chatbotCssPath = `${import.meta.env.BASE_URL}chatbot/assets/index-CleebXl6.css`;
   const chatbotJsPath = `${import.meta.env.BASE_URL}chatbot/assets/index-h95SWGsY.js`;
-  const chatbotIconPath = `${import.meta.env.BASE_URL}chatbot/assets/eodb-saarthi-_EV4f2aO.png`;
+  const chatbotIconPath = `${import.meta.env.BASE_URL}chatbot/assets/img_1.png`;
+  const chatbotLauncherFlipIconPath = `${import.meta.env.BASE_URL}chatbot/assets/img_2.png`;
   const activeLocale = CHATBOT_LOCALE[lang] || CHATBOT_LOCALE.en;
   const launcherHints = Array.isArray(activeLocale.launcherHints) && activeLocale.launcherHints.length
     ? activeLocale.launcherHints
@@ -2966,7 +2968,10 @@ export default function SaarthiChatbotWidget({ lang = "en", blurred = false, hid
           onClick={openChatFromHost}
           aria-label="Open EODB AI Saarthi chatbot"
         >
-          <img src={chatbotIconPath} alt="EODB AI Saarthi" />
+          <span className="saarthi-chatbot-widget__launcher-flip" aria-hidden="true">
+            <img src={chatbotIconPath} alt="" />
+            <img src={chatbotLauncherFlipIconPath} alt="" />
+          </span>
         </button>
       ) : null}
       {!isOpen && launcherHints.length ? (
