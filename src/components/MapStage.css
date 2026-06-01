@@ -82,6 +82,19 @@
   transform: translateX(-50%) translateY(-1px);
 }
 
+.parcel-table-toggle svg {
+  color: #1f9d57;
+}
+
+:root[data-theme="dark"] .parcel-table-toggle svg {
+  color: #4fd585;
+}
+
+.parcel-table-toggle:hover svg,
+:root[data-theme="dark"] .parcel-table-toggle:hover svg {
+  color: #ffffff;
+}
+
 .map-stage__viewport--table-open .parcel-table-toggle {
   bottom: calc(30% + 0.35rem);
 }
@@ -573,6 +586,8 @@
   border-radius: 24px;
   background: var(--popup-card-bg);
   box-shadow: var(--popup-card-shadow);
+  backdrop-filter: blur(22px) saturate(1.25);
+  -webkit-backdrop-filter: blur(22px) saturate(1.25);
   font-size: 10px;
 }
 
@@ -580,6 +595,8 @@
   padding: 0.75rem 0.82rem 0.72rem;
   background: var(--popup-hero-bg);
   color: var(--popup-hero-ink);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
 }
 
 .map-click-popup__eyebrow {

@@ -9,7 +9,7 @@
 .measurement-panel {
   position: absolute;
   top: 1rem;
-  left: calc(1rem + 48px + 0.6rem);
+  left: calc(1rem + 42px + 0.6rem);
   z-index: 22;
   width: min(258px, calc(100% - 6rem));
   padding: 0.9rem;

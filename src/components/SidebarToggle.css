@@ -1,0 +1,68 @@
+/* =========================
+   SidebarToggle — arrow only (no pill background)
+========================= */
+
+.sidebar-toggle {
+  position: absolute;
+  top: 50%;
+  z-index: 75;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.95);
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.55));
+  transform: translateY(-50%);
+  transition: left 280ms ease, transform 180ms ease, opacity 180ms ease;
+}
+
+.sidebar-toggle:hover {
+  background: transparent;
+  transform: translateY(-50%) scale(1.12);
+  opacity: 0.92;
+}
+
+.sidebar-toggle:active {
+  transform: translateY(-50%) scale(0.96);
+}
+
+.sidebar-toggle--open {
+  left: calc(220px + 0.85rem - 16px);
+}
+
+.sidebar-toggle--closed {
+  left: calc(0.85rem - 6px);
+}
+
+:root[data-theme="dark"] .sidebar-toggle,
+:root[data-theme="light"] .sidebar-toggle {
+  color: rgba(255, 255, 255, 0.95);
+}
+
+/* Tablet: sidebar is a fixed drawer */
+@media (max-width: 1024px) {
+  .sidebar-toggle--open {
+    left: calc(max(1.25rem, env(safe-area-inset-left, 0px)) + min(320px, calc(100vw - 2.5rem)) - 16px);
+  }
+
+  .sidebar-toggle--closed {
+    left: max(0.9rem, env(safe-area-inset-left, 0px));
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1024px) and (orientation: landscape) {
+  .sidebar-toggle--open {
+    left: calc(max(0.9rem, env(safe-area-inset-left, 0px)) + min(292px, calc(100vw - 1.8rem)) - 16px);
+  }
+}
+
+@media (max-width: 768px) {
+  .sidebar-toggle {
+    display: none;
+  }
+}

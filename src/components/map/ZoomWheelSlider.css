@@ -284,7 +284,7 @@
 @media (max-width: 768px) {
   .zws {
     top: 11px;
-    left: calc(0.85rem + 44px + 0.55rem + env(safe-area-inset-left, 0px));
+    left: calc(0.85rem + 40px + 0.55rem + env(safe-area-inset-left, 0px));
     right: calc(0.85rem + 34px + 0.55rem + env(safe-area-inset-right, 0px));
     transform: none;
     width: auto;

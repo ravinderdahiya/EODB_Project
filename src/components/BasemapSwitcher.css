@@ -8,7 +8,7 @@
 .basemap-switcher {
   position: absolute;
   top: 1rem;
-  left: calc(1rem + 48px + 0.6rem);
+  left: calc(1rem + 42px + 0.6rem);
   right: auto;
   z-index: 20;
   width: min(280px, calc(100% - 6rem));
@@ -142,7 +142,7 @@
 @media (max-width: 1024px) {
   .basemap-switcher {
     top: 1rem;
-    left: calc(1rem + 48px + 0.6rem);
+    left: calc(1rem + 42px + 0.6rem);
     right: auto;
     width: min(280px, calc(100% - 6rem));
     max-height: calc(100% - 6rem);
@@ -152,10 +152,10 @@
 @media (max-width: 768px) {
   .basemap-switcher {
     top: calc(0.9rem + env(safe-area-inset-top, 0px));
-    left: calc(0.9rem + 46px + 0.75rem);
+    left: calc(0.9rem + 40px + 0.75rem);
     right: calc(0.9rem + env(safe-area-inset-right, 0px));
     width: auto;
-    max-width: min(320px, calc(100% - (0.9rem + 46px + 0.75rem) - (0.9rem + env(safe-area-inset-right, 0px))));
+    max-width: min(320px, calc(100% - (0.9rem + 40px + 0.75rem) - (0.9rem + env(safe-area-inset-right, 0px))));
     max-height: calc(100% - (1.8rem + env(safe-area-inset-top, 0px)) - (9.25rem + env(safe-area-inset-bottom, 0px)));
     padding: 0.74rem;
     display: flex;
@@ -177,7 +177,7 @@
 
 @media (max-width: 560px) {
   .basemap-switcher {
-    left: calc(0.8rem + 46px + 0.65rem);
+    left: calc(0.8rem + 40px + 0.65rem);
     right: calc(0.8rem + env(safe-area-inset-right, 0px));
     width: auto;
     max-width: none;

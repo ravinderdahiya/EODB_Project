@@ -53,12 +53,12 @@
 
   /* Popup card tokens */
   --popup-card-bg:
-    linear-gradient(180deg, rgba(255, 252, 244, 0.98), rgba(238, 231, 203, 0.96)),
-    rgba(247, 242, 220, 0.94);
-  --popup-card-border: rgba(255, 255, 255, 0.72);
-  --popup-card-shadow: 0 24px 52px rgba(29, 53, 72, 0.2);
+    linear-gradient(180deg, rgba(255, 252, 244, 0.28), rgba(238, 231, 203, 0.22)),
+    rgba(247, 242, 220, 0.18);
+  --popup-card-border: rgba(255, 255, 255, 0.24);
+  --popup-card-shadow: 0 24px 52px rgba(29, 53, 72, 0.08);
   --popup-hero-bg:
-    linear-gradient(135deg, rgba(254, 247, 219, 0.98), rgba(236, 229, 190, 0.94) 58%, rgba(220, 239, 226, 0.86));
+    linear-gradient(135deg, rgba(254, 247, 219, 0.32), rgba(236, 229, 190, 0.26) 58%, rgba(220, 239, 226, 0.2));
   --popup-hero-ink: #173248;
   --popup-hero-soft: rgba(53, 77, 92, 0.84);
   --popup-selector-bg: rgba(255, 255, 255, 0.68);
@@ -102,12 +102,12 @@
   --mint: #4fc7b4;
 
   --popup-card-bg:
-    linear-gradient(180deg, rgba(17, 31, 45, 0.97), rgba(10, 22, 33, 0.96)),
-    rgba(10, 22, 31, 0.94);
-  --popup-card-border: rgba(176, 201, 218, 0.12);
-  --popup-card-shadow: 0 28px 60px rgba(0, 0, 0, 0.38);
+    linear-gradient(180deg, rgba(17, 31, 45, 0.22), rgba(10, 22, 33, 0.18)),
+    rgba(10, 22, 31, 0.14);
+  --popup-card-border: rgba(176, 201, 218, 0.1);
+  --popup-card-shadow: 0 28px 60px rgba(0, 0, 0, 0.1);
   --popup-hero-bg:
-    linear-gradient(135deg, rgba(31, 57, 70, 0.98), rgba(17, 33, 45, 0.95) 58%, rgba(18, 52, 47, 0.92));
+    linear-gradient(135deg, rgba(31, 57, 70, 0.26), rgba(17, 33, 45, 0.22) 58%, rgba(18, 52, 47, 0.18));
   --popup-hero-ink: #eef7ff;
   --popup-hero-soft: rgba(205, 223, 236, 0.82);
   --popup-selector-bg: rgba(255, 255, 255, 0.06);
