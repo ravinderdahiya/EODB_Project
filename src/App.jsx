@@ -239,6 +239,7 @@ export default function App() {
     zoomOut,
     resetView,
     refreshOperationalLayers,
+    refreshLayersForCurrentView,
     goToCurrentLocation,
     goToLatLong,
     searchPlace,
@@ -1359,7 +1360,12 @@ export default function App() {
             onPrint={handleMapPrint}
             onWhatsAppShare={handleMapWhatsAppShare}
           >
-            <ZoomWheelSlider viewRef={viewRef} layerVisibility={layerVisibility} mapScale={mapScale} />
+            <ZoomWheelSlider
+              viewRef={viewRef}
+              layerVisibility={layerVisibility}
+              mapScale={mapScale}
+              onAfterZoom={refreshLayersForCurrentView}
+            />
             <NorthCompassControl viewRef={viewRef} mapReady={mapReady} />
 
             <MapToolbar

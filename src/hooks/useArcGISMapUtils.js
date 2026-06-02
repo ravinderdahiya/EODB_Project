@@ -716,6 +716,31 @@ export function createClickSearchExtent(view, event, tolerance = 8) {
   });
 }
 
+const KHASRA_QUERY_WHERE =
+  "n_khas_no IS NOT NULL AND n_khas_no <> ''";
+
+export const isValidKhasraFeature = (feature) =>
+  Boolean(`${feature?.attributes?.n_khas_no ?? ""}`.trim());
+
+async function queryKhasraOnLayer({ layerId, geometry, spatialReference, num = 1 }) {
+  const result = await restQuery
+    .executeQueryJSON(
+      `${arcgisPortalConfig.serviceUrls.hsacMain}/${layerId}`,
+      new Query({
+        geometry,
+        spatialRelationship: "intersects",
+        returnGeometry: true,
+        outFields: ["*"],
+        where: KHASRA_QUERY_WHERE,
+        outSpatialReference: spatialReference,
+        num,
+      }),
+    )
+    .catch(() => null);
+
+  return result?.features?.find(isValidKhasraFeature) ?? null;
+}
+
 export async function queryCadastralParcelAtClick({ view, layers, event }) {
   const layerIds = getVisibleCadastralLayerIds(layers);
   const clickExtent = createClickSearchExtent(view, event);
@@ -755,10 +780,17 @@ export async function queryCadastralParcelAtClick({ view, layers, event }) {
   return null;
 }
 
-export async function identifyCadastralParcelAtPoint({ view, layers, mapPoint }) {
+export async function identifyCadastralParcelAtPoint({
+  view,
+  layers,
+  mapPoint,
+  tolerance = 8,
+}) {
   const layerIds = getVisibleCadastralLayerIds(layers);
+  const fallbackIds = layers?.layerPlan?.cadastralLayerIds ?? [];
+  const ids = layerIds.length ? layerIds : fallbackIds;
 
-  if (!view || !layers?.hsacCadastralLayer || !mapPoint || !layerIds.length) {
+  if (!view || !mapPoint || !ids.length) {
     return null;
   }
 
@@ -771,8 +803,8 @@ export async function identifyCadastralParcelAtPoint({ view, layers, mapPoint })
         spatialReference: view.spatialReference,
         width: view.width,
         height: view.height,
-        tolerance: 6,
-        layerIds,
+        tolerance,
+        layerIds: ids,
         layerOption: "all",
         returnGeometry: true,
         returnFieldName: true,
@@ -780,12 +812,79 @@ export async function identifyCadastralParcelAtPoint({ view, layers, mapPoint })
     )
     .catch(() => null);
 
-  const result = response?.results?.find((entry) => {
-    const attributes = entry?.feature?.attributes ?? {};
-    return attributes.n_khas_no || attributes.n_murr_no || attributes.n_v_name;
-  });
+  const result = response?.results?.find((entry) =>
+    isValidKhasraFeature(entry?.feature),
+  );
 
   return result?.feature ?? null;
+}
+
+/**
+ * Resolve a khasra parcel at a map tap — same reliability as draw-tools (area query),
+ * but using a small search box + identify across all relevant cadastral sublayers.
+ */
+export async function resolveKhasraFeatureAtTap({
+  view,
+  layers,
+  clickEvent,
+  tolerancePx = 16,
+}) {
+  if (!view || !layers || !clickEvent?.mapPoint) return null;
+
+  const mapPoint = clickEvent.mapPoint;
+  const spatialReference = view.spatialReference;
+
+  const identified = await identifyCadastralParcelAtPoint({
+    view,
+    layers,
+    mapPoint,
+    tolerance: 10,
+  });
+  if (identified && isValidKhasraFeature(identified)) {
+    return identified;
+  }
+
+  const searchExtent = createClickSearchExtent(view, clickEvent, tolerancePx);
+  const visibleIds = getVisibleCadastralLayerIds(layers);
+  const candidateIds = visibleIds.length
+    ? visibleIds
+    : (layers.layerPlan?.cadastralLayerIds ?? []);
+
+  if (searchExtent) {
+    for (const layerId of candidateIds) {
+      const feature = await queryKhasraOnLayer({
+        layerId,
+        geometry: searchExtent,
+        spatialReference,
+      });
+      if (feature) return feature;
+    }
+  }
+
+  // Buffered point query (parcel boundary taps).
+  for (const layerId of candidateIds) {
+    const feature = await restQuery
+      .executeQueryJSON(
+        `${arcgisPortalConfig.serviceUrls.hsacMain}/${layerId}`,
+        new Query({
+          geometry: mapPoint,
+          distance: 25,
+          units: "meters",
+          spatialRelationship: "intersects",
+          returnGeometry: true,
+          outFields: ["*"],
+          where: KHASRA_QUERY_WHERE,
+          outSpatialReference: spatialReference,
+          num: 1,
+        }),
+      )
+      .catch(() => null)
+      .then((res) => res?.features?.find(isValidKhasraFeature) ?? null);
+
+    if (feature) return feature;
+  }
+
+  return null;
 }
 
 // ─── Hook ────────────────────────────────────────────────────────────────────

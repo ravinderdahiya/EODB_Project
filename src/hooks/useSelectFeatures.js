@@ -26,6 +26,7 @@ import { getCadastralLayerId } from "@/services/hsacLayerResolver";
 import { getOwnerNames } from "@/services/landRecordService";
 import { SELECTION_FILL_SYMBOL } from "@/config/mapSymbols";
 import { MAX_KHASRA_SELECTION } from "@/constants/selectFeatures";
+import { resolveKhasraFeatureAtTap } from "@/hooks/useArcGISMapUtils";
 
 export function useSelectFeatures({ viewRef, layersRef }) {
   // ── Internal refs ────────────────────────────────────────────────────────────
@@ -294,10 +295,10 @@ export function useSelectFeatures({ viewRef, layersRef }) {
     };
   }
 
-  async function processPointTap(mapPoint, token) {
+  async function processPointTap(clickEvent, token) {
     const view   = viewRef.current;
     const layers = layersRef.current;
-    if (!view || !layers) return;
+    if (!view || !layers || !clickEvent?.mapPoint) return;
 
     if (pointRowsRef.current.length >= MAX_KHASRA_SELECTION) {
       setStatusMessage(`You Can Select Maximum ${MAX_KHASRA_SELECTION} Khasra`);
@@ -307,47 +308,11 @@ export function useSelectFeatures({ viewRef, layersRef }) {
     setStatusMessage("Resolving Khasra at the tapped location…");
 
     try {
-      // ── District guard at the tapped point ──────────────────────────────────
-      const distRes = await restQuery.executeQueryJSON(
-        `${getHsacMainUrl()}/26`,
-        new Query({
-          geometry: mapPoint,
-          spatialRelationship: "intersects",
-          returnGeometry: false,
-          outFields: ["n_d_code", "n_d_name"],
-          where: "n_d_code IS NOT NULL AND n_d_code <> ''",
-          outSpatialReference: view.spatialReference,
-          num: 1,
-        }),
-      );
+      // Rectangle/polygon tools query an area; single tap uses identify + small
+      // search extent + buffered point across all cadastral sublayers (not one layer).
+      const feat = await resolveKhasraFeatureAtTap({ view, layers, clickEvent });
       if (tokenRef.current !== token) return;
 
-      const distFeatures = distRes?.features ?? [];
-      if (distFeatures.length === 0) {
-        setStatusMessage("No district found at the tapped location.");
-        return;
-      }
-
-      const rawDCode = `${distFeatures[0]?.attributes?.n_d_code ?? ""}`.trim();
-      const layerId  = await getCadastralLayerId(rawDCode);
-      if (tokenRef.current !== token) return;
-
-      // ── Khasra parcel under the tapped point ────────────────────────────────
-      const khasRes = await restQuery.executeQueryJSON(
-        `${getHsacMainUrl()}/${layerId}`,
-        new Query({
-          geometry: mapPoint,
-          spatialRelationship: "intersects",
-          returnGeometry: true,
-          outFields: ["*"],
-          where: "n_khas_no IS NOT NULL AND n_khas_no <> ''",
-          outSpatialReference: view.spatialReference,
-          num: 1,
-        }),
-      );
-      if (tokenRef.current !== token) return;
-
-      const feat = (khasRes?.features ?? [])[0];
       if (!feat) {
         setStatusMessage("No Khasra parcel found at the tapped location.");
         return;
@@ -490,9 +455,8 @@ export function useSelectFeatures({ viewRef, layersRef }) {
       if (tokenRef.current !== token) return;
       event.stopPropagation?.();
       setSelectionDrawingFlag(true);
-      const mapPoint = event.mapPoint;
-      if (!mapPoint) return;
-      await processPointTap(mapPoint, token);
+      if (!event.mapPoint) return;
+      await processPointTap(event, token);
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [setSelectionDrawingFlag]);

@@ -35,7 +35,12 @@ function getActiveKey(zoom) {
 function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
 
 // ── Component ─────────────────────────────────────────────────────────────────
-export default function ZoomWheelSlider({ viewRef, layerVisibility, mapScale }) {
+export default function ZoomWheelSlider({
+  viewRef,
+  layerVisibility,
+  mapScale,
+  onAfterZoom,
+}) {
   const { t } = useLanguage();
   const [zoom,     setZoom]     = useState(MIN_ZOOM);
   const [dragging, setDragging] = useState(false);
@@ -78,16 +83,18 @@ export default function ZoomWheelSlider({ viewRef, layerVisibility, mapScale }) 
     if (!view) return;
     try {
       await view.goTo({ zoom: z }, { duration: 360, easing: 'ease-in-out' });
+      onAfterZoom?.();
     } catch { /* navigation cancelled or view disposed */ }
-  }, [viewRef, commitZoom]);
+  }, [viewRef, commitZoom, onAfterZoom]);
 
   const goToScale = useCallback(async (scale) => {
     const view = viewRef.current;
     if (!view) return;
     try {
       await view.goTo({ scale }, { duration: 360, easing: 'ease-in-out' });
+      onAfterZoom?.();
     } catch { /* navigation cancelled or view disposed */ }
-  }, [viewRef]);
+  }, [viewRef, onAfterZoom]);
 
   // UI rule: zoom slider must never auto-enable/disable map layers.
   // Operational Layer card checkboxes are the single source of truth for layer visibility.
