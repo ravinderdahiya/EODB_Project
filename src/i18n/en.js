@@ -1,7 +1,7 @@
 const en = {
   header: {
-    title: "Digital Land Record, Haryana",
-    subtitle: "44212-GeoStack EODB, Haryana",
+    title: "44212-GeoStack EODB, Haryana",
+    subtitle: "Ease Of Doing Business",
     adminSubtitle: "Administration Dashboard",
     searchLabel: "Search land records or places",
     searchPlaceholderDefault: "Search places across Haryana or use the sidebar record search",
