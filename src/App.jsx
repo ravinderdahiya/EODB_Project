@@ -1,5 +1,6 @@
 ﻿import { useDeferredValue, useEffect, useRef, useState, useTransition } from "react";
 import { useNavigate } from "react-router-dom";
+import axiosInstance from "@/utils/axiosInstance";
 import AppHeader from "@/components/AppHeader";
 import BasemapSwitcher from "@/components/BasemapSwitcher";
 import LayerPanel from "@/components/LayerPanel";
@@ -916,6 +917,24 @@ export default function App() {
     setSystemMessage(`${nextPreset[0].toUpperCase()}${nextPreset.slice(1)} map preset applied.`);
   };
 
+  const handleLogout = async () => {
+    try {
+      await axiosInstance.post("/user/logout");
+    } catch (error) {
+      console.warn("Logout request failed:", error?.message || error);
+    } finally {
+      // Clear localStorage
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      localStorage.removeItem("isAdmin");
+      // Clear sessionStorage
+      sessionStorage.removeItem("isAuthenticated");
+      sessionStorage.removeItem("user");
+      sessionStorage.removeItem("isAdmin");
+      navigate("/login");
+    }
+  };
+
   const handleToolbarAction = async (actionId) => {
     if (actionId === "search") {
       document.getElementById("portal-search")?.focus();
@@ -1254,15 +1273,7 @@ export default function App() {
         onToggleTheme={() =>
           setTheme((current) => (current === "light" ? "dark" : "light"))
         }
-        onLogout={() => {
-          localStorage.removeItem("token");
-          localStorage.removeItem("user");
-          localStorage.removeItem("isAdmin");
-          sessionStorage.removeItem("isAuthenticated");
-          sessionStorage.removeItem("user");
-          sessionStorage.removeItem("isAdmin");
-          navigate("/login");
-        }}
+        onLogout={handleLogout}
         searchValue={searchValue}
         onSearchValueChange={(nextValue) => {
           setSearchValue(nextValue);

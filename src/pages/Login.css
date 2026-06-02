@@ -981,6 +981,19 @@
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
+    gap: 8px;
+}
+
+.lp-btn-loading-icon {
+    width: 16px;
+    height: 16px;
+    animation: spinner-rotate 800ms linear infinite;
+}
+
+@keyframes spinner-rotate {
+    100% {
+        transform: rotate(360deg);
+    }
 }
 
 .lp-card .lp-btn-green {
