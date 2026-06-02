@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { TrendingUp } from "lucide-react";
+import { TrendingUp, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import "./Login.css";
 import { createTranslator, useLanguage } from "@/context/LanguageContext";
@@ -515,7 +515,14 @@ export default function Login() {
                   </div>
 
                   <button type="submit" className="lp-btn-green" disabled={isSendingOtp}>
-                    {t("login.sendOtp")}
+                    {isSendingOtp ? (
+                      <>
+                        <Loader2 className="lp-btn-loading-icon" />
+                        {t("login.sending")}
+                      </>
+                    ) : (
+                      t("login.sendOtp")
+                    )}
                   </button>
                 </>
               ) : (
@@ -567,17 +574,31 @@ export default function Login() {
                     <button
                       type="button"
                       className="lp-resend-btn"
-                      disabled={!canResendOtp}
+                      disabled={!canResendOtp || isResendingOtp}
                       onClick={handleResendOtp}
                     >
-                      {canResendOtp
-                        ? t("login.resendOtp")
-                        : `${t("login.resendOtpIn")} ${timerText}`}
+                      {isResendingOtp ? (
+                        <>
+                          <Loader2 className="lp-btn-loading-icon" />
+                          {t("login.resending")}
+                        </>
+                      ) : canResendOtp ? (
+                        t("login.resendOtp")
+                      ) : (
+                        `${t("login.resendOtpIn")} ${timerText}`
+                      )}
                     </button>
                   </div>
 
                   <button type="submit" className="lp-btn-green" disabled={!canVerifyOtp}>
-                    {t("login.verifyOtp")}
+                    {isVerifyingOtp ? (
+                      <>
+                        <Loader2 className="lp-btn-loading-icon" />
+                        {t("login.verifying")}
+                      </>
+                    ) : (
+                      t("login.verifyOtp")
+                    )}
                   </button>
                 </>
               )}

@@ -27,6 +27,14 @@ function isSameLocalProxyPath(pathname, localProxyPath) {
   return prefix === "" || prefix.startsWith("/");
 }
 
+function normalizeLocalhostTarget(targetUrl) {
+  if (typeof targetUrl !== "string") return targetUrl;
+  return targetUrl.replace(/^https?:\/\/localhost(:|\/|$)/i, (match, sep) => {
+    const protocol = match.startsWith("https://") ? "https://" : "http://";
+    return `${protocol}127.0.0.1${sep}`;
+  });
+}
+
 function installWasmMimeMiddleware(server) {
   server.middlewares.use((req, res, next) => {
     const requestPath = (req.url ?? "").split("?")[0];
@@ -218,7 +226,8 @@ export default defineConfig(({ mode }) => {
   const devPort    = parseInt(env.VITE_DEV_PORT || "5173", 10);
   // Keep production default domain-agnostic to avoid cross-origin CORS breakage
   // when the app is served from a different host (for example harsac.online).
-  const baseURL    = env.VITE_SERVER_BASE_URL || "/eodb_backend";
+  const rawBaseURL = env.VITE_SERVER_BASE_URL || "/eodb_backend";
+  const baseURL    = rawBaseURL.startsWith("http") ? normalizeLocalhostTarget(rawBaseURL) : rawBaseURL;
   const backendOriginForPrefixedProxy = resolveProxyOrigin(baseURL);
   const rawBase    = env.VITE_BASENAME || "/";
   const base       = rawBase.endsWith("/") ? rawBase : rawBase + "/";
