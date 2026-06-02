@@ -220,17 +220,19 @@ export default function SidebarNav({
 
   const showProgress = sfProgress?.running || (sfProgress?.total > 0 && !sfProgress?.running);
 
+  const feedbackItem = items?.find((i) => i.id === "feedback");
+  const mainItems = (items || []).filter((i) => i.id !== "feedback");
+
   return (
     <aside className={`sidebar ${isOpen ? "sidebar--open" : ""}`}>
       <div className="sidebar__surface">
         <div className="sidebar__body">
           <nav className="sidebar__nav" aria-label="Main navigation">
-            {items.map((item) => {
+            {mainItems.map((item) => {
               const Icon = item.icon;
               const isActive =
                 item.id === "search"           ? searchExpanded  :
                 item.id === "find-latlong"     ? latLongExpanded :
-                item.id === "feedback"         ? Boolean(feedbackActive) :
                 item.id === "personalizations" ? selectorExpanded :
                 item.id === activeId;
 
@@ -386,6 +388,35 @@ export default function SidebarNav({
               );
             })}
           </nav>
+
+          {feedbackItem ? (
+            <div className="sidebar__footer">
+              {/*
+                Use a component variable for icon to avoid any React JSX edge-cases
+                when rendering a dynamic icon component.
+              */}
+              <button
+                type="button"
+                className={`sidebar__nav-item sidebar__nav-item--feedback ${
+                  feedbackActive ? "sidebar__nav-item--active" : ""
+                }`}
+                onClick={() => handleNavClick(feedbackItem.id)}
+              >
+                <span className="sidebar__nav-icon">
+                  {(() => {
+                    const FeedbackIcon = feedbackItem.icon;
+                    return <FeedbackIcon size={18} />;
+                  })()}
+                </span>
+                <span className="sidebar__nav-title">
+                  {(() => {
+                    const navEntry = t(`nav.${feedbackItem.id}.label`);
+                    return navEntry !== `nav.${feedbackItem.id}.label` ? navEntry : feedbackItem.label;
+                  })()}
+                </span>
+              </button>
+            </div>
+          ) : null}
         </div>
       </div>
     </aside>
