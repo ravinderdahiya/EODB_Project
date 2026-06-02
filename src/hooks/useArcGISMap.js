@@ -172,6 +172,22 @@ const syncStateBoundaryAndNearbyPlacesVisibility = ({
   }
 };
 
+/** Refresh visible HSAC MapImageLayers after zoom / scale changes. */
+export const refreshVisibleHsacMapImageLayers = (layers) => {
+  if (!layers) return;
+  [
+    layers.hsacBoundariesLayer,
+    layers.hsacStateBoundaryLayer,
+    layers.hsacCadastralLayer,
+    layers.nearbyPlacesLayer,
+    layers.governmentAssetsLayer,
+    layers.nhaiLayer,
+    layers.roadsLayer,
+  ].forEach((layer) => {
+    if (layer?.visible) layer.refresh?.();
+  });
+};
+
 export function useArcGISMap({
   activeBasemap,
   layerVisibility,
@@ -281,6 +297,7 @@ export function useArcGISMap({
     let popupResizeHandle;
     let clickHandle;
     let zoomWatchHandle;
+    let zoomLayerRefreshTimer = null;
     let view;
     let isDisposed = false;
 
@@ -487,6 +504,25 @@ export function useArcGISMap({
 
         startUserLocationWatch();
 
+        const syncLayersAfterZoom = () => {
+          const layers = layersRef.current;
+          if (!layers?.map) return;
+          refreshVisibleHsacMapImageLayers(layers);
+          const effective = getEffectiveLayerVisibility(layerVisibilityRef.current);
+          syncStateBoundaryAndNearbyPlacesVisibility({
+            layers,
+            effective,
+            currentScale: view.scale,
+          });
+        };
+
+        const scheduleZoomLayerRefresh = () => {
+          clearTimeout(zoomLayerRefreshTimer);
+          zoomLayerRefreshTimer = setTimeout(() => {
+            if (!isDisposed) syncLayersAfterZoom();
+          }, 250);
+        };
+
         // Slower, smoother mouse-wheel zoom at the cursor (small fractional steps + animation).
         const MOUSE_WHEEL_ZOOM_STEP = 0.12;
         const MOUSE_WHEEL_ZOOM_DURATION_MS = 130;
@@ -522,6 +558,7 @@ export function useArcGISMap({
             .catch(() => {})
             .finally(() => {
               if (wheelTargetZoom === nextZoom) wheelTargetZoom = null;
+              scheduleZoomLayerRefresh();
               runWheelZoom();
             });
         };
@@ -535,10 +572,13 @@ export function useArcGISMap({
           if (!wheelAnimating) runWheelZoom();
         });
 
-        // Live scale ratio — updates on every zoom/pan
+        // Live scale ratio — updates on every zoom/pan; debounced layer refresh on scale change.
         reactiveUtils.watch(
           () => view.scale,
-          (newScale) => { if (!isDisposed) setMapScale(newScale); },
+          (newScale) => {
+            if (!isDisposed) setMapScale(newScale);
+            scheduleZoomLayerRefresh();
+          },
           { initial: true },
         );
 
@@ -554,6 +594,7 @@ export function useArcGISMap({
             const shouldShow = effectiveState.cadastral && zoom > CLICK_ZOOM.VILLAGE_MAX;
             if (lyr.hsacCadastralLayer) lyr.hsacCadastralLayer.visible = shouldShow;
             if (lyr.highlightLayer)     lyr.highlightLayer.visible     = shouldShow;
+            scheduleZoomLayerRefresh();
           },
           { initial: true },
         );
@@ -853,6 +894,7 @@ export function useArcGISMap({
 
     return () => {
       isDisposed = true;
+      clearTimeout(zoomLayerRefreshTimer);
       stopUserLocationWatch();
       userLocationRef.current = null;
       userLocationErrorRef.current = null;
@@ -1005,15 +1047,32 @@ export function useArcGISMap({
     }
   };
 
+  const refreshLayersForCurrentView = useCallback(() => {
+    const layers = layersRef.current;
+    if (!layers?.map || !viewRef.current) {
+      return { ok: false, message: "Map is still loading." };
+    }
+    refreshVisibleHsacMapImageLayers(layers);
+    const effective = getEffectiveLayerVisibility(layerVisibilityRef.current);
+    syncStateBoundaryAndNearbyPlacesVisibility({
+      layers,
+      effective,
+      currentScale: viewRef.current.scale,
+    });
+    return { ok: true, message: "Map layers refreshed." };
+  }, []);
+
   const zoomIn = async () => {
     if (!viewRef.current) return { ok: false, message: "Map is still loading." };
     await viewRef.current.goTo({ zoom: viewRef.current.zoom + 1 });
+    refreshLayersForCurrentView();
     return { ok: true, message: "Zoomed in." };
   };
 
   const zoomOut = async () => {
     if (!viewRef.current) return { ok: false, message: "Map is still loading." };
     await viewRef.current.goTo({ zoom: viewRef.current.zoom - 1 });
+    refreshLayersForCurrentView();
     return { ok: true, message: "Zoomed out." };
   };
 
@@ -1037,22 +1096,7 @@ export function useArcGISMap({
     if (!layers.map) return { ok: false, message: "Map is still loading." };
 
     layers.map.basemap = resolveBasemap(activeBasemap);
-
-    [
-      layers.hsacBoundariesLayer,
-      layers.hsacCadastralLayer,
-      layers.governmentAssetsLayer,
-    ].forEach((layer) => layer?.refresh?.());
-
-    // Re-apply UI-driven visibility immediately after refresh so server/layer reload never overrides toggles.
-    const effective = getEffectiveLayerVisibility(layerVisibilityRef.current);
-    syncStateBoundaryAndNearbyPlacesVisibility({
-      layers,
-      effective,
-      currentScale: viewRef.current?.scale,
-    });
-
-    return { ok: true, message: "HSAC map layers refreshed." };
+    return refreshLayersForCurrentView();
   };
 
   const goToCurrentLocation = async () => {
@@ -1287,6 +1331,7 @@ export function useArcGISMap({
     zoomOut,
     resetView,
     refreshOperationalLayers,
+    refreshLayersForCurrentView,
     goToCurrentLocation,
     goToLatLong,
     searchPlace,
