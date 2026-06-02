@@ -151,37 +151,97 @@
 
 @media (max-width: 768px) {
   .basemap-switcher {
-    top: calc(0.9rem + env(safe-area-inset-top, 0px));
-    left: calc(0.9rem + 40px + 0.75rem);
-    right: calc(0.9rem + env(safe-area-inset-right, 0px));
+    top: calc(0.75rem + env(safe-area-inset-top, 0px));
+    left: calc(0.65rem + 34px + 0.5rem + env(safe-area-inset-left, 0px));
+    right: auto;
     width: auto;
-    max-width: min(320px, calc(100% - (0.9rem + 40px + 0.75rem) - (0.9rem + env(safe-area-inset-right, 0px))));
-    max-height: calc(100% - (1.8rem + env(safe-area-inset-top, 0px)) - (9.25rem + env(safe-area-inset-bottom, 0px)));
-    padding: 0.74rem;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
+    max-width: none;
+    max-height: none;
+    padding: 0.5rem;
+    border-radius: 16px;
+    overflow: visible;
   }
 
   .basemap-switcher__header {
-    margin-bottom: 0.72rem;
+    display: none;
   }
 
   .basemap-switcher__options {
-    max-height: calc(100% - 4.3rem);
-    padding-right: 0.2rem;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.42rem;
+    max-height: none;
+    padding-right: 0;
+    overflow: visible;
+  }
+
+  .basemap-switcher__option {
+    justify-content: center;
+    gap: 0;
+    width: 60px;
+    height: 60px;
+    padding: 0.26rem;
+    border-radius: 13px;
+  }
+
+  .basemap-switcher__option-text {
+    display: none;
+  }
+
+  .basemap-switcher__thumb {
+    width: 100%;
+    height: 100%;
+    border-radius: 9px;
+    border-width: 2px;
+  }
+
+  .basemap-switcher__option--active {
+    background: rgba(244, 248, 245, 0.95);
+    color: inherit;
+    box-shadow: none;
+  }
+
+  .basemap-switcher__option--active .basemap-switcher__thumb {
+    border-color: rgba(47, 141, 93, 0.95);
+    box-shadow: 0 0 0 2px rgba(47, 141, 93, 0.35);
+  }
+
+  .basemap-switcher__option:hover:not(.basemap-switcher__option--active) {
+    transform: none;
+    box-shadow: none;
+  }
+
+  :root[data-theme="dark"] .basemap-switcher__option--active {
+    background: rgba(23, 40, 56, 0.92);
+    color: inherit;
+    box-shadow: none;
+  }
+
+  :root[data-theme="dark"] .basemap-switcher__option--active .basemap-switcher__thumb {
+    border-color: rgba(65, 174, 121, 0.95);
+    box-shadow: 0 0 0 2px rgba(65, 174, 121, 0.4);
   }
 }
 
-@media (max-width: 560px) {
+@media (max-width: 480px) {
   .basemap-switcher {
-    left: calc(0.8rem + 40px + 0.65rem);
-    right: calc(0.8rem + env(safe-area-inset-right, 0px));
-    width: auto;
-    max-width: none;
-    max-height: calc(100% - (1.6rem + env(safe-area-inset-top, 0px)) - (9.4rem + env(safe-area-inset-bottom, 0px)));
-    padding: 0.7rem;
+    left: calc(0.55rem + 32px + 0.45rem + env(safe-area-inset-left, 0px));
+    padding: 0.45rem;
+    border-radius: 14px;
+  }
+
+  .basemap-switcher__options {
+    gap: 0.38rem;
+  }
+
+  .basemap-switcher__option {
+    width: 54px;
+    height: 54px;
+    padding: 0.22rem;
+    border-radius: 12px;
+  }
+
+  .basemap-switcher__thumb {
+    border-radius: 8px;
   }
 }

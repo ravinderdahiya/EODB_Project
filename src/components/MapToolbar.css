@@ -102,23 +102,65 @@
   /* Zoom toolbar: keep at bottom-left */
   .map-toolbar:not(.map-toolbar--left) {
     bottom: calc(2.5rem + env(safe-area-inset-bottom, 0px));
-    left: max(0.9rem, env(safe-area-inset-left, 0px));
+    left: max(0.65rem, env(safe-area-inset-left, 0px));
     top: auto;
     right: auto;
-    gap: 0.48rem;
+    gap: 0.32rem;
   }
 
-  /* Action toolbar: keep at top-left, unchanged */
+  /* Action toolbar: keep at top-left */
   .map-toolbar--left {
-    top: 1rem;
+    top: 0.75rem;
     bottom: auto;
-    left: 0.9rem;
+    left: max(0.65rem, env(safe-area-inset-left, 0px));
+    gap: 0.32rem;
   }
 
   .map-toolbar__button {
-    width: 40px;
-    height: 40px;
-    border-radius: 13px;
+    width: 34px;
+    height: 34px;
+    border-radius: 11px;
+  }
+
+  .map-toolbar__button svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  .map-toolbar__tool {
+    gap: 0.14rem;
+  }
+
+  .map-toolbar__tool-caption {
+    font-size: 0.52rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .map-toolbar:not(.map-toolbar--left) {
+    left: max(0.55rem, env(safe-area-inset-left, 0px));
+    gap: 0.28rem;
+  }
+
+  .map-toolbar--left {
+    top: 0.65rem;
+    left: max(0.55rem, env(safe-area-inset-left, 0px));
+    gap: 0.28rem;
+  }
+
+  .map-toolbar__button {
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+  }
+
+  .map-toolbar__button svg {
+    width: 13px;
+    height: 13px;
+  }
+
+  .map-toolbar__tool-caption {
+    font-size: 0.48rem;
   }
 }
 
@@ -138,7 +180,7 @@
   .map-toolbar {
     bottom: 0.9rem;
     left: 0.75rem;
-    gap: 0.4rem;
+    gap: 0.32rem;
   }
 
   /* Fixed below north toggle — position never changes when compass expands */
@@ -147,18 +189,28 @@
     right: calc(0.65rem + env(safe-area-inset-right, 0px));
     left: auto;
     bottom: auto;
-    gap: 0.35rem;
+    gap: 0.28rem;
     z-index: 23;
   }
 
   .map-toolbar--left {
-    top: 0.75rem;
-    left: 0.75rem;
+    top: 0.65rem;
+    left: max(0.55rem, env(safe-area-inset-left, 0px));
+    gap: 0.28rem;
   }
 
   .map-toolbar__button {
-    width: 36px;
-    height: 36px;
-    border-radius: 11px;
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+  }
+
+  .map-toolbar__button svg {
+    width: 13px;
+    height: 13px;
+  }
+
+  .map-toolbar__tool-caption {
+    font-size: 0.48rem;
   }
 }

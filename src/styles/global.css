@@ -310,8 +310,8 @@ select:focus-visible {
   }
 
   .dashboard-shell {
-    padding: 0.55rem;
-    padding-bottom: max(0.55rem, env(safe-area-inset-bottom, 0px));
+    padding: 0.4rem 0.28rem;
+    padding-bottom: max(0.4rem, env(safe-area-inset-bottom, 0px));
   }
 }
 
@@ -335,8 +335,8 @@ select:focus-visible {
 
   .dashboard-shell {
     gap: 0.35rem;
-    padding: 0.45rem;
-    padding-bottom: max(0.45rem, env(safe-area-inset-bottom, 0px));
+    padding: 0.35rem 0.22rem;
+    padding-bottom: max(0.35rem, env(safe-area-inset-bottom, 0px));
   }
 }
 
