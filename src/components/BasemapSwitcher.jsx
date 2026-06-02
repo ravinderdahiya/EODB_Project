@@ -21,6 +21,8 @@ export default function BasemapSwitcher({ activeBasemap, onChange }) {
               activeBasemap === preset.id ? "basemap-switcher__option--active" : ""
             }`}
             onClick={() => onChange(preset.id)}
+            aria-label={preset.label}
+            title={preset.label}
           >
             {preset.thumbnail && (
               <img

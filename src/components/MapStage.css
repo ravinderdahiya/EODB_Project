@@ -298,6 +298,95 @@
   font-size: 0.82rem;
 }
 
+/* ── Information row / card hover (bottom table panel) ─────── */
+
+.parcel-table-panel .parcel-details-table tbody tr {
+  transition: filter 0.3s ease-in-out;
+}
+
+.parcel-table-panel .parcel-details-table tbody tr td {
+  transition:
+    background 0.3s ease-in-out,
+    color 0.3s ease-in-out,
+    font-weight 0.3s ease-in-out,
+    font-size 0.3s ease-in-out,
+    box-shadow 0.3s ease-in-out;
+}
+
+.parcel-table-panel .parcel-details-table tbody tr:hover {
+  filter: drop-shadow(0 4px 14px rgba(47, 141, 93, 0.16));
+}
+
+.parcel-table-panel .parcel-details-table tbody tr:hover td {
+  background: linear-gradient(
+    90deg,
+    rgba(47, 141, 93, 0.11),
+    rgba(46, 115, 180, 0.07)
+  );
+  color: var(--ink);
+  font-weight: 800;
+  font-size: 0.945rem;
+  box-shadow: inset 0 0 0 1px rgba(47, 141, 93, 0.14);
+}
+
+.parcel-table-panel .parcel-details-table tbody tr:hover td:first-child {
+  border-top-left-radius: 12px;
+  border-bottom-left-radius: 12px;
+}
+
+.parcel-table-panel .parcel-details-table tbody tr:hover td:last-child {
+  border-top-right-radius: 12px;
+  border-bottom-right-radius: 12px;
+}
+
+.parcel-table-panel .parcel-details-table tbody tr:hover .parcel-details-table__owner {
+  color: var(--green);
+}
+
+.parcel-table-panel .info-row {
+  border-radius: 12px;
+  margin-inline: -0.15rem;
+  padding-inline: 0.15rem;
+  transition:
+    transform 0.3s ease-in-out,
+    background 0.3s ease-in-out,
+    box-shadow 0.3s ease-in-out,
+    border-color 0.3s ease-in-out;
+}
+
+.parcel-table-panel .info-row:hover {
+  transform: scale(1.015);
+  background: linear-gradient(
+    135deg,
+    rgba(47, 141, 93, 0.1),
+    rgba(46, 115, 180, 0.06)
+  );
+  box-shadow: 0 6px 18px rgba(47, 141, 93, 0.14);
+  border-bottom-color: transparent;
+}
+
+.parcel-table-panel .info-row:hover span,
+.parcel-table-panel .info-row:hover strong {
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.parcel-table-panel .info-row:hover strong {
+  color: var(--green);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .parcel-table-panel .parcel-details-table tbody tr,
+  .parcel-table-panel .parcel-details-table tbody tr td,
+  .parcel-table-panel .info-row {
+    transition: none;
+  }
+
+  .parcel-table-panel .info-row:hover {
+    transform: none;
+  }
+}
+
 /* ── SF Fetching Badge (in table panel header) ────────────── */
 
 .sf-fetching-badge {
@@ -1027,6 +1116,37 @@
   background: rgba(23, 40, 56, 0.98);
 }
 
+:root[data-theme="dark"] .parcel-table-panel .parcel-details-table tbody tr:hover {
+  filter: drop-shadow(0 4px 16px rgba(47, 141, 93, 0.22));
+}
+
+:root[data-theme="dark"] .parcel-table-panel .parcel-details-table tbody tr:hover td {
+  background: linear-gradient(
+    90deg,
+    rgba(47, 141, 93, 0.18),
+    rgba(46, 115, 180, 0.12)
+  );
+  box-shadow: inset 0 0 0 1px rgba(99, 193, 137, 0.18);
+  color: var(--ink);
+}
+
+:root[data-theme="dark"] .parcel-table-panel .parcel-details-table tbody tr:hover .parcel-details-table__owner {
+  color: #4fd585;
+}
+
+:root[data-theme="dark"] .parcel-table-panel .info-row:hover {
+  background: linear-gradient(
+    135deg,
+    rgba(47, 141, 93, 0.16),
+    rgba(46, 115, 180, 0.1)
+  );
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.28);
+}
+
+:root[data-theme="dark"] .parcel-table-panel .info-row:hover strong {
+  color: #4fd585;
+}
+
 :root[data-theme="dark"] .info-row {
   border-bottom-color: var(--line);
 }
@@ -1416,9 +1536,21 @@
 }
 
 @media (max-width: 768px) {
+  .map-stage__viewport {
+    border-radius: 18px;
+  }
+
   .map-stage__status {
     top: 0.9rem;
     font-size: 0.84rem;
+  }
+
+  .map-disclaimer {
+    height: 1.35rem;
+  }
+
+  .map-disclaimer__track {
+    font-size: 0.78rem;
   }
 
   .parcel-table-toggle {
@@ -1464,6 +1596,18 @@
 
 /* Small mobile: single-column actions, panels fill viewport width */
 @media (max-width: 480px) {
+  .map-stage__viewport {
+    border-radius: 14px;
+  }
+
+  .map-disclaimer {
+    height: 1.2rem;
+  }
+
+  .map-disclaimer__track {
+    font-size: 0.72rem;
+  }
+
   .record-panel__actions {
     grid-template-columns: 1fr;
   }
