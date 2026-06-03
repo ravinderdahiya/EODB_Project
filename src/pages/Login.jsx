@@ -9,6 +9,13 @@ import { reloadRuntimeConfig } from "@/config/runtimeConfig";
 import { mountSplash } from "../splash";
 import { buildDevicePayload } from "../utils/deviceIdentity";
 
+const formatApiError = (err, fallback) => {
+  const apiData = err?.response?.data;
+  const message = apiData?.message || fallback;
+  const reason = apiData?.reason ? ` (${apiData.reason})` : "";
+  return `${message}${reason}`.trim();
+};
+
 const LOGIN_FONT_FADE_OUT_MS = 380;
 const LOGIN_FONT_FADE_IN_MS = 420;
 const INSIGHTS_REFRESH_INTERVAL_MS = 60 * 1000;
@@ -265,7 +272,7 @@ export default function Login() {
       navigate("/map");
     } catch (err) {
       clearAuthMarkers();
-      setError(err.response?.data?.message || t("login.errOtpFailed"));
+      setError(formatApiError(err, t("login.errOtpFailed")));
     } finally {
       setIsVerifyingOtp(false);
     }
@@ -288,7 +295,7 @@ export default function Login() {
         setError(res.data?.message || res.data?.warning || t("login.errSendFailed"));
       }
     } catch (err) {
-      setError(err.response?.data?.message || t("login.errSendFailed"));
+      setError(formatApiError(err, t("login.errSendFailed")));
     } finally {
       setIsResendingOtp(false);
     }
@@ -345,7 +352,7 @@ export default function Login() {
       }
     } catch (err) {
       clearAuthMarkers();
-      setError(err.response?.data?.message || t("login.errSendFailed"));
+      setError(formatApiError(err, t("login.errSendFailed")));
       loadCaptcha();
     } finally {
       setIsSendingOtp(false);
