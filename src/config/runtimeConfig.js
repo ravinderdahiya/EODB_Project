@@ -169,7 +169,7 @@ export async function loadRuntimeConfig() {
       const endpoint = resolveFrontendConfigEndpoint();
       const response = await fetch(endpoint, {
         method: "GET",
-        credentials: "include",
+        credentials: "omit",
         headers: {
           Accept: "application/json",
         },
