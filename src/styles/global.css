@@ -63,6 +63,142 @@ button {
 }
 
 /* =========================
+   Interactive Hover Scale
+   Subtle scale-up on buttons/toggles (composes with existing transform hovers).
+========================= */
+
+:where(
+  button:not(:disabled):not(.no-hover-scale),
+  label.toggle-row,
+  input[type="checkbox"],
+  input[type="radio"],
+  [role="button"]:not([aria-disabled="true"]),
+  .icon-button,
+  .header-action-button,
+  .app-header__menu-button,
+  .app-header__settings-item,
+  .profile-chip,
+  .lang-toggle__btn,
+  .sidebar__nav-item,
+  .sidebar-toggle,
+  .map-toolbar__button,
+  .basemap-switcher__option,
+  .toggle-row--group,
+  .measurement-panel__close-btn,
+  .measurement-panel__action-btn,
+  .search-section__trigger,
+  .search-section__print-btn,
+  .search-shell__submit,
+  .search-shell__suggestion,
+  .parcel-table-toggle,
+  .parcel-table-panel__print,
+  .parcel-table-panel__whatsapp,
+  .parcel-table-panel__close,
+  .action-link,
+  .feedback-fab,
+  .feedback-modal__close,
+  .feedback-form__submit,
+  .voice-mic-btn,
+  .voice-chips__chip,
+  .voice-bar__speak-btn,
+  .voice-bar__badge--actionable,
+  .zws__label,
+  .ncc__toggle,
+  .ncc__close,
+  .ncc__center,
+  .admin-table-pagination__button,
+  .admin-log-device__toggle,
+  .admin-read-more-btn,
+  .admin-api-url-copy-btn,
+  .admin-action-btn
+) {
+  transform-origin: center;
+  transition: scale 180ms ease, transform 180ms ease, background 180ms ease,
+    background-color 180ms ease, box-shadow 180ms ease, color 180ms ease,
+    border-color 180ms ease, opacity 180ms ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  :where(
+    button:not(:disabled):not(.no-hover-scale):hover,
+    label.toggle-row:hover,
+    input[type="checkbox"]:hover,
+    input[type="radio"]:hover,
+    [role="button"]:not([aria-disabled="true"]):hover,
+    .icon-button:hover,
+    .header-action-button:hover,
+    .app-header__menu-button:hover,
+    .app-header__settings-item:hover,
+    .profile-chip:hover,
+    .lang-toggle__btn:hover,
+    .sidebar__nav-item:hover,
+    .sidebar-toggle:hover,
+    .map-toolbar__button:hover,
+    .basemap-switcher__option:hover,
+    .toggle-row--group:hover,
+    .measurement-panel__close-btn:hover,
+    .measurement-panel__action-btn:hover:not(:disabled),
+    .search-section__trigger:hover,
+    .search-section__print-btn:hover,
+    .search-shell__submit:hover,
+    .search-shell__suggestion:hover,
+    .parcel-table-toggle:hover,
+    .parcel-table-panel__print:hover,
+    .parcel-table-panel__whatsapp:hover,
+    .parcel-table-panel__close:hover,
+    .action-link:hover,
+    .feedback-fab:hover,
+    .feedback-modal__close:hover,
+    .feedback-form__submit:hover:not(:disabled),
+    .voice-mic-btn:hover,
+    .voice-chips__chip:hover:not(:disabled),
+    .voice-bar__speak-btn:hover:not(:disabled),
+    .voice-bar__badge--actionable:hover,
+    .zws__label:hover,
+    .ncc__toggle:hover,
+    .ncc__close:hover,
+    .ncc__center:hover,
+    .admin-table-pagination__button:hover:not(:disabled),
+    .admin-log-device__toggle:hover,
+    .admin-read-more-btn:hover,
+    .admin-api-url-copy-btn:hover,
+    .admin-action-btn:hover
+  ) {
+    scale: var(--interactive-hover-scale);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :where(
+    button:not(:disabled),
+    label.toggle-row,
+    input[type="checkbox"],
+    input[type="radio"],
+    [role="button"],
+    .icon-button,
+    .header-action-button,
+    .sidebar__nav-item,
+    .map-toolbar__button,
+    .basemap-switcher__option,
+    .toggle-row--group
+  ) {
+    transition: none;
+  }
+
+  :where(
+    button:not(:disabled):hover,
+    label.toggle-row:hover,
+    .icon-button:hover,
+    .sidebar__nav-item:hover,
+    .map-toolbar__button:hover,
+    .basemap-switcher__option:hover,
+    .toggle-row--group:hover
+  ) {
+    scale: 1;
+  }
+}
+
+/* =========================
    Utility Classes
 ========================= */
 

@@ -51,6 +51,9 @@
   --app-height: 100dvh;
   --header-height: 74px;
 
+  /* Interactive hover — subtle scale-up on buttons/toggles */
+  --interactive-hover-scale: 1.05;
+
   /* Popup card tokens */
   --popup-card-bg:
     linear-gradient(180deg, rgba(255, 252, 244, 0.28), rgba(238, 231, 203, 0.22)),

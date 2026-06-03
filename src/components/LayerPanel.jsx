@@ -2,6 +2,7 @@ import "./LayerPanel.css";
 import { useState } from "react";
 import { ChevronDown, RefreshCcw } from "lucide-react";
 import { arcgisPortalConfig } from "@/config/arcgis";
+import { getLayerPanelSymbol } from "@/config/layerPanelSymbology";
 import { useLanguage } from "@/context/LanguageContext";
 
 function HealthDot({ status }) {
@@ -13,12 +14,35 @@ function HealthDot({ status }) {
   );
 }
 
-function LayerToggleRow({ title, description, checked, onChange }) {
+function LayerSymbolSwatch({ symbolKey }) {
+  const symbol = getLayerPanelSymbol(symbolKey);
+  if (!symbol) return null;
+
+  const style = {
+    "--layer-symbol-fill": symbol.fill ?? "transparent",
+    "--layer-symbol-stroke": symbol.stroke ?? "currentColor",
+    "--layer-symbol-stroke-width": `${symbol.strokeWidth ?? 2}px`,
+    ...(symbol.dash ? { "--layer-symbol-dash": symbol.dash } : {}),
+  };
+
+  return (
+    <span
+      className={`layer-symbol layer-symbol--${symbol.type}${symbol.dash ? " layer-symbol--dashed" : ""}`}
+      style={style}
+      aria-hidden="true"
+    />
+  );
+}
+
+function LayerToggleRow({ title, description, checked, onChange, symbolKey }) {
   return (
     <label className="toggle-row">
-      <span className="toggle-row__copy">
-        <strong>{title}</strong>
-        <small>{description}</small>
+      <span className="toggle-row__leading">
+        <LayerSymbolSwatch symbolKey={symbolKey} />
+        <span className="toggle-row__copy">
+          <strong>{title}</strong>
+          <small>{description}</small>
+        </span>
       </span>
       <input type="checkbox" checked={checked} onChange={onChange} />
     </label>
@@ -92,6 +116,7 @@ export default function LayerPanel({
             description={t("layerPanel.murrabaGridDesc")}
             checked={layerVisibility.murrabaGrid ?? false}
             onChange={() => onToggleLayer("murrabaGrid")}
+            symbolKey="murrabaGrid"
           />
 
           <LayerToggleRow
@@ -99,6 +124,7 @@ export default function LayerPanel({
             description={t("layerPanel.cadastralLayerDesc")}
             checked={layerVisibility.cadastral}
             onChange={() => onToggleLayer("cadastral")}
+            symbolKey="cadastral"
           />
         </LayerCollapsibleGroup>
       </div>
@@ -115,6 +141,7 @@ export default function LayerPanel({
             description={t("layerPanel.boundaryLayers.state.description")}
             checked={layerVisibility.stateBoundary ?? false}
             onChange={() => onToggleLayer("stateBoundary")}
+            symbolKey="stateBoundary"
           />
 
           {arcgisPortalConfig.boundarySublayers.map((layer) => (
@@ -124,6 +151,7 @@ export default function LayerPanel({
               description={t(`layerPanel.boundaryLayers.${layer.key}.description`)}
               checked={layerVisibility[layer.key]}
               onChange={() => onToggleLayer(layer.key)}
+              symbolKey={layer.key}
             />
           ))}
         </LayerCollapsibleGroup>
@@ -153,6 +181,7 @@ export default function LayerPanel({
               description={layer.description}
               checked={layerVisibility[layer.key] ?? false}
               onChange={() => onToggleLayer(layer.key)}
+              symbolKey={layer.key}
             />
           ))}
         </LayerCollapsibleGroup>

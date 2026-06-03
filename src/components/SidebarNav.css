@@ -25,7 +25,7 @@
   height: 100%;
   display: flex;
   flex-direction: column;
-  padding: 0.7rem;
+  padding: 0.7rem 0.35rem;
   border: 1px solid rgba(255, 255, 255, 0.72);
   border-radius: 29px;
   background:
@@ -58,6 +58,10 @@
   overflow-y: auto;
   overflow-x: hidden;
   min-height: 0;
+  /* Horizontal breathing room so hover scale-up isn't clipped at the sides.
+     overflow-y:auto forces overflow-x to compute as auto, so padding (not
+     overflow:visible) is what keeps scaled cards from being cut off. */
+  padding-inline: 0.5rem;
   scrollbar-width: thin;
   scrollbar-color: rgba(47, 141, 93, 0.2) transparent;
 }
@@ -78,6 +82,7 @@
   --sidebar-nav-gap: 0.45rem;
   gap: var(--sidebar-nav-gap);
   align-content: start;
+  padding-top: 0.55rem;
 }
 
 .sidebar__nav-item {
@@ -146,6 +151,7 @@
 .sidebar__footer {
   margin-top: auto; /* Push footer to the bottom in the sidebar flex-column */
   padding-top: 0.55rem;
+  padding-bottom: 0.6rem;
 }
 
 .sidebar__footer .sidebar__nav-item {
