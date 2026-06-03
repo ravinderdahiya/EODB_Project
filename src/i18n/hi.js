@@ -1,7 +1,7 @@
 const hi = {
   header: {
-    title: "डिजिटल भूमि अभिलेख, हरियाणा",
-    subtitle: "44212-GeoStack EODB, हरियाणा",
+    title: "44212-जियोस्टेक ईओडीबी, हरियाणा",
+    subtitle: "व्यवसाय करने में आसानी",
     adminSubtitle: "प्रशासन डैशबोर्ड",
     searchLabel: "भूमि अभिलेख या स्थान खोजें",
     searchPlaceholderDefault: "हरियाणा में स्थान खोजें या साइडबार से रिकॉर्ड खोजें",
