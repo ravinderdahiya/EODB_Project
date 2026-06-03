@@ -193,7 +193,19 @@ export async function getKhatonis(dCode, tCode, vCode, period, khewat) {
  * @param {string} khasraNo
  * @returns {Promise<string[]>}  One entry per owner
  */
+// Owner names rarely change within a session and the upstream ASMX call is the
+// slowest part of the parcel popup (~1s). Cache successful lookups so re-clicking
+// the same parcel resolves instantly. Failed/empty lookups are not cached so they
+// can be retried.
+const _ownerNameCache = new Map();
+
 export async function getOwnerNames(dCode, tCode, vCode, murabbaNo, khasraNo) {
+  const cacheKey = `${dCode}|${tCode}|${vCode}|${murabbaNo}|${khasraNo}`;
+  const cached = _ownerNameCache.get(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
   const doc = await asmxGet("Owner_name", {
     Dcode1:  dCode,
     Tcode1:  tCode,
@@ -218,6 +230,10 @@ export async function getOwnerNames(dCode, tCode, vCode, murabbaNo, khasraNo) {
       if (trimmed) owners.push(trimmed);
     });
   });
+
+  if (owners.length) {
+    _ownerNameCache.set(cacheKey, owners);
+  }
 
   return owners;
 }

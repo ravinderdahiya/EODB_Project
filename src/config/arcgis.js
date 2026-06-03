@@ -61,6 +61,9 @@ export const DISTRICT_SUBLAYERS = [
   { id: 20, code: "20", name: "Mewat" },
   { id: 21, code: "21", name: "Palwal" },
   { id: 22, code: "22", name: "Charkhi Dadri" },
+  // Hansi is a newer district: its cadastral data lives on layer id 32 even though
+  // the district code is 23 (code !== layer id, unlike districts 01–22).
+  { id: 32, code: "23", name: "Hansi" },
 ];
 
 export const arcgisPortalConfig = {

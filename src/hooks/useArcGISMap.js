@@ -816,7 +816,9 @@ export function useArcGISMap({
         const popupRequestId = ++cadastralPopupRequestCounter;
 
         const loadingPopup = createLandRecordPopupContent({
-          parcel: createPopupLoadingPreview(selectedParcelRef.current, event.mapPoint),
+          // Start the loading popup blank ("--") instead of inheriting the previously
+          // selected parcel, so a new click never shows the old record while loading.
+          parcel: createPopupLoadingPreview(null, event.mapPoint),
           onClose: () => closeLandRecordMiniPopup(popupStateRef),
           onViewFullDetails: () => onPreviewFullDetailsRef.current?.(selectedParcelRef.current),
         });
@@ -835,11 +837,17 @@ export function useArcGISMap({
         );
 
         if (!cadastralHit) {
-          const [queriedFeature, identifiedFeature] = await Promise.all([
-            queryCadastralParcelAtClick({ view, layers: currentLayers, event }),
-            identifyCadastralParcelAtPoint({ view, layers: currentLayers, mapPoint: event.mapPoint }),
-          ]);
-          const resolvedFeature = queriedFeature ?? identifiedFeature;
+          // Identify resolves the parcel across all cadastral sublayers in a single
+          // request. Only fall back to the per-layer query loop when identify finds
+          // nothing, so the slow sequential queries no longer run on every click.
+          let resolvedFeature = await identifyCadastralParcelAtPoint({
+            view,
+            layers: currentLayers,
+            mapPoint: event.mapPoint,
+          });
+          if (!resolvedFeature) {
+            resolvedFeature = await queryCadastralParcelAtClick({ view, layers: currentLayers, event });
+          }
           if (resolvedFeature) {
             cadastralHit = { graphic: resolvedFeature };
           }
@@ -862,7 +870,10 @@ export function useArcGISMap({
         const quickPreviewRecord = createInstantParcelPreview({
           attributes: cadastralHit?.graphic?.attributes,
           geometry: targetGeometry,
-          fallbackParcel: selectedParcelRef.current,
+          // No fallback to the previous parcel: fields not present in the clicked
+          // feature (owner name, area, jamabandi…) show "--"/"Loading" instead of
+          // the old record's values until the full details resolve.
+          fallbackParcel: null,
         });
 
         if (!quickPreviewRecord) {
