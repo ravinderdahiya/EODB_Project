@@ -242,7 +242,7 @@ export default function AppHeader({
               aria-haspopup="menu"
               title={t("header.settings")}
             >
-              <Settings size={18} />
+              <Settings size={20} />
             </button>
 
             {settingsOpen ? (

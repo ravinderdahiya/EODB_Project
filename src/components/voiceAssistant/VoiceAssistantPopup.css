@@ -11,12 +11,14 @@
   flex-shrink: 0;
 }
 
-/* Circular mic button — same pill style as Search by default */
+/* Circular mic button — moderate size on desktop/laptop; smaller on phone below */
 .voice-mic-btn {
   position: relative;
   flex-shrink: 0;
-  width: clamp(34px, 2.6vw, 42px);
-  height: clamp(34px, 2.6vw, 42px);
+  width: 34px;
+  height: 34px;
+  min-width: 34px;
+  min-height: 34px;
   padding: 0;
   border-radius: 50%;
   display: inline-flex;
@@ -27,8 +29,8 @@
 }
 
 .voice-mic-btn svg {
-  width: clamp(14px, 1.2vw, 17px);
-  height: clamp(14px, 1.2vw, 17px);
+  width: 15px;
+  height: 15px;
 }
 
 /* Pulsing ring element inside the button */
@@ -403,9 +405,30 @@
 
 /* ── Responsive ─────────────────────────────────────────────────── */
 
+@media (max-width: 1024px) {
+  .voice-mic-btn__ring {
+    inset: -4px;
+  }
+
+  .voice-mic-btn--listening::before {
+    inset: -9px;
+  }
+}
+
 @media (max-width: 768px) {
-  .voice-mic-btn { width: 38px; height: 38px; }
-  .voice-mic-btn--listening::before { inset: -10px; }
+  .voice-mic-btn {
+    width: 28px;
+    height: 28px;
+  }
+
+  .voice-mic-btn svg {
+    width: 13px;
+    height: 13px;
+  }
+
+  .voice-mic-btn--listening::before {
+    inset: -8px;
+  }
   .voice-bar__inner { gap: 0.34rem; }
   .voice-bar__badge { max-width: 154px; padding: 0.11rem 0.36rem; }
   .voice-bar__badge-text { font-size: 0.58rem; }
@@ -421,6 +444,24 @@
 }
 
 @media (max-width: 480px) {
+  .voice-mic-btn {
+    width: 26px;
+    height: 26px;
+  }
+
+  .voice-mic-btn svg {
+    width: 12px;
+    height: 12px;
+  }
+
+  .voice-mic-btn__ring {
+    inset: -3px;
+  }
+
+  .voice-mic-btn--listening::before {
+    inset: -7px;
+  }
+
   /* Hide the meters on very small screens to save space */
   .voice-bar__meter { display: none; }
   .voice-bar__badge { max-width: 132px; }
@@ -437,13 +478,13 @@
 
 @media (orientation: landscape) and (max-height: 600px) {
   .voice-mic-btn {
-    width: 34px;
-    height: 34px;
+    width: 28px;
+    height: 28px;
   }
 
   .voice-mic-btn svg {
-    width: 14px;
-    height: 14px;
+    width: 13px;
+    height: 13px;
   }
 
   .voice-mic-btn__ring {
