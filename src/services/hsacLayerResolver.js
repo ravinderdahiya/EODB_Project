@@ -2,7 +2,9 @@ import esriRequest from "@arcgis/core/request.js";
 import { DISTRICT_SUBLAYERS, HSAC_LAYER, getHsacMainUrl } from "@/config/arcgis";
 
 const FALLBACK_LAYER_ID = DISTRICT_SUBLAYERS[0]?.id ?? 1;
-const HSAC_LAYER_PLAN_STORAGE_KEY = "eodb_hsac_layer_plan_v1";
+// Bump the version whenever the canonical layer set changes (e.g. adding the Hansi
+// cadastral layer) so stale cached plans without the new layers are discarded.
+const HSAC_LAYER_PLAN_STORAGE_KEY = "eodb_hsac_layer_plan_v2";
 const HSAC_LAYER_PLAN_REFRESH_TIMEOUT_MS = 2500;
 
 let cachedLayerPlanPromise;
@@ -45,7 +47,25 @@ function parseLayerId(code) {
   return Number.isFinite(value) ? value : null;
 }
 
+// Normalise a district code to the 2-digit form used in DISTRICT_SUBLAYERS (e.g. "5" → "05").
+function normaliseDistrictCode(dCode) {
+  const raw = `${dCode ?? ""}`.trim();
+  if (!raw) return "";
+  const digits = raw.replace(/^0+/, "") || raw;
+  return digits.padStart(2, "0");
+}
+
 function getLayerIdFromDistrictCode(dCode, layerIds) {
+  // District code and cadastral layer id are NOT always identical. Districts
+  // 01–22 map to layer ids 1–22, but newer districts differ — e.g. Hansi has
+  // district code 23 yet its cadastral data lives on layer id 32. Resolve via the
+  // canonical sublayer table first so these special cases are handled correctly.
+  const entry = DISTRICT_SUBLAYERS.find((d) => d.code === normaliseDistrictCode(dCode));
+  if (entry) {
+    return layerIds.has(entry.id) ? entry.id : null;
+  }
+
+  // Unknown code: fall back to the legacy assumption that code === layer id.
   const candidate = parseLayerId(String(dCode).replace(/^0+/, "") || dCode);
   if (candidate !== null && layerIds.has(candidate)) {
     return candidate;
