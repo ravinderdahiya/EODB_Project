@@ -1554,7 +1554,14 @@
   }
 
   .parcel-table-toggle {
-    bottom: calc(1.25rem + env(safe-area-inset-bottom, 0px));
+    width: 40px;
+    height: 24px;
+    bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  .parcel-table-toggle svg {
+    width: 16px;
+    height: 16px;
   }
 
   .map-stage__viewport--table-open .parcel-table-toggle {
@@ -1626,6 +1633,17 @@
 
   .parcel-table-panel__header h2 {
     font-size: 0.84rem;
+  }
+
+  .parcel-table-toggle {
+    width: 36px;
+    height: 22px;
+    bottom: calc(0.85rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  .parcel-table-toggle svg {
+    width: 14px;
+    height: 14px;
   }
 }
 

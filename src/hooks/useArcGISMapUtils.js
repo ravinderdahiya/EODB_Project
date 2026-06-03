@@ -405,10 +405,19 @@ export function hydrateLandRecordPopupDetails(popupContainer, preview, options =
   const s = getPopupLocaleStrings();
   const keepLoading = Boolean(options.keepLoading);
 
+  const toDisplayValue = (value) => {
+    const text = `${value ?? ""}`.trim();
+    if (!text) return "--";
+    if (/^loading(\.\.\.)?$/i.test(text)) return "--";
+    if (/लोड हो रहा/i.test(text)) return "--";
+    return text;
+  };
+
   const applyText = (field, value, prefix = "") => {
     const node = popupContainer.querySelector(`[data-field="${field}"]`);
     if (!node) return;
-    node.textContent = `${prefix}${value ?? "--"}`;
+    const display = field === "lastUpdated" ? (value ?? "--") : toDisplayValue(value);
+    node.textContent = `${prefix}${display}`;
   };
 
   applyText("district", preview.district);
@@ -524,10 +533,10 @@ export function createInstantParcelPreview({ attributes = {}, geometry = null, f
     villageCode,
     murabbaNo,
     khasraNo,
-    ownerName: pick(fallback.ownerName, isHindi ? "लोड हो रहा है..." : "Loading..."),
+    ownerName: pick(fallback.ownerName, "--"),
     khewatNo: pick(fallback.khewatNo, "Upcoming"),
     khatoniNo: pick(fallback.khatoniNo, "Upcoming"),
-    jamabandiYear: pick(fallback.jamabandiYear, isHindi ? "लोड हो रहा है..." : "Loading..."),
+    jamabandiYear: pick(fallback.jamabandiYear, "--"),
     area: pick(fallback.area, "--"),
     landUse: pick(fallback.landUse, "--"),
     verificationStatus: isHindi ? "लाइव विवरण प्राप्त किए जा रहे हैं" : "Fetching live details",
@@ -555,10 +564,10 @@ export function createPopupLoadingPreview(fallbackParcel, mapPoint) {
     villageCode: fallback.villageCode || "",
     murabbaNo: "--",
     khasraNo: "--",
-    ownerName: "Loading...",
+    ownerName: "--",
     khewatNo: "Upcoming",
     khatoniNo: "Upcoming",
-    jamabandiYear: "Loading...",
+    jamabandiYear: "--",
     area: "--",
     landUse: "--",
     verificationStatus: "Loading details",

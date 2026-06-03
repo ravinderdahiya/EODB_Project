@@ -1042,7 +1042,7 @@ export default function VoiceAssistantPopup({
       title={isSupported ? "Voice command" : "Voice command not supported in this browser"}
     >
       <span className="voice-mic-btn__ring" aria-hidden="true" />
-      {isListening ? <MicOff size={17} /> : <Mic size={17} />}
+      {isListening ? <MicOff size={15} /> : <Mic size={15} />}
     </button>
   );
 

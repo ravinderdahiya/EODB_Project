@@ -29,7 +29,7 @@ const hi = {
   latLong: {
     latitude: "अक्षांश",
     longitude: "देशांतर",
-    linkLabel: "गूगल मैप लिंक",
+    linkLabel: "मानचित्र लिंक साझा करें",
     latitudePlaceholder: "उदाहरण: 29.0588",
     longitudePlaceholder: "उदाहरण: 76.0856",
     linkPlaceholder: "गूगल लिंक यहाँ टाइप करें",

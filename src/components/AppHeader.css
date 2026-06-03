@@ -8,6 +8,9 @@
 /* ── App Header Shell ──────────────────────────────────────────── */
 
 .app-header {
+    --header-chrome-btn-size: 42px;
+    --header-chrome-btn-radius: 16px;
+    --header-chrome-btn-icon-size: 20px;
     position: sticky;
     top: 0;
     z-index: 70;
@@ -59,14 +62,35 @@
     justify-self: start;
 }
 
-.app-header__menu-button {
+.app-header__menu-button,
+.header-action-button.header-action-button--settings {
     display: inline-flex;
-    width: 42px;
-    height: 42px;
-    border-radius: 16px;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    width: var(--header-chrome-btn-size);
+    min-width: var(--header-chrome-btn-size);
+    max-width: var(--header-chrome-btn-size);
+    height: var(--header-chrome-btn-size);
+    min-height: var(--header-chrome-btn-size);
+    max-height: var(--header-chrome-btn-size);
+    padding: 0;
+    border-radius: var(--header-chrome-btn-radius);
+}
+
+.app-header__menu-button {
+    border: 0;
     background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(226, 242, 232, 0.88)), rgba(255, 255, 255, 0.76);
     box-shadow: 0 10px 20px rgba(23, 50, 72, 0.12), inset 0 0 0 1px rgba(255, 255, 255, 0.72);
     transition: background 180ms ease, color 180ms ease, box-shadow 180ms ease;
+}
+
+.app-header__menu-button svg,
+.header-action-button.header-action-button--settings svg {
+    width: var(--header-chrome-btn-icon-size);
+    height: var(--header-chrome-btn-icon-size);
+    flex-shrink: 0;
 }
 
 /* Gradient only on true hover (mouse) — avoids sticky fill after tap on tablet/mobile */
@@ -249,6 +273,15 @@
     font-weight: 700;
 }
 
+/* Mic is circular — do not inherit the tall Search submit min-height on desktop/laptop */
+@media (min-width: 769px) {
+    .search-shell__submit.voice-mic-btn {
+        min-height: 34px;
+        min-width: 34px;
+        padding: 0;
+    }
+}
+
 .search-shell:focus-within,
 .search-shell.search-shell--voice-open {
     z-index: 75;
@@ -382,25 +415,64 @@
     display: inline-flex;
 }
 
-.header-action-button--settings {
-    width: 44px;
-    min-width: 44px;
-    height: 44px;
-    padding: 0;
-    justify-content: center;
-    transition: background 180ms ease, color 180ms ease, border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+.header-action-button.header-action-button--settings {
+    gap: 0;
+    border: 0;
+    white-space: normal;
+    font-size: inherit;
+    font-weight: inherit;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(226, 242, 232, 0.88)), rgba(255, 255, 255, 0.76);
+    box-shadow: 0 10px 20px rgba(23, 50, 72, 0.12), inset 0 0 0 1px rgba(255, 255, 255, 0.72);
+    transition: background 180ms ease, color 180ms ease, box-shadow 180ms ease;
 }
 
-.header-action-button--settings-open,
-.header-action-button--settings:hover {
+@media (hover: none), (pointer: coarse) {
+    .header-action-button--settings:hover,
+    .header-action-button--settings:active,
+    .header-action-button--settings:focus {
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(226, 242, 232, 0.88)), rgba(255, 255, 255, 0.76);
+        color: var(--ink);
+        box-shadow: 0 10px 20px rgba(23, 50, 72, 0.12), inset 0 0 0 1px rgba(255, 255, 255, 0.72);
+        transform: none;
+    }
+
+    .header-action-button--settings-open,
+    .header-action-button--settings-open:hover,
+    .header-action-button--settings-open:focus {
+        background: linear-gradient(135deg, rgba(47, 141, 93, 0.95), rgba(46, 115, 180, 0.87));
+        color: #ffffff;
+        box-shadow: 0 4px 16px rgba(46, 115, 180, 0.22);
+    }
+
+    .header-action-button--settings-open svg,
+    .header-action-button--settings-open:hover svg,
+    .header-action-button--settings-open:focus svg {
+        color: #ffffff;
+        stroke: #ffffff;
+    }
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .header-action-button--settings:hover {
+        background: linear-gradient(135deg, rgba(47, 141, 93, 0.95), rgba(46, 115, 180, 0.87));
+        color: #ffffff;
+        box-shadow: 0 4px 16px rgba(46, 115, 180, 0.22);
+        transform: none;
+    }
+
+    .header-action-button--settings:hover svg {
+        color: #ffffff;
+        stroke: #ffffff;
+    }
+}
+
+.header-action-button--settings-open {
     background: linear-gradient(135deg, rgba(47, 141, 93, 0.95), rgba(46, 115, 180, 0.87));
     color: #ffffff;
-    border-color: rgba(46, 115, 180, 0.28);
     box-shadow: 0 4px 16px rgba(46, 115, 180, 0.22);
 }
 
-.header-action-button--settings-open svg,
-.header-action-button--settings:hover svg {
+.header-action-button--settings-open svg {
     color: #ffffff;
     stroke: #ffffff;
 }
@@ -559,6 +631,17 @@ button.app-header__settings-item--logout:hover {
 .icon-button--ghost {
     background: rgba(234, 244, 238, 0.76);
     color: var(--ink);
+}
+
+/* Keep menu button in sync with settings — overrides generic .icon-button dimensions */
+.icon-button.app-header__menu-button {
+    width: var(--header-chrome-btn-size);
+    min-width: var(--header-chrome-btn-size);
+    max-width: var(--header-chrome-btn-size);
+    height: var(--header-chrome-btn-size);
+    min-height: var(--header-chrome-btn-size);
+    max-height: var(--header-chrome-btn-size);
+    border-radius: var(--header-chrome-btn-radius);
 }
 
 
@@ -730,7 +813,8 @@ button.app-header__settings-item--logout:hover {
     box-shadow: 0 18px 40px rgba(0, 0, 0, 0.22);
 }
 
-:root[data-theme="dark"] .app-header__menu-button {
+:root[data-theme="dark"] .app-header__menu-button,
+:root[data-theme="dark"] .header-action-button--settings:not(.header-action-button--settings-open) {
     background: linear-gradient(135deg, rgba(23, 41, 57, 0.96), rgba(15, 28, 40, 0.92)), rgba(12, 22, 31, 0.86);
     box-shadow: 0 14px 26px rgba(0, 0, 0, 0.22), inset 0 0 0 1px rgba(212, 229, 240, 0.08);
 }
@@ -746,7 +830,10 @@ button.app-header__settings-item--logout:hover {
 @media (hover: none), (pointer: coarse) {
     :root[data-theme="dark"] .app-header__menu-button:hover,
     :root[data-theme="dark"] .app-header__menu-button:active,
-    :root[data-theme="dark"] .app-header__menu-button:focus {
+    :root[data-theme="dark"] .app-header__menu-button:focus,
+    :root[data-theme="dark"] .header-action-button--settings:hover,
+    :root[data-theme="dark"] .header-action-button--settings:active,
+    :root[data-theme="dark"] .header-action-button--settings:focus {
         background: linear-gradient(135deg, rgba(23, 41, 57, 0.96), rgba(15, 28, 40, 0.92)), rgba(12, 22, 31, 0.86);
         color: var(--ink);
         box-shadow: 0 14px 26px rgba(0, 0, 0, 0.22), inset 0 0 0 1px rgba(212, 229, 240, 0.08);
@@ -773,7 +860,7 @@ button.app-header__settings-item--logout:hover {
     background: rgba(125, 181, 255, 0.09);
 }
 
-:root[data-theme="dark"] .header-action-button:not(.header-action-button--logout),
+:root[data-theme="dark"] .header-action-button:not(.header-action-button--logout):not(.header-action-button--settings),
 :root[data-theme="dark"] .select-shell,
 :root[data-theme="dark"] .profile-chip,
 :root[data-theme="dark"] .icon-button--soft {
@@ -970,14 +1057,10 @@ button.app-header__settings-item--logout:hover {
     .app-header__brand {
         gap: 0.5rem;
     }
-    .app-header__menu-button {
-        width: 36px;
-        height: 36px;
-        border-radius: 12px;
-    }
-    .app-header__menu-button svg {
-        width: 17px;
-        height: 17px;
+    .app-header {
+        --header-chrome-btn-size: 38px;
+        --header-chrome-btn-radius: 13px;
+        --header-chrome-btn-icon-size: 18px;
     }
     .app-header .lp-logo-flip {
         width: 34px;
@@ -986,16 +1069,6 @@ button.app-header__settings-item--logout:hover {
     .app-header__titles h1 {
         font-size: 0.92rem;
     }
-    .header-action-button--settings {
-        width: 36px;
-        min-width: 36px;
-        height: 36px;
-    }
-    .header-action-button--settings svg {
-        width: 16px;
-        height: 16px;
-    }
-
     /* Compact search bar + buttons on mobile */
     .search-shell {
         min-height: 28px;
@@ -1021,8 +1094,8 @@ button.app-header__settings-item--logout:hover {
     .voice-mic-btn,
     :root[data-theme="dark"] .voice-mic-btn,
     .voice-mic-btn:hover {
-        width: 26px;
-        height: 26px;
+        width: 22px;
+        height: 22px;
         background: transparent;
         box-shadow: none;
         border: 0;
@@ -1032,8 +1105,8 @@ button.app-header__settings-item--logout:hover {
         display: none;
     }
     .voice-mic-btn svg {
-        width: 17px;
-        height: 17px;
+        width: 14px;
+        height: 14px;
         color: var(--green);
     }
 }
@@ -1052,14 +1125,10 @@ button.app-header__settings-item--logout:hover {
     .app-header__brand {
         gap: 0.4rem;
     }
-    .app-header__menu-button {
-        width: 33px;
-        height: 33px;
-        border-radius: 11px;
-    }
-    .app-header__menu-button svg {
-        width: 16px;
-        height: 16px;
+    .app-header {
+        --header-chrome-btn-size: 35px;
+        --header-chrome-btn-radius: 12px;
+        --header-chrome-btn-icon-size: 17px;
     }
     .app-header .lp-logo-flip {
         width: 30px;
@@ -1068,19 +1137,10 @@ button.app-header__settings-item--logout:hover {
     .app-header__titles h1 {
         font-size: 0.84rem;
     }
-    .header-action-button--settings {
-        width: 33px;
-        min-width: 33px;
-        height: 33px;
-    }
-    .header-action-button--settings svg {
-        width: 15px;
-        height: 15px;
-    }
     .app-header__actions {
         gap: 0.25rem;
     }
-    .header-action-button {
+    .header-action-button:not(.header-action-button--settings) {
         min-height: 44px;
         padding: 0 0.6rem;
     }
@@ -1102,7 +1162,7 @@ button.app-header__settings-item--logout:hover {
     .lang-toggle__btn {
         font-size: 12px;
     }
-    .icon-button {
+    .icon-button:not(.app-header__menu-button) {
         width: 42px;
         height: 42px;
     }
@@ -1124,12 +1184,12 @@ button.app-header__settings-item--logout:hover {
         font-size: 0.7rem;
     }
     .voice-mic-btn {
-        width: 24px;
-        height: 24px;
+        width: 20px;
+        height: 20px;
     }
     .voice-mic-btn svg {
-        width: 16px;
-        height: 16px;
+        width: 12px;
+        height: 12px;
     }
 }
 

@@ -29,7 +29,7 @@ const en = {
   latLong: {
     latitude: "Latitude",
     longitude: "Longitude",
-    linkLabel: "Google Maps Link",
+    linkLabel: "Share Map Link",
     latitudePlaceholder: "e.g. 29.0588",
     longitudePlaceholder: "e.g. 76.0856",
     linkPlaceholder: "On google link type",
