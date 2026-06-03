@@ -300,7 +300,7 @@ export function useSelectFeatures({ viewRef, layersRef }) {
     const layers = layersRef.current;
     if (!view || !layers || !clickEvent?.mapPoint) return;
 
-    if (pointRowsRef.current.length >= MAX_KHASRA_SELECTION) {
+    if (pointKeysRef.current.size >= MAX_KHASRA_SELECTION) {
       setStatusMessage(`You Can Select Maximum ${MAX_KHASRA_SELECTION} Khasra`);
       return;
     }
@@ -330,7 +330,7 @@ export function useSelectFeatures({ viewRef, layersRef }) {
         setStatusMessage("That Khasra is already selected.");
         return;
       }
-      if (pointRowsRef.current.length >= MAX_KHASRA_SELECTION) {
+      if (pointKeysRef.current.size >= MAX_KHASRA_SELECTION) {
         setStatusMessage(`You Can Select Maximum ${MAX_KHASRA_SELECTION} Khasra`);
         return;
       }
@@ -347,32 +347,35 @@ export function useSelectFeatures({ viewRef, layersRef }) {
         );
       }
 
-      // ── Append row immediately, then resolve owner name ─────────────────────
+      // ── Reserve the key now so duplicate / rapid taps are ignored while the
+      //    owner data loads, but do NOT show the row in the table yet. Like the
+      //    rectangle tool, the row is revealed only after loading completes.
       const index = pointRowsRef.current.length;
       const row   = buildRowFromAttrs(attrs, index, key);
       pointKeysRef.current.add(key);
-      pointRowsRef.current = [...pointRowsRef.current, row];
-      setRows(pointRowsRef.current);
 
-      const count = pointRowsRef.current.length;
-      setProgress({ current: count, total: count, running: true });
+      // Loading state while the owner name is fetched (table stays unchanged).
+      const pendingTotal = pointRowsRef.current.length + 1;
+      setProgress({ current: pointRowsRef.current.length, total: pendingTotal, running: true });
+      setStatusMessage("Fetching owner data for the tapped Khasra…");
 
+      let resolvedOwnerName = row.ownerName;
       if (dCode && tCode && vCode && murr && khas) {
         try {
           const owners = await getOwnerNames(dCode, tCode, vCode, murr, khas);
           if (tokenRef.current !== token) return;
-          if (owners.length) {
-            pointRowsRef.current = pointRowsRef.current.map((r) =>
-              r.id === row.id ? { ...r, ownerName: owners.join(", ") } : r,
-            );
-            setRows(pointRowsRef.current);
-          }
+          if (owners.length) resolvedOwnerName = owners.join(", ");
         } catch {
           // keep "No Owner Name"
         }
       }
 
       if (tokenRef.current !== token) return;
+
+      // ── Loading complete → now reveal the fully-loaded row in the table ─────
+      pointRowsRef.current = [...pointRowsRef.current, { ...row, ownerName: resolvedOwnerName }];
+      setRows(pointRowsRef.current);
+
       const total = pointRowsRef.current.length;
       setProgress({ current: total, total, running: false });
       setStatusMessage(
