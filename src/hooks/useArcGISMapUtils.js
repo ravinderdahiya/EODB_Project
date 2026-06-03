@@ -619,12 +619,36 @@ export function createLatLongGraphic(point, latitude, longitude) {
 // The SDK 5.x built-in "classic" basemaps (hybrid, topo-vector, streets-vector) rely on
 // cdn.arcgis.com VectorTile CDN items that fail without an API key, so we build
 // explicit Basemap instances from these authenticated-free tile endpoints instead.
+//
+// These are public Esri World basemap services served from the ArcGIS Online CDN.
+// Hitting them directly from the browser (instead of the backend /mapserver proxy)
+// removes the double network hop, restores CDN edge caching, and lets the browser
+// open more parallel tile connections — basemaps load noticeably faster.
+const DIRECT_TILE_SERVICE_URLS = {
+  imagery:
+    "https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer",
+  reference:
+    "https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer",
+  topo:
+    "https://services.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer",
+  streets:
+    "https://services.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer",
+};
+
+// Only treat a runtime override as valid when it is an absolute http(s) URL.
+// The backend pushes relative proxy paths (e.g. "/mapserver/service/imagery") which we
+// intentionally ignore here so basemap tiles always go direct to the CDN.
+function resolveDirectTileUrl(runtimeKey, directUrl) {
+  const configured = `${getRuntimeConfigValue(runtimeKey, "")}`.trim();
+  return /^https?:\/\//i.test(configured) ? configured : directUrl;
+}
+
 export function getTileServiceUrls() {
   return {
-    imagery: getRuntimeConfigValue("VITE_ARCGIS_IMAGERY_URL", ""),
-    reference: getRuntimeConfigValue("VITE_ARCGIS_REFERENCE_URL", ""),
-    topo: getRuntimeConfigValue("VITE_ARCGIS_TOPO_URL", ""),
-    streets: getRuntimeConfigValue("VITE_ARCGIS_STREETS_URL", ""),
+    imagery: resolveDirectTileUrl("VITE_ARCGIS_IMAGERY_URL", DIRECT_TILE_SERVICE_URLS.imagery),
+    reference: resolveDirectTileUrl("VITE_ARCGIS_REFERENCE_URL", DIRECT_TILE_SERVICE_URLS.reference),
+    topo: resolveDirectTileUrl("VITE_ARCGIS_TOPO_URL", DIRECT_TILE_SERVICE_URLS.topo),
+    streets: resolveDirectTileUrl("VITE_ARCGIS_STREETS_URL", DIRECT_TILE_SERVICE_URLS.streets),
   };
 }
 
