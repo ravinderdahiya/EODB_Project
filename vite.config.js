@@ -279,6 +279,11 @@ export default defineConfig(({ mode }) => {
           changeOrigin: true,
           secure: false,
         },
+        "/captcha": {
+          target: baseURL,
+          changeOrigin: true,
+          secure: false,
+        },
         "/api-url": {
           target: baseURL,
           changeOrigin: true,
@@ -353,6 +358,11 @@ export default defineConfig(({ mode }) => {
         },
         // Backend API proxy for OTP routes
         "/otp": {
+          target: baseURL,
+          changeOrigin: true,
+          secure: false,
+        },
+        "/captcha": {
           target: baseURL,
           changeOrigin: true,
           secure: false,

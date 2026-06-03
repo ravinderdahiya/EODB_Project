@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { TrendingUp, Loader2 } from "lucide-react";
+import { TrendingUp, Loader2, RefreshCw } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import "./Login.css";
 import { createTranslator, useLanguage } from "@/context/LanguageContext";
@@ -55,6 +55,10 @@ export default function Login() {
   const [isAdminLoggingIn, setIsAdminLoggingIn] = useState(false);
   const [insightMetrics, setInsightMetrics] = useState(FALLBACK_INSIGHT_METRICS);
   const [insightsLoading, setInsightsLoading] = useState(true);
+  const [captchaImage, setCaptchaImage] = useState("");
+  const [captchaToken, setCaptchaToken] = useState("");
+  const [captchaText, setCaptchaText] = useState("");
+  const [captchaLoading, setCaptchaLoading] = useState(false);
 
   const isOtpExpired = showOtpInput && otpTimer === 0;
   const canResendOtp = showOtpInput && otpTimer === 0 && !isResendingOtp && !isSendingOtp;
@@ -158,6 +162,25 @@ export default function Login() {
       isMounted = false;
       window.clearInterval(refreshId);
     };
+  }, []);
+
+  const loadCaptcha = async () => {
+    setCaptchaLoading(true);
+    setCaptchaText("");
+    try {
+      const res = await axiosInstance.get("/captcha/new");
+      setCaptchaImage(res.data?.image || "");
+      setCaptchaToken(res.data?.captchaToken || "");
+    } catch {
+      setCaptchaImage("");
+      setCaptchaToken("");
+    } finally {
+      setCaptchaLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadCaptcha();
   }, []);
 
   const liveMetricCards = useMemo(() => ([
@@ -290,10 +313,17 @@ export default function Login() {
       return;
     }
 
+    if (!captchaText.trim()) {
+      setError(t("login.errNoCaptcha"));
+      return;
+    }
+
     try {
       setIsSendingOtp(true);
       const res = await axiosInstance.post("/otp/send-otp", {
         phone,
+        captchaToken,
+        captchaText,
         ...buildDevicePayload(),
       });
       if (res.data?.vipLogin && res.data?.user) {
@@ -311,10 +341,12 @@ export default function Login() {
         setOtpTimer(120);
       } else {
         setError(res.data?.message || res.data?.warning || t("login.errSendFailed"));
+        loadCaptcha();
       }
     } catch (err) {
       clearAuthMarkers();
       setError(err.response?.data?.message || t("login.errSendFailed"));
+      loadCaptcha();
     } finally {
       setIsSendingOtp(false);
     }
@@ -329,11 +361,18 @@ export default function Login() {
       return;
     }
 
+    if (!captchaText.trim()) {
+      setAdminError(t("login.errNoCaptcha"));
+      return;
+    }
+
     try {
       setIsAdminLoggingIn(true);
       await axiosInstance.post("/user/admin-login", {
         adminId,
         password,
+        captchaToken,
+        captchaText,
         ...buildDevicePayload(),
       });
       await establishTrustedSession({ requireAdmin: true });
@@ -344,6 +383,7 @@ export default function Login() {
     } catch (err) {
       clearAuthMarkers();
       setAdminError(err.response?.data?.message || t("login.errBadAdmin"));
+      loadCaptcha();
     } finally {
       setIsAdminLoggingIn(false);
     }
@@ -353,6 +393,47 @@ export default function Login() {
     setShowAdminPanel(true);
     setAdminError("");
   };
+
+  const renderCaptchaField = () => (
+    <div className="lp-captcha">
+      <label className="lp-label" htmlFor="lp-captcha-input">
+        {t("login.captchaLabel")}
+      </label>
+      <div className="lp-captcha-row">
+        <div className="lp-captcha-image" aria-live="polite">
+          {captchaImage ? (
+            <img src={captchaImage} alt={t("login.captchaImageAlt")} draggable={false} />
+          ) : (
+            <span className="lp-captcha-placeholder">
+              {captchaLoading ? "…" : "—"}
+            </span>
+          )}
+        </div>
+        <button
+          type="button"
+          className="lp-captcha-refresh"
+          onClick={loadCaptcha}
+          disabled={captchaLoading}
+          title={t("login.captchaRefresh")}
+          aria-label={t("login.captchaRefresh")}
+        >
+          <RefreshCw className={captchaLoading ? "lp-captcha-spin" : ""} size={18} />
+        </button>
+      </div>
+      <input
+        id="lp-captcha-input"
+        className="lp-full-input"
+        type="text"
+        autoComplete="off"
+        autoCapitalize="off"
+        spellCheck={false}
+        maxLength={8}
+        placeholder={t("login.captchaPlaceholder")}
+        value={captchaText}
+        onChange={(e) => setCaptchaText(e.target.value)}
+      />
+    </div>
+  );
 
   return (
     <div
@@ -465,6 +546,8 @@ export default function Login() {
                   onChange={(e) => setPassword(e.target.value)}
                 />
 
+                {renderCaptchaField()}
+
                 {adminError && <p className="lp-error">{adminError}</p>}
 
                 <button type="submit" className="lp-btn-green" disabled={isAdminLoggingIn}>
@@ -513,6 +596,8 @@ export default function Login() {
                       }}
                     />
                   </div>
+
+                  {renderCaptchaField()}
 
                   <button type="submit" className="lp-btn-green" disabled={isSendingOtp}>
                     {isSendingOtp ? (
