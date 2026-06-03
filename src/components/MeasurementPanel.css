@@ -249,8 +249,203 @@
 
 /* ── Responsive ───────────────────────────────────────────── */
 
+/* Tablet */
+@media (max-width: 1024px) {
+  .measurement-panel {
+    width: min(220px, calc(100% - 5.5rem));
+    padding: 0.72rem;
+    border-radius: 18px;
+  }
+
+  .measurement-panel__header {
+    gap: 0.55rem;
+    margin-bottom: 0.62rem;
+  }
+
+  .measurement-panel__header h3 {
+    font-size: 0.98rem;
+  }
+
+  .measurement-panel__header .eyebrow {
+    font-size: 0.66rem;
+  }
+
+  .measurement-panel__close-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 9px;
+  }
+
+  .measurement-panel__actions {
+    gap: 0.34rem;
+    margin-bottom: 0.58rem;
+  }
+
+  .measurement-panel__action-btn {
+    gap: 0.5rem;
+    padding: 0.5rem 0.65rem;
+    border-radius: 12px;
+    font-size: 0.8rem;
+  }
+
+  .measurement-panel__action-btn svg {
+    width: 13px;
+    height: 13px;
+  }
+
+  .measurement-panel__hint {
+    margin-bottom: 0.58rem;
+    padding: 0.44rem 0.58rem;
+    border-radius: 10px;
+    font-size: 0.74rem;
+  }
+
+  .measurement-panel__result {
+    padding: 0.58rem 0.65rem;
+    border-radius: 12px;
+  }
+
+  .measurement-panel__result-label {
+    margin-bottom: 0.38rem;
+    font-size: 0.64rem;
+  }
+
+  .measurement-panel__result-row span {
+    font-size: 0.76rem;
+  }
+
+  .measurement-panel__result-row strong {
+    font-size: 0.82rem;
+  }
+}
+
+/* Mobile */
 @media (max-width: 768px) {
   .measurement-panel {
-    width: min(238px, calc(100% - 5rem));
+    top: calc(0.75rem + env(safe-area-inset-top, 0px));
+    left: calc(0.65rem + 34px + 0.5rem + env(safe-area-inset-left, 0px));
+    width: auto;
+    max-width: min(200px, calc(100% - (0.65rem + 34px + 0.5rem) - 0.65rem));
+    padding: 0.55rem;
+    border-radius: 16px;
+  }
+
+  .measurement-panel__header {
+    gap: 0.45rem;
+    margin-bottom: 0.48rem;
+  }
+
+  .measurement-panel__header h3 {
+    margin: 0.1rem 0 0;
+    font-size: 0.9rem;
+  }
+
+  .measurement-panel__header .eyebrow {
+    font-size: 0.6rem;
+    letter-spacing: 0.08em;
+  }
+
+  .measurement-panel__close-btn {
+    width: 26px;
+    height: 26px;
+    border-radius: 8px;
+  }
+
+  .measurement-panel__close-btn svg {
+    width: 13px;
+    height: 13px;
+  }
+
+  .measurement-panel__actions {
+    gap: 0.3rem;
+    margin-bottom: 0.48rem;
+  }
+
+  .measurement-panel__action-btn {
+    gap: 0.42rem;
+    padding: 0.42rem 0.55rem;
+    border-radius: 11px;
+    font-size: 0.76rem;
+  }
+
+  .measurement-panel__action-btn svg {
+    width: 12px;
+    height: 12px;
+  }
+
+  .measurement-panel__hint {
+    margin-bottom: 0.48rem;
+    padding: 0.38rem 0.5rem;
+    border-radius: 9px;
+    font-size: 0.7rem;
+    line-height: 1.35;
+  }
+
+  .measurement-panel__result {
+    padding: 0.5rem 0.55rem;
+    border-radius: 11px;
+  }
+
+  .measurement-panel__result-label {
+    margin-bottom: 0.32rem;
+    font-size: 0.6rem;
+  }
+
+  .measurement-panel__result-row {
+    padding: 0.3rem 0;
+  }
+
+  .measurement-panel__result-row span {
+    font-size: 0.72rem;
+  }
+
+  .measurement-panel__result-row strong {
+    font-size: 0.78rem;
+  }
+}
+
+/* Small phones */
+@media (max-width: 480px) {
+  .measurement-panel {
+    left: calc(0.55rem + 32px + 0.45rem + env(safe-area-inset-left, 0px));
+    max-width: min(188px, calc(100% - (0.55rem + 32px + 0.45rem) - 0.55rem));
+    padding: 0.48rem;
+    border-radius: 14px;
+  }
+
+  .measurement-panel__header h3 {
+    font-size: 0.84rem;
+  }
+
+  .measurement-panel__header .eyebrow {
+    font-size: 0.56rem;
+  }
+
+  .measurement-panel__close-btn {
+    width: 24px;
+    height: 24px;
+  }
+
+  .measurement-panel__action-btn {
+    padding: 0.36rem 0.48rem;
+    border-radius: 10px;
+    font-size: 0.72rem;
+  }
+
+  .measurement-panel__action-btn svg {
+    width: 11px;
+    height: 11px;
+  }
+
+  .measurement-panel__hint {
+    font-size: 0.66rem;
+  }
+
+  .measurement-panel__result-row span {
+    font-size: 0.68rem;
+  }
+
+  .measurement-panel__result-row strong {
+    font-size: 0.74rem;
   }
 }

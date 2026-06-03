@@ -1402,7 +1402,10 @@ export default function App() {
             ) : null}
 
             <MeasurementPanel
-              isOpen={measurementMode !== null}
+              isOpen={
+                measurementMode !== null
+                && (!isTablet || measurementMode === "panel" || !measurement.isDrawing)
+              }
               activeMode={measurementMode === "panel" ? null : measurementMode}
               isDrawing={measurement.isDrawing}
               result={measurement.result}
