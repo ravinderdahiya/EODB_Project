@@ -19,6 +19,12 @@ const formatApiError = (err, fallback) => {
 const LOGIN_FONT_FADE_OUT_MS = 380;
 const LOGIN_FONT_FADE_IN_MS = 420;
 const INSIGHTS_REFRESH_INTERVAL_MS = 60 * 1000;
+const LOGIN_HERO_ROTATE_MS = 6_000;
+const LOGIN_HERO_BACKGROUNDS = [
+  `${import.meta.env.BASE_URL}branding/hero-bg.jpg`,
+  `${import.meta.env.BASE_URL}branding/hero-bg2.jpg`,
+  `${import.meta.env.BASE_URL}branding/hero-bg3.jpg`,
+];
 
 const FALLBACK_INSIGHT_METRICS = {
   totalRegisteredUsers: 0,
@@ -66,6 +72,7 @@ export default function Login() {
   const [captchaToken, setCaptchaToken] = useState("");
   const [captchaText, setCaptchaText] = useState("");
   const [captchaLoading, setCaptchaLoading] = useState(false);
+  const [activeHeroBg, setActiveHeroBg] = useState(0);
 
   const isOtpExpired = showOtpInput && otpTimer === 0;
   const canResendOtp = showOtpInput && otpTimer === 0 && !isResendingOtp && !isSendingOtp;
@@ -94,6 +101,19 @@ export default function Login() {
     skipFontTransitionRef.current = true;
     setFontPhase("");
   }, [resetLoginPreview]);
+
+  useEffect(() => {
+    LOGIN_HERO_BACKGROUNDS.forEach((src) => {
+      const img = new Image();
+      img.src = src;
+    });
+
+    const intervalId = setInterval(() => {
+      setActiveHeroBg((prev) => (prev + 1) % LOGIN_HERO_BACKGROUNDS.length);
+    }, LOGIN_HERO_ROTATE_MS);
+
+    return () => clearInterval(intervalId);
+  }, []);
 
   useEffect(() => {
     if (skipFontTransitionRef.current) {
@@ -447,6 +467,15 @@ export default function Login() {
       className={`lp-root${fontPhase ? ` lp-font-phase-${fontPhase}` : ""}`}
       data-lang={displayLang}
     >
+      <div className="lp-bg-carousel" aria-hidden="true">
+        {LOGIN_HERO_BACKGROUNDS.map((src, index) => (
+          <div
+            key={src}
+            className={`lp-bg-slide${index === activeHeroBg ? " lp-bg-slide--active" : ""}`}
+            style={{ backgroundImage: `url("${src}")` }}
+          />
+        ))}
+      </div>
 
       {/* ── NAVBAR ─────────────────────────────────── */}
       <header className="lp-navbar">
