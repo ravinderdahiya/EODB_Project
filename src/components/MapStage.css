@@ -54,6 +54,47 @@
   z-index: 10;
 }
 
+/* ── Live Cursor Coordinates (bottom-centre of map) ───────── */
+
+.map-cursor-coords {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 18;
+  padding: 0.3rem 0.72rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--ink);
+  font-size: 0.78rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  pointer-events: none;
+  user-select: none;
+  box-shadow: var(--shadow-soft);
+  transition: bottom 180ms ease;
+}
+
+:root[data-theme="dark"] .map-cursor-coords {
+  background: rgba(23, 40, 56, 0.92);
+  color: var(--ink);
+}
+
+@media (max-width: 768px) {
+  .map-cursor-coords {
+    font-size: 0.68rem;
+    padding: 0.24rem 0.55rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .map-cursor-coords {
+    font-size: 0.62rem;
+    padding: 0.2rem 0.45rem;
+  }
+}
+
 /* ── Parcel Table Toggle Button ───────────────────────────── */
 
 .parcel-table-toggle {
@@ -1369,6 +1410,7 @@
   body.print-parcel-view .layer-panel,
   body.print-parcel-view .basemap-switcher,
   body.print-parcel-view .map-scale-badge,
+  body.print-parcel-view .map-cursor-coords,
   body.print-parcel-view .parcel-table-toggle,
   body.print-parcel-view .map-stage__status,
   body.print-parcel-view .map-loading-overlay,

@@ -257,6 +257,7 @@ export function useArcGISMap({
   const [mapReady,     setMapReady]     = useState(false);
   const [mapStatus,    setMapStatus]    = useState("Initialising Haryana land-record map…");
   const [mapScale,     setMapScale]     = useState(null);
+  const [pointerCoords, setPointerCoords] = useState(null);
   const [serviceHealth, setServiceHealth] = useState({
     cadastral:  "loading",
     boundaries: "loading",
@@ -297,6 +298,8 @@ export function useArcGISMap({
     let popupResizeHandle;
     let clickHandle;
     let zoomWatchHandle;
+    let pointerMoveHandle;
+    let pointerLeaveHandle;
     let zoomLayerRefreshTimer = null;
     let view;
     let isDisposed = false;
@@ -570,6 +573,33 @@ export function useArcGISMap({
           const base = wheelTargetZoom ?? view.zoom;
           wheelTargetZoom = base + direction * MOUSE_WHEEL_ZOOM_STEP;
           if (!wheelAnimating) runWheelZoom();
+        });
+
+        // Live cursor latitude / longitude — throttled to one update per animation frame.
+        let pointerFrame = null;
+        let pendingScreenPoint = null;
+        const flushPointerCoords = () => {
+          pointerFrame = null;
+          if (isDisposed || !pendingScreenPoint) return;
+          const mapPoint = view.toMap(pendingScreenPoint);
+          if (mapPoint && Number.isFinite(mapPoint.latitude) && Number.isFinite(mapPoint.longitude)) {
+            setPointerCoords({ latitude: mapPoint.latitude, longitude: mapPoint.longitude });
+          }
+        };
+        pointerMoveHandle = view.on("pointer-move", (event) => {
+          if (isDisposed) return;
+          pendingScreenPoint = { x: event.x, y: event.y };
+          if (pointerFrame == null) {
+            pointerFrame = requestAnimationFrame(flushPointerCoords);
+          }
+        });
+        pointerLeaveHandle = view.on("pointer-leave", () => {
+          if (pointerFrame != null) {
+            cancelAnimationFrame(pointerFrame);
+            pointerFrame = null;
+          }
+          pendingScreenPoint = null;
+          if (!isDisposed) setPointerCoords(null);
         });
 
         // Live scale ratio — updates on every zoom/pan; debounced layer refresh on scale change.
@@ -917,6 +947,8 @@ export function useArcGISMap({
       popupResizeHandle?.remove?.();
       clickHandle?.remove?.();
       zoomWatchHandle?.remove?.();
+      pointerMoveHandle?.remove?.();
+      pointerLeaveHandle?.remove?.();
       popupStateRef.current.host?.remove();
       popupStateRef.current.host = null;
       view?.destroy?.();
@@ -1337,6 +1369,7 @@ export function useArcGISMap({
     mapReady,
     mapStatus,
     mapScale,
+    pointerCoords,
     serviceHealth,
     zoomIn,
     zoomOut,

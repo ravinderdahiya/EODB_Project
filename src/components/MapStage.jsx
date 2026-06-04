@@ -1,4 +1,4 @@
-﻿import "./MapStage.css";
+import "./MapStage.css";
 import { ChevronDown, ChevronUp, Printer, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useLanguage } from "@/context/LanguageContext";
@@ -9,6 +9,15 @@ function formatScale(scale) {
   if (!scale || scale <= 0) return null;
   return `1 : ${Math.round(scale).toLocaleString("en-IN")}`;
 }
+
+function formatCoord(value, positive, negative) {
+  if (value == null || !Number.isFinite(value)) return null;
+  const dir = value >= 0 ? positive : negative;
+  return `${Math.abs(value).toFixed(5)}° ${dir}`;
+}
+
+// Toggle arrow button height (keep in sync with .parcel-table-toggle in MapStage.css).
+const TOGGLE_HEIGHT = 32;
 
 export default function MapStage({
   mapStatus,
@@ -22,15 +31,46 @@ export default function MapStage({
   selectionRows,
   selectionProgress,
   mapScale,
+  pointerCoords,
   onPrint,
   onWhatsAppShare,
 }) {
   const { t } = useLanguage();
   const scaleLabel = formatScale(mapScale);
 
+  const latLabel = formatCoord(pointerCoords?.latitude, "N", "S");
+  const lngLabel = formatCoord(pointerCoords?.longitude, "E", "W");
+  const coordsLabel = latLabel && lngLabel ? `${latLabel}, ${lngLabel}` : null;
+
   const [tableHeight, setTableHeight] = useState(null);
+  const [panelHeight, setPanelHeight] = useState(0);
   const panelRef = useRef(null);
   const viewportRef = useRef(null);
+
+  // Measure the real rendered height of the table panel so the toggle arrow
+  // always sits exactly on top of it (the CSS height is clamped, so a fixed
+  // percentage offset would not line up at every viewport size).
+  useEffect(() => {
+    if (!tableOpen) {
+      setPanelHeight(0);
+      return undefined;
+    }
+    const el = panelRef.current;
+    if (!el) return undefined;
+    const update = () => setPanelHeight(el.offsetHeight);
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [tableOpen, tableHeight]);
+
+  const toggleBottom = tableOpen && panelHeight
+    ? `calc(${panelHeight}px + 0.35rem)`
+    : undefined;
+
+  const coordsBottom = tableOpen && panelHeight
+    ? `calc(${panelHeight}px + 0.35rem + ${TOGGLE_HEIGHT}px + 0.45rem)`
+    : `calc(1.5rem + ${TOGGLE_HEIGHT}px + 0.45rem)`;
 
   const [overlayVisible, setOverlayVisible] = useState(true);
   const [overlayExiting, setOverlayExiting] = useState(false);
@@ -294,10 +334,20 @@ export default function MapStage({
           </div>
         )}
 
+        {coordsLabel && (
+          <div
+            className="map-cursor-coords"
+            style={{ bottom: coordsBottom }}
+            aria-label={`Cursor coordinates ${coordsLabel}`}
+          >
+            {coordsLabel}
+          </div>
+        )}
+
         <button
           type="button"
           className="parcel-table-toggle"
-          style={tableOpen && tableHeight ? { bottom: `calc(${tableHeight}px + 1rem)` } : undefined}
+          style={toggleBottom ? { bottom: toggleBottom } : undefined}
           onClick={onToggleTable}
           aria-label={tableOpen ? t("mapStage.hideTable") : t("mapStage.showTable")}
           title={tableOpen ? t("mapStage.hideTable") : t("mapStage.showTable")}

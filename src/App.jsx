@@ -1,4 +1,4 @@
-﻿import { useDeferredValue, useEffect, useRef, useState, useTransition } from "react";
+import { useDeferredValue, useEffect, useRef, useState, useTransition } from "react";
 import { useNavigate } from "react-router-dom";
 import axiosInstance from "@/utils/axiosInstance";
 import AppHeader from "@/components/AppHeader";
@@ -235,6 +235,7 @@ export default function App() {
     mapReady,
     mapStatus,
     mapScale,
+    pointerCoords,
     serviceHealth,
     zoomIn,
     zoomOut,
@@ -1368,6 +1369,7 @@ export default function App() {
             selectionRows={sf.isActive ? sf.rows : null}
             selectionProgress={sf.isActive ? sf.progress : null}
             mapScale={mapScale}
+            pointerCoords={pointerCoords}
             onPrint={handleMapPrint}
             onWhatsAppShare={handleMapWhatsAppShare}
           >
