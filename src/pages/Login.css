@@ -20,7 +20,31 @@
     display: flex;
     flex-direction: column;
     position: relative;
-    background: url("/branding/hero-bg.jpg") center / cover no-repeat;
+    background-color: #0a1520;
+}
+
+/* ── Hero background carousel ─────────────────────────────────── */
+
+.lp-bg-carousel {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+.lp-bg-slide {
+    position: absolute;
+    inset: 0;
+    background-position: center;
+    background-size: cover;
+    background-repeat: no-repeat;
+    opacity: 0;
+    transition: opacity 1.4s ease-in-out;
+}
+
+.lp-bg-slide--active {
+    opacity: 1;
 }
 
 .lp-root[data-lang="hi"] {
@@ -105,14 +129,14 @@
     content: "";
     position: absolute;
     inset: 0;
-    background: linear-gradient(100deg, rgba(0, 0, 0, 0.88) 0%, rgba(0, 0, 0, 0.30) 100%);
+    background: linear-gradient(100deg, rgba(0, 0, 0, 0.58) 0%, rgba(0, 0, 0, 0.15) 100%);
     pointer-events: none;
-    z-index: 0;
+    z-index: 1;
 }
 
-.lp-root>* {
+.lp-root > *:not(.lp-bg-carousel) {
     position: relative;
-    z-index: 1;
+    z-index: 2;
 }
 
 /* ── NAVBAR ── flex-shrink: 0, compact ─────────────────────────── */

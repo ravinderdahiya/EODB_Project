@@ -264,7 +264,7 @@ const hi = {
     termsTos:      "सेवा शर्तें",
     termsAnd:      "और",
     termsPrivacy:  "गोपनीयता नीति",
-    imageSourceCaption: "छवि स्रोत: अंबाला गांव, हरियाणा",
+    imageSourceCaption: "छवि स्रोत: अंबाला, भिवानी, पंचकुला गांव, हरियाणा",
     copyright:     "© 2026 HARSAC — हरियाणा स्पेस एप्लीकेशन सेंटर। सर्वाधिकार सुरक्षित।",
     chatBtn:       "💬 हमसे चैट करें",
     langBtn:       "हि",
