@@ -229,6 +229,31 @@
   background: var(--green-soft);
 }
 
+.admin-users-search {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 40px;
+  min-width: min(100%, 320px);
+  border-radius: 0.8rem;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink-muted);
+  padding: 0 0.8rem;
+}
+
+.admin-users-search input {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  outline: none;
+}
+
+.admin-users-search input::placeholder {
+  color: var(--ink-muted);
+}
+
 /* =========================
    AdminOverviewChart
    SVG line chart with grid lines, axis labels, data points.
@@ -1111,6 +1136,10 @@
   .admin-card__header {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .admin-users-search {
+    width: 100%;
   }
 
   .admin-stats-grid,

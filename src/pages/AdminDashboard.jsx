@@ -101,6 +101,8 @@ export default function AdminDashboard() {
   const [usersRecords, setUsersRecords] = useState([]);
   const [usersTotal, setUsersTotal] = useState(0);
   const [usersPage, setUsersPage] = useState(1);
+  const [usersSearchInput, setUsersSearchInput] = useState("");
+  const [usersSearch, setUsersSearch] = useState("");
   const [usersLoading, setUsersLoading] = useState(false);
   const [usersError, setUsersError] = useState(null);
   const [feedbackRecords, setFeedbackRecords] = useState([]);
@@ -198,6 +200,7 @@ export default function AdminDashboard() {
         const res = await fetchUsersList({
           page: usersPage,
           pageSize,
+          ...(usersSearch ? { search: usersSearch } : {}),
         });
         setUsersRecords(res.users || []);
         setUsersTotal(res.totalCount || 0);
@@ -209,7 +212,16 @@ export default function AdminDashboard() {
     };
 
     fetchUsers();
-  }, [activeNav, usersPage, pageSize]);
+  }, [activeNav, usersPage, pageSize, usersSearch]);
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      setUsersPage(1);
+      setUsersSearch(usersSearchInput.trim());
+    }, 300);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [usersSearchInput]);
 
   useEffect(() => {
     const fetchFeedback = async () => {
@@ -333,6 +345,7 @@ export default function AdminDashboard() {
             usersLoading={usersLoading}
             usersError={usersError}
             usersPage={usersPage}
+            usersSearchTerm={usersSearchInput}
             usersTotal={usersTotal}
             feedbackRecords={feedbackRecords}
             feedbackLoading={feedbackLoading}
@@ -341,6 +354,7 @@ export default function AdminDashboard() {
             feedbackTotal={feedbackTotal}
             onAnalyticsPageChange={setAnalyticsPage}
             onUsersPageChange={setUsersPage}
+            onUsersSearchChange={setUsersSearchInput}
             onFeedbackPageChange={setFeedbackPage}
             onPageChange={setCurrentPage}
             onCreateEvent={() =>

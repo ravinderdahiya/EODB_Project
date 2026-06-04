@@ -1,11 +1,15 @@
+import { Search } from "lucide-react";
+
 export default function AdminUsersTable({
   users,
   loading,
   error,
   page,
   pageSize,
+  searchTerm,
   totalCount,
   onPageChange,
+  onSearchChange,
 }) {
   const startIndex = totalCount === 0 ? 0 : (page - 1) * pageSize + 1;
   const endIndex = Math.min(startIndex + users.length - 1, totalCount);
@@ -17,6 +21,17 @@ export default function AdminUsersTable({
           <span className="eyebrow">User Directory</span>
           <h3>Registered Users</h3>
         </div>
+
+        <label className="admin-users-search">
+          <Search size={15} />
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(event) => onSearchChange(event.target.value)}
+            placeholder="Search by name, email, mobile, or role"
+            aria-label="Search users"
+          />
+        </label>
       </header>
 
       <div className="admin-table-wrap">

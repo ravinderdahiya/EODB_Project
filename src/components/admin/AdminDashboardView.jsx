@@ -62,10 +62,12 @@ export default function AdminDashboardView({
   usersLoading = false,
   usersError = null,
   usersPage = 1,
+  usersSearchTerm = "",
   usersTotal = 0,
   onAnalyticsPageChange,
   onFeedbackPageChange,
   onUsersPageChange,
+  onUsersSearchChange,
   onPageChange,
   onCreateEvent,
 }) {
@@ -151,8 +153,10 @@ export default function AdminDashboardView({
               error={usersError}
               page={usersPage}
               pageSize={pageSize}
+              searchTerm={usersSearchTerm}
               totalCount={usersTotal}
               onPageChange={onUsersPageChange}
+              onSearchChange={onUsersSearchChange}
             />
             <AdminSummaryCards cards={adminSummaryMetrics} />
           </>
