@@ -359,6 +359,7 @@
 
 .layer-panel__group--open .layer-panel__group-body {
     grid-template-rows: 1fr;
+    overflow: visible;
 }
 
 .layer-panel__group-inner {
@@ -366,6 +367,7 @@
     gap: 0.7rem;
     min-height: 0;
     overflow: hidden;
+    padding: 3px 2px;
     opacity: 0;
     transform: translateY(-6px);
     transition:
@@ -376,6 +378,7 @@
 .layer-panel__group--open .layer-panel__group-inner {
     opacity: 1;
     transform: translateY(0);
+    overflow: visible;
 }
 
 @media (prefers-reduced-motion: reduce) {
