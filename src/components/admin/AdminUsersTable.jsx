@@ -1,11 +1,17 @@
+import { Search } from "lucide-react";
+
 export default function AdminUsersTable({
   users,
   loading,
   error,
+  isSmeOnly,
   page,
   pageSize,
+  searchTerm,
   totalCount,
+  onIsSmeChange,
   onPageChange,
+  onSearchChange,
 }) {
   const startIndex = totalCount === 0 ? 0 : (page - 1) * pageSize + 1;
   const endIndex = Math.min(startIndex + users.length - 1, totalCount);
@@ -16,6 +22,33 @@ export default function AdminUsersTable({
         <div>
           <span className="eyebrow">User Directory</span>
           <h3>Registered Users</h3>
+        </div>
+
+        <div className="admin-users-controls">
+          <label className="admin-users-search">
+            <Search size={15} />
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(event) => onSearchChange(event.target.value)}
+              placeholder="Search by name, email, mobile, or role"
+              aria-label="Search users"
+            />
+          </label>
+
+          <label className="admin-users-filter">
+            <select
+              value={isSmeOnly ? "sme" : "all"}
+              onChange={(event) => {
+                onPageChange(1);
+                onIsSmeChange(event.target.value === "sme");
+              }}
+              aria-label="Filter SME users"
+            >
+              <option value="all">All Users</option>
+              <option value="sme">SME Users</option>
+            </select>
+          </label>
         </div>
       </header>
 

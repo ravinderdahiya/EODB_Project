@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Search } from "lucide-react";
 
 const DEVICE_PREVIEW_LIMIT = 30;
 
@@ -7,17 +8,20 @@ const getSafeDeviceText = (value) => {
   return text || "-";
 };
 
-export default function AdminLoginLogsTable({ logs, loading, error, page, pageSize, totalCount, onPageChange }) {
-  const [expandedDeviceRows, setExpandedDeviceRows] = useState({});
+export default function AdminLoginLogsTable({
+  logs,
+  loading,
+  error,
+  page,
+  pageSize,
+  searchTerm,
+  totalCount,
+  onPageChange,
+  onSearchChange,
+}) {
+  const [selectedDeviceText, setSelectedDeviceText] = useState(null);
   const startIndex = totalCount === 0 ? 0 : (page - 1) * pageSize + 1;
   const endIndex = Math.min(startIndex + logs.length - 1, totalCount);
-
-  const toggleDeviceRow = (rowKey) => {
-    setExpandedDeviceRows((prev) => ({
-      ...prev,
-      [rowKey]: !prev[rowKey],
-    }));
-  };
 
   return (
     <article className="admin-card admin-table-card">
@@ -25,6 +29,19 @@ export default function AdminLoginLogsTable({ logs, loading, error, page, pageSi
         <div>
           <span className="eyebrow">Security Audit</span>
           <h3>Login Logs</h3>
+        </div>
+
+        <div className="admin-users-controls">
+          <label className="admin-users-search">
+            <Search size={15} />
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(event) => onSearchChange(event.target.value)}
+              placeholder="Search by user, email, mobile, IP, city, or country"
+              aria-label="Search login logs"
+            />
+          </label>
         </div>
       </header>
 
@@ -92,10 +109,9 @@ export default function AdminLoginLogsTable({ logs, loading, error, page, pageSi
                     const rowKey = entry.id ? `${entry.id}-${index}` : `row-${index}`;
                     const deviceText = getSafeDeviceText(entry.device);
                     const isLongDeviceText = deviceText.length > DEVICE_PREVIEW_LIMIT;
-                    const isExpanded = Boolean(expandedDeviceRows[rowKey]);
-                    const displayDeviceText = isExpanded || !isLongDeviceText
-                      ? deviceText
-                      : `${deviceText.slice(0, DEVICE_PREVIEW_LIMIT)}...`;
+                    const displayDeviceText = isLongDeviceText
+                      ? `${deviceText.slice(0, DEVICE_PREVIEW_LIMIT)}...`
+                      : deviceText;
 
                     return (
                     <tr key={rowKey}>
@@ -110,19 +126,16 @@ export default function AdminLoginLogsTable({ logs, loading, error, page, pageSi
                       <td>{entry.ipAddress}</td>
                       <td>
                         <div className="admin-log-device">
-                          <span
-                            className={`admin-log-device__text${isExpanded ? " admin-log-device__text--expanded" : ""}`}
-                            title={deviceText}
-                          >
+                          <span className="admin-log-device__text" title={deviceText}>
                             {displayDeviceText}
                           </span>
                           {isLongDeviceText ? (
                             <button
                               type="button"
                               className="admin-log-device__toggle"
-                              onClick={() => toggleDeviceRow(rowKey)}
+                              onClick={() => setSelectedDeviceText(deviceText)}
                             >
-                              {isExpanded ? "Read less" : "Read more"}
+                              Read more
                             </button>
                           ) : null}
                         </div>
@@ -141,6 +154,30 @@ export default function AdminLoginLogsTable({ logs, loading, error, page, pageSi
                 )}
               </tbody>
             </table>
+
+            {selectedDeviceText ? (
+              <div
+                className="admin-label-modal-backdrop"
+                onClick={() => setSelectedDeviceText(null)}
+              >
+                <div
+                  className="admin-label-modal"
+                  onClick={(event) => event.stopPropagation()}
+                >
+                  <div className="admin-label-modal__head">
+                    <h4>Device Details</h4>
+                    <button
+                      type="button"
+                      className="admin-table-pagination__button"
+                      onClick={() => setSelectedDeviceText(null)}
+                    >
+                      Close
+                    </button>
+                  </div>
+                  <pre className="admin-label-modal__content">{selectedDeviceText}</pre>
+                </div>
+              </div>
+            ) : null}
           </>
         )}
       </div>
