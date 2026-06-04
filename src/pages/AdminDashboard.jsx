@@ -86,6 +86,8 @@ export default function AdminDashboard() {
   const [loginLogs, setLoginLogs] = useState([]);
   const [loginLogsTotal, setLoginLogsTotal] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
+  const [logsSearchInput, setLogsSearchInput] = useState("");
+  const [logsSearch, setLogsSearch] = useState("");
   const [pageSize] = useState(10);
   const [logsLoading, setLogsLoading] = useState(false);
   const [logsError, setLogsError] = useState(null);
@@ -103,6 +105,7 @@ export default function AdminDashboard() {
   const [usersPage, setUsersPage] = useState(1);
   const [usersSearchInput, setUsersSearchInput] = useState("");
   const [usersSearch, setUsersSearch] = useState("");
+  const [usersIsSmeOnly, setUsersIsSmeOnly] = useState(false);
   const [usersLoading, setUsersLoading] = useState(false);
   const [usersError, setUsersError] = useState(null);
   const [feedbackRecords, setFeedbackRecords] = useState([]);
@@ -123,9 +126,12 @@ export default function AdminDashboard() {
       setLogsError(null);
 
       try {
-        const res = await axiosInstance.get(
-          `/user/login-logs?page=${currentPage}&pageSize=${pageSize}`,
-        );
+        const params = new URLSearchParams({
+          page: String(currentPage),
+          pageSize: String(pageSize),
+          ...(logsSearch ? { search: logsSearch } : {}),
+        });
+        const res = await axiosInstance.get(`/user/login-logs?${params.toString()}`);
         setLoginLogs(res.data.logs || []);
         setLoginLogsTotal(res.data.totalCount || 0);
       } catch (err) {
@@ -136,7 +142,16 @@ export default function AdminDashboard() {
     };
 
     fetchLoginLogs();
-  }, [activeNav, currentPage, pageSize]);
+  }, [activeNav, currentPage, pageSize, logsSearch]);
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      setCurrentPage(1);
+      setLogsSearch(logsSearchInput.trim());
+    }, 300);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [logsSearchInput]);
 
   useEffect(() => {
     const fetchSummary = async () => {
@@ -201,6 +216,7 @@ export default function AdminDashboard() {
           page: usersPage,
           pageSize,
           ...(usersSearch ? { search: usersSearch } : {}),
+          ...(usersIsSmeOnly ? { issme: true } : {}),
         });
         setUsersRecords(res.users || []);
         setUsersTotal(res.totalCount || 0);
@@ -212,7 +228,7 @@ export default function AdminDashboard() {
     };
 
     fetchUsers();
-  }, [activeNav, usersPage, pageSize, usersSearch]);
+  }, [activeNav, usersPage, pageSize, usersSearch, usersIsSmeOnly]);
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
@@ -329,6 +345,7 @@ export default function AdminDashboard() {
             loginLogs={loginLogs}
             logsLoading={logsLoading}
             logsError={logsError}
+            logsSearchTerm={logsSearchInput}
             currentPage={currentPage}
             pageSize={pageSize}
             loginLogsTotal={loginLogsTotal}
@@ -345,6 +362,7 @@ export default function AdminDashboard() {
             usersLoading={usersLoading}
             usersError={usersError}
             usersPage={usersPage}
+            usersIsSmeOnly={usersIsSmeOnly}
             usersSearchTerm={usersSearchInput}
             usersTotal={usersTotal}
             feedbackRecords={feedbackRecords}
@@ -353,7 +371,9 @@ export default function AdminDashboard() {
             feedbackPage={feedbackPage}
             feedbackTotal={feedbackTotal}
             onAnalyticsPageChange={setAnalyticsPage}
+            onLogsSearchChange={setLogsSearchInput}
             onUsersPageChange={setUsersPage}
+            onUsersIsSmeChange={setUsersIsSmeOnly}
             onUsersSearchChange={setUsersSearchInput}
             onFeedbackPageChange={setFeedbackPage}
             onPageChange={setCurrentPage}

@@ -41,6 +41,7 @@ export default function AdminDashboardView({
   loginLogs,
   logsLoading,
   logsError,
+  logsSearchTerm = "",
   currentPage,
   pageSize,
   loginLogsTotal,
@@ -61,11 +62,14 @@ export default function AdminDashboardView({
   usersRecords = [],
   usersLoading = false,
   usersError = null,
+  usersIsSmeOnly = false,
   usersPage = 1,
   usersSearchTerm = "",
   usersTotal = 0,
   onAnalyticsPageChange,
   onFeedbackPageChange,
+  onLogsSearchChange,
+  onUsersIsSmeChange,
   onUsersPageChange,
   onUsersSearchChange,
   onPageChange,
@@ -140,8 +144,10 @@ export default function AdminDashboardView({
               error={logsError}
               page={currentPage}
               pageSize={pageSize}
+              searchTerm={logsSearchTerm}
               totalCount={loginLogsTotal}
               onPageChange={onPageChange}
+              onSearchChange={onLogsSearchChange}
             />
             <AdminSummaryCards cards={adminSummaryMetrics} />
           </>
@@ -153,8 +159,10 @@ export default function AdminDashboardView({
               error={usersError}
               page={usersPage}
               pageSize={pageSize}
+              isSmeOnly={usersIsSmeOnly}
               searchTerm={usersSearchTerm}
               totalCount={usersTotal}
+              onIsSmeChange={onUsersIsSmeChange}
               onPageChange={onUsersPageChange}
               onSearchChange={onUsersSearchChange}
             />

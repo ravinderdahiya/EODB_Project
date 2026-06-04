@@ -242,6 +242,14 @@
   padding: 0 0.8rem;
 }
 
+.admin-users-controls {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+}
+
 .admin-users-search input {
   width: 100%;
   border: 0;
@@ -252,6 +260,23 @@
 
 .admin-users-search input::placeholder {
   color: var(--ink-muted);
+}
+
+.admin-users-filter {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  border-radius: 0.8rem;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  padding: 0 0.7rem;
+}
+
+.admin-users-filter select {
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  outline: none;
 }
 
 /* =========================
@@ -1139,6 +1164,18 @@
   }
 
   .admin-users-search {
+    width: 100%;
+  }
+
+  .admin-users-controls {
+    width: 100%;
+  }
+
+  .admin-users-filter {
+    width: 100%;
+  }
+
+  .admin-users-filter select {
     width: 100%;
   }
 
