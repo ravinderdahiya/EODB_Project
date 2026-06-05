@@ -1,0 +1,327 @@
+/* ── LOGIN CARD ─────────────────────────────────────────────────── */
+
+.lp-card {
+    grid-area: card;
+    align-self: center;
+    width: 100%;
+    max-width: 355px;
+    min-width: 0;
+    min-height: 425.81px;
+    flex-shrink: 0;
+    padding: 20px 22px 16px;
+    border-radius: 20px;
+    backdrop-filter: blur(30px);
+    -webkit-backdrop-filter: blur(30px);
+    background: rgba(0, 28, 14, 0.86);
+    border: 1px solid rgba(0, 255, 136, 0.15);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
+    overflow: hidden;
+}
+
+.lp-lock-circle {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 12px;
+    font-size: 22px;
+}
+
+.lp-card-title {
+    text-align: center;
+    margin: 0 0 4px;
+    font-size: 1.15rem;
+    font-weight: 700;
+    line-height: 1.25;
+    height: 23px;
+    max-width: 100%;
+    overflow: hidden;
+    overflow-wrap: break-word;
+}
+
+.lp-subtext {
+    text-align: center;
+    opacity: 0.70;
+    font-size: 11.5px;
+    margin: 0 0 16px;
+    line-height: 1.45;
+    height: 33.34px;
+    overflow: hidden;
+    overflow-wrap: break-word;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    line-clamp: 2;
+    -webkit-line-clamp: 2;
+}
+
+/* ── Tabs ── */
+
+.lp-tabs {
+    display: flex;
+    margin-bottom: 16px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    padding: 3px;
+    gap: 3px;
+    height: 37px;
+    box-sizing: border-box;
+    overflow: hidden;
+}
+
+.lp-tab {
+    flex: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 31px;
+    padding: 8px;
+    border: none;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.62);
+    border-radius: 10px;
+    font-size: 12.5px;
+    font-family: inherit;
+    font-weight: 500;
+    line-height: 1.2;
+    cursor: pointer;
+    transition: background 160ms ease, color 160ms ease;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.lp-tab:hover:not(.lp-tab--active) {
+    background: rgba(255, 255, 255, 0.08);
+    color: #ffffff;
+}
+
+.lp-tab--active {
+    background: linear-gradient(90deg, #00ff88, #00cc66);
+    color: #001a0a;
+    font-weight: 700;
+}
+
+.lp-tabs--single .lp-tab {
+    cursor: default;
+}
+
+.lp-tabs--single .lp-tab:hover {
+    background: linear-gradient(90deg, #00ff88, #00cc66);
+    color: #001a0a;
+}
+
+
+/* ── Terms ── */
+
+.lp-terms {
+    font-size: 11px;
+    margin-top: 10px;
+    opacity: 0.58;
+    text-align: center;
+    line-height: 1.55;
+    height: 34.09px;
+    overflow: hidden;
+    overflow-wrap: break-word;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    line-clamp: 2;
+    -webkit-line-clamp: 2;
+}
+
+.lp-terms span {
+    color: #00ff88;
+    cursor: pointer;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    transition: opacity 160ms ease;
+}
+
+.lp-terms span:hover {
+    opacity: 0.70;
+}
+
+
+/* ── RESPONSIVE ─────────────────────────────────────────────────── */
+
+/* Desktop: match login card height with left-side content column */
+@media (min-width: 821px) {
+    .lp-card {
+        align-self: center;
+        height: auto;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .lp-card-main {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .lp-terms {
+        margin-top: 10px;
+        padding-top: 0;
+    }
+}
+
+@media (max-width: 960px) {
+    .lp-card {
+        width: 100%;
+        max-width: 100%;
+        min-height: 425.81px;
+        box-sizing: border-box;
+        align-self: stretch;
+    }
+}
+
+@media (max-width: 700px) {
+    .lp-card {
+        min-height: 425.81px;
+        padding: 16px 14px 12px;
+    }
+}
+
+/* Tighten card for very short screens */
+@media (max-height: 700px) {
+    .lp-card {
+        padding: 14px 18px 12px;
+    }
+    .lp-lock-circle {
+        width: 50px;
+        height: 50px;
+        font-size: 18px;
+        margin-bottom: 7px;
+    }
+    .lp-card-title {
+        font-size: 1rem;
+    }
+    .lp-subtext {
+        margin-bottom: 9px;
+    }
+    .lp-tabs {
+        margin-bottom: 9px;
+    }
+    .lp-terms {
+        margin-top: 7px;
+    }
+}
+
+/* Tablet landscape only */
+@media (min-width: 768px) and (max-width: 1180px) and (orientation: landscape) {
+    .lp-card {
+        width: 330px;
+        max-height: calc(100dvh - 140px);
+        padding: 14px 16px 12px;
+        overflow-y: auto;
+    }
+
+    .lp-lock-circle {
+        width: 50px;
+        height: 50px;
+        margin-bottom: 8px;
+    }
+
+    .lp-card-title {
+        font-size: 1rem;
+    }
+
+    .lp-subtext {
+        font-size: 11px;
+        margin-bottom: 10px;
+    }
+
+    .lp-tab {
+        padding: 7px;
+        font-size: 12px;
+    }
+}
+
+/* Mobile landscape only */
+@media (orientation: landscape) and (max-height: 550px) {
+    .lp-card {
+        width: min(300px, 44vw);
+        max-height: calc(100dvh - 110px);
+        padding: 11px 12px 10px;
+        border-radius: 16px;
+        overflow-y: auto;
+    }
+
+    .lp-lock-circle {
+        width: 42px;
+        height: 42px;
+        margin-bottom: 6px;
+        font-size: 16px;
+    }
+
+    .lp-card-title {
+        font-size: 0.95rem;
+    }
+
+    .lp-subtext {
+        font-size: 10px;
+        margin-bottom: 8px;
+    }
+
+    .lp-tabs {
+        margin-bottom: 8px;
+        padding: 2px;
+    }
+
+    .lp-tab {
+        padding: 6px;
+        font-size: 11px;
+    }
+
+    .lp-terms {
+        font-size: 10px;
+        margin-top: 6px;
+    }
+}
+
+/* Strict compact landscape mode */
+@media (orientation: landscape) and (max-height: 600px) {
+    .lp-card {
+        width: min(320px, 44vw);
+        max-height: 100%;
+        align-self: stretch;
+        padding: 10px 11px 8px;
+        border-radius: 14px;
+        overflow: hidden;
+    }
+
+    .lp-lock-circle {
+        width: 40px;
+        height: 40px;
+        font-size: 15px;
+        margin-bottom: 5px;
+    }
+
+    .lp-card-title {
+        font-size: 0.92rem;
+        margin-bottom: 2px;
+    }
+
+    .lp-subtext {
+        font-size: 10px;
+        margin-bottom: 7px;
+        line-height: 1.3;
+    }
+
+    .lp-tabs {
+        margin-bottom: 7px;
+        padding: 2px;
+        gap: 2px;
+    }
+
+    .lp-tab {
+        padding: 5px;
+        font-size: 10.5px;
+    }
+
+    .lp-terms {
+        font-size: 9.5px;
+        margin-top: 5px;
+        line-height: 1.3;
+    }
+}

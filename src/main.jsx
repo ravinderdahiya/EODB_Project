@@ -93,7 +93,7 @@ async function bootstrap() {
   ] = await Promise.all([
     import("./App"),
     import("./pages/AdminDashboard"),
-    import("./pages/Login"),
+    import("./pages/Login/Login"),
     import("./routes/ProtectedRoute"),
     import("./context/LanguageContext"),
     import("./config/proxyConfig"),

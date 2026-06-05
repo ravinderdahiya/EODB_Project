@@ -1,0 +1,23 @@
+/* ── Hero background carousel ─────────────────────────────────── */
+
+.lp-bg-carousel {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+.lp-bg-slide {
+    position: absolute;
+    inset: 0;
+    background-position: center;
+    background-size: cover;
+    background-repeat: no-repeat;
+    opacity: 0;
+    transition: opacity 1.4s ease-in-out;
+}
+
+.lp-bg-slide--active {
+    opacity: 1;
+}

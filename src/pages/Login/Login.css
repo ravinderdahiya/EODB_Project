@@ -1,0 +1,271 @@
+/*
+ * Login.css  — no-scroll, 100vh layout
+ * All classes prefixed "lp-" to prevent conflicts with main.css
+ * Component-specific styles live alongside their components in ./components.
+ * This file keeps only the shared root, language-fade and page-grid layout.
+ */
+
+
+/* ── ROOT: exact viewport, no overflow ─────────────────────────── */
+
+.lp-root {
+    font-family: "Poppins", sans-serif;
+    --lp-font-en: "Poppins", sans-serif;
+    --lp-font-hi: "Noto Sans Devanagari", "Mukta", "Hind", "Poppins", sans-serif;
+    --lp-font-active: var(--lp-font-en);
+    --lp-font-fade-duration: 0.38s;
+    --lp-font-fade-ease: cubic-bezier(0.4, 0, 0.2, 1);
+    color: #ffffff;
+    min-height: 100dvh;
+    overflow-x: hidden;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    background-color: #0a1520;
+}
+
+.lp-root[data-lang="hi"] {
+    --lp-font-active: var(--lp-font-hi);
+}
+
+/* Smooth EN ↔ HI font change — typography opacity + font-size only (login page) */
+.lp-root :is(
+    h1, h2, h3, h4, h5,
+    p, label, a, small, strong,
+    .lp-headline, .lp-desc,
+    .lp-stat-card h3, .lp-stat-card p,
+    .lp-footer-bottom p
+) {
+    font-family: var(--lp-font-active);
+    transition:
+        opacity var(--lp-font-fade-duration) var(--lp-font-fade-ease),
+        font-size 0.45s var(--lp-font-fade-ease);
+}
+
+.lp-root.lp-font-phase-out :is(
+    h1, h2, h3, h4, h5,
+    p, label, a, small, strong,
+    .lp-headline, .lp-desc,
+    .lp-stat-card h3, .lp-stat-card p,
+    .lp-footer-bottom p
+) {
+    opacity: 0.12;
+}
+
+.lp-root.lp-font-phase-in :is(
+    h1, h2, h3, h4, h5,
+    p, label, a, small, strong,
+    .lp-headline, .lp-desc,
+    .lp-stat-card h3, .lp-stat-card p,
+    .lp-footer-bottom p
+) {
+    opacity: 1;
+}
+
+.lp-root.lp-font-phase-out img,
+.lp-root.lp-font-phase-in img,
+.lp-root.lp-font-phase-out .lp-logo-flip,
+.lp-root.lp-font-phase-in .lp-logo-flip {
+    opacity: 1;
+    transition: none;
+}
+
+/* Login + live overview cards — font only; fixed layout on EN/HI (all breakpoints) */
+.lp-card :is(
+    h2, p, label, button, input,
+    .lp-card-title, .lp-subtext, .lp-tab,
+    .lp-label, .lp-btn-green, .lp-btn-outline, .lp-back-public-btn,
+    .lp-error, .lp-otp-timer, .lp-resend-btn,
+    .lp-terms, .lp-terms span,
+    .lp-phone-input, .lp-full-input,
+    .otp-input
+),
+.lp-live-overview :is(
+    h4, h3, p,
+    .lp-live-overview__header h4,
+    .lp-live-overview__meta h3,
+    .lp-live-overview__meta p
+) {
+    font-family: var(--lp-font-active);
+    /* Opacity only — no font-size transition (keeps panel footprint static EN/HI) */
+    transition: opacity var(--lp-font-fade-duration) var(--lp-font-fade-ease);
+}
+
+.lp-root.lp-font-phase-out .lp-card,
+.lp-root.lp-font-phase-in .lp-card,
+.lp-root.lp-font-phase-out .lp-card *,
+.lp-root.lp-font-phase-in .lp-card *,
+.lp-root.lp-font-phase-out .lp-live-overview,
+.lp-root.lp-font-phase-in .lp-live-overview,
+.lp-root.lp-font-phase-out .lp-live-overview *,
+.lp-root.lp-font-phase-in .lp-live-overview * {
+    opacity: 1;
+}
+
+.lp-root::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(100deg, rgba(0, 0, 0, 0.58) 0%, rgba(0, 0, 0, 0.15) 100%);
+    pointer-events: none;
+    z-index: 1;
+}
+
+.lp-root > *:not(.lp-bg-carousel) {
+    position: relative;
+    z-index: 2;
+}
+
+
+/* ── MAIN: CSS grid — left hero | card (spans rows) ────────────── */
+
+
+/* Desktop:  [lp-left      ] [lp-card (rows 1–2)]                  */
+
+
+/*           [lp-live-overview]                                      */
+
+
+/* Mobile:   [lp-left] → [lp-card] → [lp-live-overview]            */
+
+.lp-main {
+    flex: 1;
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(280px, 355px);
+    grid-template-rows: auto auto;
+    grid-template-areas: "hero  card" "news  card";
+    align-content: center;
+    column-gap: 32px;
+    row-gap: 10px;
+    padding: 16px 48px;
+    overflow: visible;
+}
+
+
+/* ── Source caption ────────────────────────────────────────────── */
+
+.lp-source-caption-wrap {
+    flex-shrink: 0;
+    display: flex;
+    justify-content: flex-end;
+    padding: 0 8px 2px;
+    box-sizing: border-box;
+}
+
+.lp-source-caption {
+    max-width: min(680px, 100%);
+    padding: 0;
+    border-radius: 0;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.72);
+    font-size: 10px;
+    line-height: 1.35;
+    letter-spacing: 0.1px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+
+/* ── RESPONSIVE (page-level grid + root) ───────────────────────── */
+
+@media (max-width: 1100px) {
+    .lp-main {
+        padding: 14px 24px;
+        column-gap: 20px;
+        row-gap: 10px;
+    }
+}
+
+/* Tablet / fold portrait (e.g. 853px): stack hero → card → news */
+@media (max-width: 960px) {
+    .lp-root {
+        height: 100dvh;
+        overflow-y: auto;
+    }
+
+    .lp-source-caption-wrap {
+        justify-content: center;
+        padding: 0 16px 10px;
+    }
+    /* chnage by himanshu */
+    .lp-main {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto auto auto;
+        grid-template-areas: "hero" "card" "news";
+        column-gap: 0;
+        row-gap: 12px;
+        padding: 20px;
+        align-content: start;
+        overflow: visible;
+    }
+}
+
+/* Phone portrait: remove fixed desktop dimensions that cause clipping/overflow */
+@media (max-width: 700px) {
+    .lp-main {
+        padding: 14px 12px 16px;
+        row-gap: 14px;
+    }
+}
+
+/* Tablet landscape only: compact, two-column fit without overlap */
+@media (min-width: 768px) and (max-width: 1180px) and (orientation: landscape) {
+    .lp-root {
+        min-height: 100dvh;
+        overflow-y: auto;
+    }
+
+    .lp-main {
+        grid-template-columns: minmax(0, 1fr) 330px;
+        column-gap: 20px;
+        row-gap: 12px;
+        padding: 10px 20px;
+        align-content: start;
+    }
+}
+
+/* Mobile landscape only: keep two-column compact and allow vertical scroll when short */
+@media (orientation: landscape) and (max-height: 550px) {
+    .lp-root {
+        min-height: 100dvh;
+        overflow-y: auto;
+    }
+
+    .lp-main {
+        grid-template-columns: minmax(0, 1fr) minmax(260px, 300px);
+        grid-template-rows: auto auto;
+        grid-template-areas: "hero card" "news card";
+        column-gap: 14px;
+        row-gap: 10px;
+        padding: 8px 12px;
+        align-content: start;
+    }
+}
+
+/* Strict compact landscape mode: fit everything in viewport without scroll */
+@media (orientation: landscape) and (max-height: 600px) {
+    .lp-root {
+        height: 100dvh;
+        min-height: 100dvh;
+        overflow: hidden;
+    }
+
+    .lp-main {
+        flex: 1;
+        min-height: 0;
+        grid-template-columns: minmax(0, 1fr) minmax(250px, 320px);
+        grid-template-rows: auto auto;
+        grid-template-areas: "hero card" "news card";
+        align-items: center;
+        align-content: start;
+        column-gap: 12px;
+        row-gap: 8px;
+        padding: 6px 12px;
+        overflow: hidden;
+    }
+}
