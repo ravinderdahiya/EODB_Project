@@ -18,7 +18,7 @@
 export const LAYER_PANEL_SYMBOLOGY = {
   murrabaGrid: {
     type: "grid",
-    stroke: "#8E44AD",
+    stroke: "#2D6CDF",
     strokeWidth: 1.5,
   },
   cadastral: {
@@ -36,13 +36,13 @@ export const LAYER_PANEL_SYMBOLOGY = {
   district: {
     type: "polygon",
     fill: "rgba(231, 76, 60, 0.12)",
-    stroke: "#E74C3C",
+    stroke: "#FAA700",
     strokeWidth: 2,
   },
   tehsil: {
     type: "polygon",
     fill: "rgba(52, 152, 219, 0.1)",
-    stroke: "#3498DB",
+    stroke: "#FFA57D",
     strokeWidth: 2,
   },
   village: {
