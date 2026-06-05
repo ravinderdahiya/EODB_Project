@@ -236,6 +236,13 @@ export default defineConfig(({ mode }) => {
     build: {
       // Security: never emit source maps in production — they expose original source to browsers.
       sourcemap: false,
+      // Do not minify CSS. The default esbuild CSS minifier drops the standard unprefixed
+      // `backdrop-filter` and keeps only `-webkit-backdrop-filter`. That breaks the frosted-glass
+      // blur in non-WebKit browsers (e.g. Firefox) and makes the header/panels look more
+      // transparent in the production build than in local dev. Disabling CSS minification ships
+      // the authored CSS as-is (both prefixed and unprefixed declarations preserved), so the
+      // production build looks identical to local dev. JS is still minified.
+      cssMinify: false,
     },
     plugins: [
       react(),
