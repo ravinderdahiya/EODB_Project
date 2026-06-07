@@ -84,6 +84,7 @@ const getEffectiveLayerVisibility = (layerVisibility = {}) => {
 
   return {
     cadastral,
+    kanalMarla: Boolean(layerVisibility.kanalMarla),
     nearbyPlacesPoi: nearbyPlaces && poi,
     district: boundariesGroup && Boolean(layerVisibility.district),
     tehsil: boundariesGroup && Boolean(layerVisibility.tehsil),
@@ -179,6 +180,7 @@ export const refreshVisibleHsacMapImageLayers = (layers) => {
     layers.hsacBoundariesLayer,
     layers.hsacStateBoundaryLayer,
     layers.hsacCadastralLayer,
+    layers.kanalMarlaLayer,
     layers.nearbyPlacesLayer,
     layers.governmentAssetsLayer,
     layers.nhaiLayer,
@@ -282,6 +284,21 @@ export function useArcGISMap({
       });
     }
 
+    // Trackpad pinch dispatches wheel events with ctrlKey=true (Chrome/Edge/Firefox)
+    // or gesture* events (Safari). The browser turns these into full-page zoom unless
+    // we prevent the default over the map. The map's own zoom handlers still run.
+    const mapContainerEl = containerRef.current;
+    const blockPageWheelZoom = (event) => {
+      if (event.ctrlKey) event.preventDefault();
+    };
+    const blockPageGestureZoom = (event) => {
+      event.preventDefault();
+    };
+    mapContainerEl.addEventListener("wheel", blockPageWheelZoom, { passive: false });
+    mapContainerEl.addEventListener("gesturestart", blockPageGestureZoom, { passive: false });
+    mapContainerEl.addEventListener("gesturechange", blockPageGestureZoom, { passive: false });
+    mapContainerEl.addEventListener("gestureend", blockPageGestureZoom, { passive: false });
+
     const defaultExtent = new Extent(arcgisPortalConfig.defaultExtent);
     const initialExtent = shiftExtentHorizontally(
       shiftExtentVertically(
@@ -365,6 +382,11 @@ export function useArcGISMap({
         maxScale: 0,
         sublayers: cadastralSublayers,
       });
+      const kanalMarlaLayer = new MapImageLayer({
+        url: arcgisPortalConfig.serviceUrls.kanalMarla,
+        title: "Kanal Marla",
+        visible: effective.kanalMarla,
+      });
       const hsacStateBoundaryLayer = new MapImageLayer({
         url: arcgisPortalConfig.serviceUrls.hsacMain,
         title: "Haryana State Boundary",
@@ -439,6 +461,7 @@ export function useArcGISMap({
 
       map.addMany([
         hsacCadastralLayer,
+        kanalMarlaLayer,
         hsacBoundariesLayer,
         hsacStateBoundaryLayer,
         nearbyPlacesLayer,
@@ -494,6 +517,7 @@ export function useArcGISMap({
           hsacBoundariesLayer,
           hsacStateBoundaryLayer,
           hsacCadastralLayer,
+          kanalMarlaLayer,
           nearbyPlacesLayer,
           governmentAssetsLayer,
           nhaiLayer,
@@ -654,6 +678,7 @@ export function useArcGISMap({
 
         // Optional overlays should not block core tool readiness.
         void Promise.all([
+          loadLayerWithRetry(kanalMarlaLayer, { label: "Kanal Marla layer", attempts: 1 }),
           loadLayerWithRetry(nhaiLayer, { label: "NHAI layer", attempts: 1 }),
           loadLayerWithRetry(roadsLayer, { label: "Haryana Roads layer", attempts: 1 }),
         ]);
@@ -936,6 +961,10 @@ export function useArcGISMap({
     return () => {
       isDisposed = true;
       clearTimeout(zoomLayerRefreshTimer);
+      mapContainerEl.removeEventListener("wheel", blockPageWheelZoom);
+      mapContainerEl.removeEventListener("gesturestart", blockPageGestureZoom);
+      mapContainerEl.removeEventListener("gesturechange", blockPageGestureZoom);
+      mapContainerEl.removeEventListener("gestureend", blockPageGestureZoom);
       stopUserLocationWatch();
       userLocationRef.current = null;
       userLocationErrorRef.current = null;
@@ -1011,6 +1040,8 @@ export function useArcGISMap({
         }
       });
     }
+
+    if (layers.kanalMarlaLayer) layers.kanalMarlaLayer.visible = effective.kanalMarla;
 
     // Operational overlays
     if (layers.governmentAssetsLayer) layers.governmentAssetsLayer.visible = effective.assets;

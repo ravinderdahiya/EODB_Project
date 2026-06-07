@@ -16,6 +16,7 @@ import VoiceAssistantPopup from "@/components/voiceAssistant/VoiceAssistantPopup
 import ZoomWheelSlider from "@/components/map/ZoomWheelSlider";
 
 import NorthCompassControl from "@/components/map/NorthCompassControl";
+import KanalMarlaLegendPopup from "@/components/map/KanalMarlaLegendPopup";
 import FeedbackWidget from "@/components/FeedbackWidget";
 import { navigationItems } from "@/data/portalData";
 import { useArcGISMap } from "@/hooks/useArcGISMap";
@@ -72,6 +73,7 @@ const initialLayers = {
   village:   true,
   murrabaGrid: true,
   murabba: true,
+  kanalMarla: false,
   stateBoundary: true,
   assets:    false, // Government Assets (visible: false — user can toggle on)
   nhai:      false, // NHAI Upcoming (hidden by default, matches old project)
@@ -99,6 +101,7 @@ export default function App() {
   const deferredSearch = useDeferredValue(searchValue);
   const [activeBasemap, setActiveBasemap] = useState("satellite");
   const [layerVisibility, setLayerVisibility] = useState(initialLayers);
+  const [kanalLegendOpen, setKanalLegendOpen] = useState(false);
   const [selectedParcel, setSelectedParcel] = useState(createEmptyParcelRecord);
   const [parcelHistory, setParcelHistory] = useState([]);
   const [systemMessage, setSystemMessage] = useState(
@@ -142,6 +145,12 @@ export default function App() {
       .map(([layer]) => layer);
     trackFeatureUsage('layer_visibility', { visibleLayers });
   }, [layerVisibility, trackFeatureUsage]);
+
+  // Show the Kanal Marla symbology popup whenever that layer is turned on,
+  // and hide it when the layer is switched off.
+  useEffect(() => {
+    setKanalLegendOpen(Boolean(layerVisibility.kanalMarla));
+  }, [layerVisibility.kanalMarla]);
 
   // Track basemap changes
   useEffect(() => {
@@ -1380,6 +1389,11 @@ export default function App() {
               onAfterZoom={refreshLayersForCurrentView}
             />
             <NorthCompassControl viewRef={viewRef} mapReady={mapReady} />
+
+            <KanalMarlaLegendPopup
+              open={kanalLegendOpen}
+              onClose={() => setKanalLegendOpen(false)}
+            />
 
             <MapToolbar
               activeLayerPanel={activeMapPanel === "layers"}
