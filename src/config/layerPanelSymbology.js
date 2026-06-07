@@ -27,6 +27,12 @@ export const LAYER_PANEL_SYMBOLOGY = {
     stroke: "#8B4513",
     strokeWidth: 1.5,
   },
+  kanalMarla: {
+    type: "polygon",
+    fill: "rgba(155, 89, 182, 0.18)",
+    stroke: "#8E44AD",
+    strokeWidth: 1.5,
+  },
   stateBoundary: {
     type: "polygon",
     fill: "transparent",

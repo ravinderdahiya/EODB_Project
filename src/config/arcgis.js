@@ -15,6 +15,9 @@ const serviceUrls = {
   get hsacMain() {
     return getHsacMainUrl();
   },
+  get kanalMarla() {
+    return getRuntimeConfigValue("VITE_KANAL_MARLA_URL", "");
+  },
   get governmentAssets() {
     return getRuntimeConfigValue("VITE_HSACGGM_ASSETS_URL", "");
   },

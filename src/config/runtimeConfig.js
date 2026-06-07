@@ -84,6 +84,7 @@ const fallbackBackendBasePath = inferBackendBasePath();
 
 const DEFAULT_RUNTIME_CONFIG = {
   VITE_HSAC_MAIN_URL: withBasePath(fallbackBackendBasePath, "/mapserver/service/hsacMain"),
+  VITE_KANAL_MARLA_URL: withBasePath(fallbackBackendBasePath, "/mapserver/service/kanalMarla"),
   VITE_ASMX_BASE_PATH: withBasePath(fallbackBackendBasePath, "/mapserver/land-record"),
   VITE_ARCGIS_GEOCODER_URL: withBasePath(fallbackBackendBasePath, "/mapserver/service/geocoder"),
   VITE_ARCGIS_IMAGERY_URL: withBasePath(fallbackBackendBasePath, "/mapserver/service/imagery"),

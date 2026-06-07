@@ -136,6 +136,8 @@ const hi = {
     cadastralLayerDesc:  "जिला सब-लेयर खसरा विवरण के साथ",
     murrabaGridTitle: "मुरब्बा ग्रिड",
     murrabaGridDesc: "जिला सब-लेयर मुरब्बा विवरण के साथ",
+    kanalMarlaTitle: "कनाल मरला",
+    kanalMarlaDesc: "कनाल/मरला पार्सल (ज़ूम इन करने पर दिखेंगे)",
     healthCadastral:  "भूकर",
     healthBoundaries: "सीमाएं",
     healthAssets:     "संपत्तियां",

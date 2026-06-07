@@ -126,6 +126,14 @@ export default function LayerPanel({
             onChange={() => onToggleLayer("cadastral")}
             symbolKey="cadastral"
           />
+
+          <LayerToggleRow
+            title={t("layerPanel.kanalMarlaTitle")}
+            description={t("layerPanel.kanalMarlaDesc")}
+            checked={layerVisibility.kanalMarla ?? false}
+            onChange={() => onToggleLayer("kanalMarla")}
+            symbolKey="kanalMarla"
+          />
         </LayerCollapsibleGroup>
       </div>
 

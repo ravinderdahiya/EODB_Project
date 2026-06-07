@@ -99,6 +99,27 @@ export const callLandRecordAPI = async (method, params = {}) => {
 };
 
 /**
+ * Get the legend (symbology swatches + labels) for a proxied map service.
+ * @param {string} serviceKey - Service key registered in the backend proxy (e.g. 'kanalMarla')
+ * @returns {Promise} Legend payload ({ layers: [{ legend: [{ label, imageData, contentType }] }] })
+ */
+export const getMapServiceLegend = async (serviceKey) => {
+  try {
+    const response = await axiosInstance.get(`${BASE_PATH}/service/${serviceKey}/legend`, {
+      params: { f: 'json' },
+    });
+    return response.data;
+  } catch (error) {
+    console.error(`Map service legend error (${serviceKey}):`, error);
+    throw new Error(
+      error.response?.data?.error ||
+      error.message ||
+      `Could not load legend for ${serviceKey}`
+    );
+  }
+};
+
+/**
  * Get MapServer metadata (layers, fields, etc.)
  * @returns {Promise} MapServer metadata
  */

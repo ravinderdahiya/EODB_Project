@@ -136,6 +136,8 @@ const en = {
     cadastralLayerDesc:  "District sublayers with Khasra detail",
     murrabaGridTitle: "Murraba Grid",
     murrabaGridDesc: "District sublayers with Murraba detail",
+    kanalMarlaTitle: "Kanal Marla",
+    kanalMarlaDesc: "Kanal/Marla parcels (visible when zoomed in)",
     healthCadastral:  "Cadastral",
     healthBoundaries: "Boundaries",
     healthAssets:     "Assets",
