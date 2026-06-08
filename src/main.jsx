@@ -1,15 +1,25 @@
-import React from "react";
+import React, { Suspense, lazy, useEffect } from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import esriConfig from "@arcgis/core/config.js";
-import * as urlUtils from "@arcgis/core/core/urlUtils.js";
-import "@arcgis/core/assets/esri/themes/light/main.css";
 import { initGA } from "./services/analyticsService";
 import { getRuntimeConfigValue, loadRuntimeConfig } from "./config/runtimeConfig";
 import useDisableDevTools from "./hooks/useDisableDevTools";
-import "./styles/global.css";
+import { LanguageProvider } from "./context/LanguageContext";
+import Login from "./pages/Login/Login";
+import ProtectedRoute from "./routes/ProtectedRoute";
 import { mountSplash, removeSplash } from "./splash";
+import "./styles/global.css";
 
+// Map and Admin are heavy routes (ArcGIS, charts, pdf, etc). Lazy-load them so the
+// login screen only downloads its own small chunk. ArcGIS is configured inside the
+// map chunk loader, so none of it touches the entry/login bundle.
+const App = lazy(async () => {
+  const { ensureArcgisReady } = await import("./bootstrap/arcgisSetup");
+  await ensureArcgisReady();
+  return import("./App");
+});
+
+const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
 
 const rootElement = document.getElementById("root");
 const ROOT_CACHE_KEY = "__EODB_REACT_ROOT__";
@@ -25,11 +35,6 @@ function disableRightClickGlobally() {
   });
 
   window[CONTEXT_MENU_GUARD_KEY] = true;
-}
-
-function normalizeBaseUrl(baseUrl) {
-  if (!baseUrl) return "/";
-  return baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`;
 }
 
 function normalizeRouterBase(baseName) {
@@ -60,112 +65,71 @@ function shouldShowInitialSplash() {
   return routePath === "/map";
 }
 
-function getArcgisAssetsPath() {
-  const normalizedBase = normalizeBaseUrl(import.meta.env.BASE_URL || "/");
-  const relativeAssetsPath = `${normalizedBase}arcgis/assets/`;
-  return new URL(relativeAssetsPath, window.location.origin).toString();
-}
-
-function attachArcgisAuthInterceptor() {
-  esriConfig.request.interceptors.push({
-    before: (params) => {
-      params.requestOptions = params.requestOptions || {};
-      params.requestOptions.credentials = "include";
-    },
-  });
-}
-
 function GlobalSecurityGuards() {
   useDisableDevTools();
   return null;
 }
 
-async function bootstrap() {
-  await loadRuntimeConfig();
+// Suspense fallback for lazy routes — keeps the branded splash on screen while the
+// heavy route chunk (and ArcGIS) downloads, then fades it out once the route mounts.
+function RouteSuspenseFallback() {
+  useEffect(() => {
+    mountSplash();
+    return () => removeSplash();
+  }, []);
+  return null;
+}
 
-  const [
-    { default: App },
-    { default: AdminDashboard },
-    { default: Login },
-    { default: ProtectedRoute },
-    { LanguageProvider },
-    { HSAC_PROXY_URL, HSAC_PROXY_URL_PREFIXES },
-  ] = await Promise.all([
-    import("./App"),
-    import("./pages/AdminDashboard"),
-    import("./pages/Login/Login"),
-    import("./routes/ProtectedRoute"),
-    import("./context/LanguageContext"),
-    import("./config/proxyConfig"),
-  ]);
-
-  const arcgisAssetsPath = getArcgisAssetsPath();
-
-  // ArcGIS local assets (workers/wasm/i18n/images) are served from /public/arcgis/assets.
-  esriConfig.assetsPath = arcgisAssetsPath;
-  esriConfig.workers.workerPath = `${arcgisAssetsPath}esri/core/workers/RemoteClient.js`;
-  attachArcgisAuthInterceptor();
-
-  // Initialize Google Analytics
-  const gaMeasurementId = getRuntimeConfigValue(
-    "VITE_GA_MEASUREMENT_ID",
-    import.meta.env.VITE_GA_MEASUREMENT_ID,
-  );
-  initGA(gaMeasurementId);
-
-  const arcgisApiKey = getRuntimeConfigValue(
-    "VITE_ARCGIS_API_KEY",
-    import.meta.env.VITE_ARCGIS_API_KEY,
-  );
-
-  if (arcgisApiKey) {
-    esriConfig.apiKey = arcgisApiKey;
-  }
-
-  if (HSAC_PROXY_URL) {
-    esriConfig.request.proxyUrl = HSAC_PROXY_URL;
-    HSAC_PROXY_URL_PREFIXES.forEach((urlPrefix) => {
-      const existingRule = urlUtils.getProxyRule(urlPrefix);
-      if (existingRule?.urlPrefix === urlPrefix) return;
-      urlUtils.addProxyRule({
-        urlPrefix,
-        proxyUrl: HSAC_PROXY_URL,
-      });
+// Runtime config + Google Analytics are initialized in the background so they never
+// block first paint or the login screen. ArcGIS reuses the same cached config load.
+function initBackgroundServices() {
+  loadRuntimeConfig()
+    .then(() => {
+      const gaMeasurementId = getRuntimeConfigValue(
+        "VITE_GA_MEASUREMENT_ID",
+        import.meta.env.VITE_GA_MEASUREMENT_ID,
+      );
+      initGA(gaMeasurementId);
+    })
+    .catch(() => {
+      // Keep the app functional even if config/GA bootstrap fails.
     });
-  }
+}
 
+function renderApp() {
   root.render(
     <React.StrictMode>
       <LanguageProvider>
         <BrowserRouter basename={resolveRouterBase()}>
           <GlobalSecurityGuards />
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route path="/" element={<Navigate to="/login" replace />} />
-            <Route
-              path="/map"
-              element={(
-                <ProtectedRoute>
-                  <App />
-                </ProtectedRoute>
-              )}
-            />
-            <Route
-              path="/admin"
-              element={(
-                <ProtectedRoute requireAdmin>
-                  <AdminDashboard />
-                </ProtectedRoute>
-              )}
-            />
-            {/* Catch-all: redirect unknown paths to login */}
-            <Route path="*" element={<Navigate to="/login" replace />} />
-          </Routes>
+          <Suspense fallback={<RouteSuspenseFallback />}>
+            <Routes>
+              <Route path="/login" element={<Login />} />
+              <Route path="/" element={<Navigate to="/login" replace />} />
+              <Route
+                path="/map"
+                element={(
+                  <ProtectedRoute>
+                    <App />
+                  </ProtectedRoute>
+                )}
+              />
+              <Route
+                path="/admin"
+                element={(
+                  <ProtectedRoute requireAdmin>
+                    <AdminDashboard />
+                  </ProtectedRoute>
+                )}
+              />
+              {/* Catch-all: redirect unknown paths to login */}
+              <Route path="*" element={<Navigate to="/login" replace />} />
+            </Routes>
+          </Suspense>
         </BrowserRouter>
       </LanguageProvider>
     </React.StrictMode>,
   );
-
 }
 
 if (shouldShowInitialSplash()) {
@@ -173,12 +137,15 @@ if (shouldShowInitialSplash()) {
 }
 
 disableRightClickGlobally();
+initBackgroundServices();
 
-bootstrap().catch(() => {
+try {
+  renderApp();
+} catch {
   removeSplash();
   root.render(
     <div style={{ padding: "1rem", fontFamily: "sans-serif" }}>
       Failed to initialize the application.
     </div>,
   );
-});
+}
