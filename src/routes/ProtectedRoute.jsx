@@ -4,13 +4,20 @@ import axiosInstance from "../utils/axiosInstance";
 
 const ADMIN_ROLES = new Set(["admin", "superadmin"]);
 
-function ProtectedRoute({ children, requireAdmin = false }) {
+function ProtectedRoute({ children, requireAdmin = false, onPrefetch }) {
   const [status, setStatus] = useState("loading");
 
   // Allow bypass only in local/dev builds when explicitly enabled by env.
   const isDeveloperMode = useMemo(() => (
     import.meta.env.DEV && String(import.meta.env.VITE_DEVELOPER_MODE || "").toLowerCase() === "true"
   ), []);
+
+  // Start downloading the heavy route chunk (e.g. App + ArcGIS) immediately, in
+  // parallel with the /user/me session check below — instead of waiting for auth to
+  // resolve first. This removes the serial download-after-auth waterfall.
+  useEffect(() => {
+    onPrefetch?.();
+  }, [onPrefetch]);
 
   useEffect(() => {
     if (isDeveloperMode) {

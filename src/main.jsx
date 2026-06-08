@@ -1,4 +1,4 @@
-import React, { Suspense, lazy, useEffect } from "react";
+import React, { Suspense, useEffect } from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { initGA } from "./services/analyticsService";
@@ -7,19 +7,13 @@ import useDisableDevTools from "./hooks/useDisableDevTools";
 import { LanguageProvider } from "./context/LanguageContext";
 import Login from "./pages/Login/Login";
 import ProtectedRoute from "./routes/ProtectedRoute";
+import { LazyMapApp, LazyAdminDashboard, prefetchMapChunk } from "./routes/lazyRoutes";
 import { mountSplash, removeSplash } from "./splash";
 import "./styles/global.css";
 
-// Map and Admin are heavy routes (ArcGIS, charts, pdf, etc). Lazy-load them so the
-// login screen only downloads its own small chunk. ArcGIS is configured inside the
-// map chunk loader, so none of it touches the entry/login bundle.
-const App = lazy(async () => {
-  const { ensureArcgisReady } = await import("./bootstrap/arcgisSetup");
-  await ensureArcgisReady();
-  return import("./App");
-});
-
-const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
+// Map and Admin are heavy routes (ArcGIS, charts, pdf, etc). They are lazy-loaded in
+// ./routes/lazyRoutes so the login screen only downloads its own small chunk. The map
+// chunk can also be prefetched in parallel with the auth check (see ProtectedRoute).
 
 const rootElement = document.getElementById("root");
 const ROOT_CACHE_KEY = "__EODB_REACT_ROOT__";
@@ -109,8 +103,8 @@ function renderApp() {
               <Route
                 path="/map"
                 element={(
-                  <ProtectedRoute>
-                    <App />
+                  <ProtectedRoute onPrefetch={prefetchMapChunk}>
+                    <LazyMapApp />
                   </ProtectedRoute>
                 )}
               />
@@ -118,7 +112,7 @@ function renderApp() {
                 path="/admin"
                 element={(
                   <ProtectedRoute requireAdmin>
-                    <AdminDashboard />
+                    <LazyAdminDashboard />
                   </ProtectedRoute>
                 )}
               />
