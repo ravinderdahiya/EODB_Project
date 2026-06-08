@@ -226,7 +226,7 @@ export default defineConfig(({ mode }) => {
   const devPort    = parseInt(env.VITE_DEV_PORT || "5173", 10);
   // Keep production default domain-agnostic to avoid cross-origin CORS breakage
   // when the app is served from a different host (for example harsac.online).
-  const rawBaseURL = env.VITE_SERVER_BASE_URL || "/eodb_backend";
+  const rawBaseURL = env.VITE_SERVER_BASE_URL || (mode === "development" ? "http://localhost:8081" : "/eodb_backend");
   const baseURL    = rawBaseURL.startsWith("http") ? normalizeLocalhostTarget(rawBaseURL) : rawBaseURL;
   const backendOriginForPrefixedProxy = resolveProxyOrigin(baseURL);
   const rawBase    = env.VITE_BASENAME || "/";

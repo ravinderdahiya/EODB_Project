@@ -534,7 +534,6 @@ export function useArcGISMap({
         const syncLayersAfterZoom = () => {
           const layers = layersRef.current;
           if (!layers?.map) return;
-          refreshVisibleHsacMapImageLayers(layers);
           const effective = getEffectiveLayerVisibility(layerVisibilityRef.current);
           syncStateBoundaryAndNearbyPlacesVisibility({
             layers,
