@@ -243,6 +243,22 @@ export default defineConfig(({ mode }) => {
       // the authored CSS as-is (both prefixed and unprefixed declarations preserved), so the
       // production build looks identical to local dev. JS is still minified.
       cssMinify: false,
+      rollupOptions: {
+        output: {
+          // Split heavy vendors into their own long-term-cacheable chunks so the
+          // login/entry bundle stays small. These libs are only pulled in by the
+          // lazy map/admin/print routes, so they no longer block login.
+          manualChunks(id) {
+            if (!id.includes("node_modules")) return undefined;
+            if (id.includes("@arcgis")) return "vendor-arcgis";
+            if (/[\\/]d3(-[^\\/]+)?[\\/]/.test(id)) return "vendor-d3";
+            if (id.includes("pdfmake")) return "vendor-pdfmake";
+            if (id.includes("html2canvas")) return "vendor-html2canvas";
+            if (id.includes("markerjs2")) return "vendor-markerjs";
+            return undefined;
+          },
+        },
+      },
     },
     plugins: [
       react(),
