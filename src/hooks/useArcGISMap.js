@@ -42,6 +42,7 @@ import {
   hydrateLandRecordPopupDetails,
   identifyCadastralParcelAtPoint,
   loadLayerWithRetry,
+  loadLayersWithProgress,
   normalizeParcelGeometry,
   queryCadastralParcelAtClick,
   clearBasemapCache,
@@ -318,6 +319,7 @@ export function useArcGISMap({
     let pointerMoveHandle;
     let pointerLeaveHandle;
     let zoomLayerRefreshTimer = null;
+    let zoomLayerRefreshRaf = null;
     let view;
     let isDisposed = false;
 
@@ -533,7 +535,20 @@ export function useArcGISMap({
 
         const syncLayersAfterZoom = () => {
           const layers = layersRef.current;
-          if (!layers?.map) return;
+          if (!layers?.map || !view) return;
+          const effective = getEffectiveLayerVisibility(layerVisibilityRef.current);
+          syncStateBoundaryAndNearbyPlacesVisibility({
+            layers,
+            effective,
+            currentScale: view.scale,
+          });
+          refreshVisibleHsacMapImageLayers(layers);
+        };
+
+        /** Visibility toggles immediately; tile refresh is rAF-throttled while zooming. */
+        const syncLayerVisibilityForScale = () => {
+          const layers = layersRef.current;
+          if (!layers?.map || !view) return;
           const effective = getEffectiveLayerVisibility(layerVisibilityRef.current);
           syncStateBoundaryAndNearbyPlacesVisibility({
             layers,
@@ -543,15 +558,24 @@ export function useArcGISMap({
         };
 
         const scheduleZoomLayerRefresh = () => {
+          syncLayerVisibilityForScale();
+
+          if (zoomLayerRefreshRaf == null) {
+            zoomLayerRefreshRaf = requestAnimationFrame(() => {
+              zoomLayerRefreshRaf = null;
+              if (!isDisposed) refreshVisibleHsacMapImageLayers(layersRef.current);
+            });
+          }
+
           clearTimeout(zoomLayerRefreshTimer);
           zoomLayerRefreshTimer = setTimeout(() => {
             if (!isDisposed) syncLayersAfterZoom();
-          }, 250);
+          }, 5);
         };
 
         // Slower, smoother mouse-wheel zoom at the cursor (small fractional steps + animation).
-        const MOUSE_WHEEL_ZOOM_STEP = 0.12;
-        const MOUSE_WHEEL_ZOOM_DURATION_MS = 130;
+        const MOUSE_WHEEL_ZOOM_STEP = 0.10;
+        const MOUSE_WHEEL_ZOOM_DURATION_MS = 0;
         let wheelTargetZoom = null;
         let wheelAnchorMap = null;
         let wheelAnimating = false;
@@ -645,8 +669,12 @@ export function useArcGISMap({
             // Visibility sync rule: UI toggle state is the source of truth; zoom can only further restrict.
             const effectiveState = getEffectiveLayerVisibility(layerVisibilityRef.current);
             const shouldShow = effectiveState.cadastral && zoom > CLICK_ZOOM.VILLAGE_MAX;
+            const cadastralWasVisible = lyr.hsacCadastralLayer?.visible ?? false;
             if (lyr.hsacCadastralLayer) lyr.hsacCadastralLayer.visible = shouldShow;
             if (lyr.highlightLayer)     lyr.highlightLayer.visible     = shouldShow;
+            if (shouldShow !== cadastralWasVisible) {
+              refreshVisibleHsacMapImageLayers(lyr);
+            }
             scheduleZoomLayerRefresh();
           },
           { initial: true },
@@ -960,6 +988,10 @@ export function useArcGISMap({
     return () => {
       isDisposed = true;
       clearTimeout(zoomLayerRefreshTimer);
+      if (zoomLayerRefreshRaf != null) {
+        cancelAnimationFrame(zoomLayerRefreshRaf);
+        zoomLayerRefreshRaf = null;
+      }
       mapContainerEl.removeEventListener("wheel", blockPageWheelZoom);
       mapContainerEl.removeEventListener("gesturestart", blockPageGestureZoom);
       mapContainerEl.removeEventListener("gesturechange", blockPageGestureZoom);
