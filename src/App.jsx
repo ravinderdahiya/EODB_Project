@@ -63,18 +63,18 @@ const cadastralLayerVisibility = Object.fromEntries(
 );
 
 const initialLayers = {
-  cadastral: false,
+  cadastral: true,
   ...cadastralLayerVisibility,
   nearbyPlaces: false,
   poi: false,
   boundariesGroup: true,
   district:  true,
-  tehsil:    false,
-  village:   false,
-  murrabaGrid: false,
-  murabba: false,
+  tehsil:    true,
+  village:   true,
+  murrabaGrid: true,
+  murabba: true,
   kanalMarla: false,
-  stateBoundary: false,
+  stateBoundary: true,
   assets:    false, // Government Assets (visible: false — user can toggle on)
   nhai:      false, // NHAI Upcoming (hidden by default, matches old project)
   roads:     false, // HR Road Infra  (hidden by default, matches old project)
