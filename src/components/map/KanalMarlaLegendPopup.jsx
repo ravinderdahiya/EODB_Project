@@ -26,7 +26,7 @@ const sortLegendEntries = (legend) =>
     return left.kanal - right.kanal || left.marla - right.marla;
   });
 
-export default function KanalMarlaLegendPopup({ open, onClose }) {
+export default function KanalMarlaLegendPopup({ open, onClose, serviceStatus = "idle" }) {
   const popupRef = useRef(null);
   const dragStateRef = useRef(null);
   const fetchedRef = useRef(false);
@@ -38,6 +38,11 @@ export default function KanalMarlaLegendPopup({ open, onClose }) {
   // so updating `status` does not re-trigger (and cancel) this effect.
   useEffect(() => {
     if (!open || fetchedRef.current) return undefined;
+    if (serviceStatus === "degraded") {
+      setEntries([]);
+      setStatus("error");
+      return undefined;
+    }
     fetchedRef.current = true;
 
     let cancelled = false;
@@ -59,7 +64,7 @@ export default function KanalMarlaLegendPopup({ open, onClose }) {
     return () => {
       cancelled = true;
     };
-  }, [open]);
+  }, [open, serviceStatus]);
 
   // Position the popup on the right side of the map the first time it opens.
   useLayoutEffect(() => {

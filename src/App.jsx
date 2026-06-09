@@ -146,12 +146,6 @@ export default function App() {
     trackFeatureUsage('layer_visibility', { visibleLayers });
   }, [layerVisibility, trackFeatureUsage]);
 
-  // Show the Kanal Marla symbology popup whenever that layer is turned on,
-  // and hide it when the layer is switched off.
-  useEffect(() => {
-    setKanalLegendOpen(Boolean(layerVisibility.kanalMarla));
-  }, [layerVisibility.kanalMarla]);
-
   // Track basemap changes
   useEffect(() => {
     trackMapInteraction('basemap_change', { basemap: activeBasemap });
@@ -276,6 +270,14 @@ export default function App() {
       });
     },
   });
+
+  // Show the Kanal Marla symbology popup whenever that layer is turned on,
+  // and hide it when the layer is switched off.
+  useEffect(() => {
+    setKanalLegendOpen(
+      Boolean(layerVisibility.kanalMarla) && serviceHealth.kanalMarla !== "degraded",
+    );
+  }, [layerVisibility.kanalMarla, serviceHealth.kanalMarla]);
 
   // â”€â”€ Select Features â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const sf = useSelectFeatures({ viewRef, layersRef });
@@ -1393,6 +1395,7 @@ export default function App() {
             <KanalMarlaLegendPopup
               open={kanalLegendOpen}
               onClose={() => setKanalLegendOpen(false)}
+              serviceStatus={serviceHealth.kanalMarla}
             />
 
             <MapToolbar

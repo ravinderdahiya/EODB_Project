@@ -110,12 +110,18 @@ export const getMapServiceLegend = async (serviceKey) => {
     });
     return response.data;
   } catch (error) {
-    console.error(`Map service legend error (${serviceKey}):`, error);
-    throw new Error(
+    const status = error.response?.status;
+    if (import.meta.env.DEV && status !== 404) {
+      console.warn(`Map service legend warning (${serviceKey}):`, error);
+    }
+
+    const legendError = new Error(
       error.response?.data?.error ||
       error.message ||
       `Could not load legend for ${serviceKey}`
     );
+    legendError.status = status;
+    throw legendError;
   }
 };
 

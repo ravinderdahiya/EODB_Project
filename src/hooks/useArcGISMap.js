@@ -104,6 +104,7 @@ const BOUNDARY_SELECTION_PADDING = {
   bottom: 36,
 };
 const DRAWING_BLOCK_STALE_MS = 45000;
+const OPTIONAL_LAYER_STATUS_KEYS = ["kanalMarla", "nhai", "roads"];
 
 const findSublayerById = (layer, id) =>
   layer?.findSublayerById?.(id) ?? layer?.findSublayerById?.(String(id));
@@ -209,6 +210,11 @@ export function useArcGISMap({
   const userLocationRef          = useRef(null);
   const userLocationWatchIdRef   = useRef(null);
   const userLocationErrorRef     = useRef(null);
+  const optionalLayerStateRef    = useRef({
+    kanalMarla: "idle",
+    nhai: "idle",
+    roads: "idle",
+  });
 
   const syncUserLocationDot = useCallback((coords) => {
     userLocationRef.current = {
@@ -264,7 +270,47 @@ export function useArcGISMap({
     cadastral:  "loading",
     boundaries: "loading",
     assets:     "loading",
+    kanalMarla: "idle",
+    nhai:       "idle",
+    roads:      "idle",
   });
+
+  const ensureOptionalLayerLoaded = useCallback(async ({
+    key,
+    layer,
+    label,
+    attempts = 1,
+    announceFailure = false,
+  }) => {
+    if (!OPTIONAL_LAYER_STATUS_KEYS.includes(key) || !layer) {
+      return { ok: false, skipped: true, error: null };
+    }
+
+    const currentState = optionalLayerStateRef.current[key];
+    if (currentState === "connected") {
+      return { ok: true, skipped: true, error: null };
+    }
+    if (currentState === "loading" || currentState === "degraded") {
+      return { ok: currentState === "connected", skipped: true, error: null };
+    }
+
+    optionalLayerStateRef.current[key] = "loading";
+    setServiceHealth((current) => ({ ...current, [key]: "loading" }));
+
+    const result = await loadLayerWithRetry(layer, { label, attempts });
+    const nextStatus = result.ok ? "connected" : "degraded";
+    optionalLayerStateRef.current[key] = nextStatus;
+    setServiceHealth((current) => ({ ...current, [key]: nextStatus }));
+
+    if (!result.ok) {
+      layer.visible = false;
+      if (announceFailure) {
+        setMapStatus(`${label || layer.title || "Layer"} is temporarily unavailable.`);
+      }
+    }
+
+    return result;
+  }, []);
   // ── Map initialisation (runs once) ──────────────────────────────────────────
   useEffect(() => {
     if (!containerRef.current) return undefined;
@@ -675,12 +721,28 @@ export function useArcGISMap({
         updateHealth("cadastral", cadastralLoad.ok ? "connected" : "degraded");
         updateHealth("assets", assetsLoad.ok ? "connected" : "degraded");
 
-        // Optional overlays should not block core tool readiness.
-        void Promise.all([
-          loadLayerWithRetry(kanalMarlaLayer, { label: "Kanal Marla layer", attempts: 1 }),
-          loadLayerWithRetry(nhaiLayer, { label: "NHAI layer", attempts: 1 }),
-          loadLayerWithRetry(roadsLayer, { label: "Haryana Roads layer", attempts: 1 }),
-        ]);
+        // Only load optional overlays when the user has actually turned them on.
+        if (effective.kanalMarla) {
+          void ensureOptionalLayerLoaded({
+            key: "kanalMarla",
+            layer: kanalMarlaLayer,
+            label: "Kanal Marla layer",
+          });
+        }
+        if (effective.nhai) {
+          void ensureOptionalLayerLoaded({
+            key: "nhai",
+            layer: nhaiLayer,
+            label: "NHAI layer",
+          });
+        }
+        if (effective.roads) {
+          void ensureOptionalLayerLoaded({
+            key: "roads",
+            layer: roadsLayer,
+            label: "Haryana Roads layer",
+          });
+        }
 
         const coreLayerHealthy = boundariesLoad.ok && cadastralLoad.ok;
         if (!coreLayerHealthy) {
@@ -967,6 +1029,11 @@ export function useArcGISMap({
       stopUserLocationWatch();
       userLocationRef.current = null;
       userLocationErrorRef.current = null;
+      optionalLayerStateRef.current = {
+        kanalMarla: "idle",
+        nhai: "idle",
+        roads: "idle",
+      };
       layersRef.current = {};
       viewRef.current = null;
       setMapReady(false);
@@ -1040,13 +1107,56 @@ export function useArcGISMap({
       });
     }
 
-    if (layers.kanalMarlaLayer) layers.kanalMarlaLayer.visible = effective.kanalMarla;
+    if (layers.kanalMarlaLayer) {
+      layers.kanalMarlaLayer.visible =
+        effective.kanalMarla && optionalLayerStateRef.current.kanalMarla !== "degraded";
+    }
 
     // Operational overlays
     if (layers.governmentAssetsLayer) layers.governmentAssetsLayer.visible = effective.assets;
-    if (layers.nhaiLayer)             layers.nhaiLayer.visible             = effective.nhai;
-    if (layers.roadsLayer)            layers.roadsLayer.visible            = effective.roads;
+    if (layers.nhaiLayer) {
+      layers.nhaiLayer.visible =
+        effective.nhai && optionalLayerStateRef.current.nhai !== "degraded";
+    }
+    if (layers.roadsLayer) {
+      layers.roadsLayer.visible =
+        effective.roads && optionalLayerStateRef.current.roads !== "degraded";
+    }
   }, [activeBasemap, layerVisibility]);
+
+  useEffect(() => {
+    if (!mapReady) return;
+
+    const layers = layersRef.current;
+    const effective = getEffectiveLayerVisibility(layerVisibility);
+
+    if (effective.kanalMarla) {
+      void ensureOptionalLayerLoaded({
+        key: "kanalMarla",
+        layer: layers.kanalMarlaLayer,
+        label: "Kanal Marla layer",
+        announceFailure: true,
+      });
+    }
+
+    if (effective.nhai) {
+      void ensureOptionalLayerLoaded({
+        key: "nhai",
+        layer: layers.nhaiLayer,
+        label: "NHAI layer",
+        announceFailure: true,
+      });
+    }
+
+    if (effective.roads) {
+      void ensureOptionalLayerLoaded({
+        key: "roads",
+        layer: layers.roadsLayer,
+        label: "Haryana Roads layer",
+        announceFailure: true,
+      });
+    }
+  }, [ensureOptionalLayerLoaded, layerVisibility, mapReady]);
 
   // ── Selected parcel highlight ────────────────────────────────────────────────
   useEffect(() => {
