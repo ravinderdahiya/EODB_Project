@@ -42,7 +42,6 @@ import {
   hydrateLandRecordPopupDetails,
   identifyCadastralParcelAtPoint,
   loadLayerWithRetry,
-  loadLayersWithProgress,
   normalizeParcelGeometry,
   queryCadastralParcelAtClick,
   clearBasemapCache,
