@@ -35,8 +35,6 @@ export function ensureArcgisReady() {
   }
 
   arcgisReadyPromise = (async () => {
-    await loadRuntimeConfig();
-
     const arcgisAssetsPath = getArcgisAssetsPath();
 
     // ArcGIS local assets (workers/wasm/i18n/images) are served from /public/arcgis/assets.
@@ -44,14 +42,18 @@ export function ensureArcgisReady() {
     esriConfig.workers.workerPath = `${arcgisAssetsPath}esri/core/workers/RemoteClient.js`;
     attachArcgisAuthInterceptor();
 
-    const arcgisApiKey = getRuntimeConfigValue(
-      "VITE_ARCGIS_API_KEY",
-      import.meta.env.VITE_ARCGIS_API_KEY,
-    );
+    const applyRuntimeApiKey = () => {
+      const arcgisApiKey = getRuntimeConfigValue(
+        "VITE_ARCGIS_API_KEY",
+        import.meta.env.VITE_ARCGIS_API_KEY,
+      );
+      if (arcgisApiKey) {
+        esriConfig.apiKey = arcgisApiKey;
+      }
+    };
 
-    if (arcgisApiKey) {
-      esriConfig.apiKey = arcgisApiKey;
-    }
+    applyRuntimeApiKey();
+    void loadRuntimeConfig().then(applyRuntimeApiKey);
 
     if (HSAC_PROXY_URL) {
       esriConfig.request.proxyUrl = HSAC_PROXY_URL;

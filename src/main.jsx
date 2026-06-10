@@ -69,7 +69,6 @@ function GlobalSecurityGuards() {
 function RouteSuspenseFallback() {
   useEffect(() => {
     mountSplash();
-    return () => removeSplash();
   }, []);
   return null;
 }

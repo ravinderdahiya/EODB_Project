@@ -1,4 +1,4 @@
-import { useDeferredValue, useEffect, useRef, useState, useTransition } from "react";
+import { lazy, Suspense, useDeferredValue, useEffect, useRef, useState, useTransition } from "react";
 import { useNavigate } from "react-router-dom";
 import axiosInstance from "@/utils/axiosInstance";
 import AppHeader from "@/components/AppHeader";
@@ -11,8 +11,8 @@ import ParcelDetailsModal from "@/components/ParcelDetailsModal";
 import SidebarNav from "@/components/SidebarNav";
 import "@/components/SidebarToggle.css";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import SaarthiChatbotWidget from "@/components/chatbot/SaarthiChatbotWidget";
-import VoiceAssistantPopup from "@/components/voiceAssistant/VoiceAssistantPopup";
+const LazySaarthiChatbotWidget = lazy(() => import("@/components/chatbot/SaarthiChatbotWidget"));
+const LazyVoiceAssistantPopup = lazy(() => import("@/components/voiceAssistant/VoiceAssistantPopup"));
 import ZoomWheelSlider from "@/components/map/ZoomWheelSlider";
 
 import NorthCompassControl from "@/components/map/NorthCompassControl";
@@ -1297,10 +1297,14 @@ export default function App() {
         forceSearchSuggestionsOpen={forceSearchSuggestionsOpen}
         onSuggestionSelect={handleSuggestionSelect}
       />
-      <VoiceAssistantPopup
-        actionHandlers={voiceActionHandlers}
-        onStatusChange={setSystemMessage}
-      />
+      {mapReady ? (
+        <Suspense fallback={null}>
+          <LazyVoiceAssistantPopup
+            actionHandlers={voiceActionHandlers}
+            onStatusChange={setSystemMessage}
+          />
+        </Suspense>
+      ) : null}
 
       {isTablet && sidebarOpen ? (
         <button
@@ -1468,11 +1472,15 @@ export default function App() {
         parcel={selectedParcel}
         onClose={() => setDetailsOpen(false)}
       />
-      <SaarthiChatbotWidget
-        lang={lang}
-        blurred={detailsOpen}
-        hidden={isTablet && sidebarOpen}
-      />
+      {mapReady ? (
+        <Suspense fallback={null}>
+          <LazySaarthiChatbotWidget
+            lang={lang}
+            blurred={detailsOpen}
+            hidden={isTablet && sidebarOpen}
+          />
+        </Suspense>
+      ) : null}
       <FeedbackWidget
         hidden={detailsOpen}
         open={feedbackOpen}

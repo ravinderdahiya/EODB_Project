@@ -2,8 +2,11 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { createTranslator, useLanguage } from "@/context/LanguageContext";
 import axiosInstance from "../../utils/axiosInstance";
-import { reloadRuntimeConfig } from "@/config/runtimeConfig";
 import { prefetchMapChunk } from "@/routes/lazyRoutes";
+import {
+  clearTrustedSession,
+  persistTrustedSession,
+} from "@/utils/authSession";
 import { mountSplash } from "../../splash";
 import { buildDevicePayload } from "../../utils/deviceIdentity";
 import LoginBackground from "./components/LoginBackground";
@@ -49,7 +52,6 @@ const formatCompactNumber = (value) => {
 };
 
 function goToMapAfterLogin(navigate) {
-  void reloadRuntimeConfig();
   mountSplash();
   navigate("/map");
 }
@@ -253,29 +255,17 @@ export default function Login() {
   ]), [insightMetrics, t]);
 
   const clearAuthMarkers = () => {
-    sessionStorage.removeItem("isAuthenticated");
-    sessionStorage.removeItem("user");
-    sessionStorage.removeItem("isAdmin");
+    clearTrustedSession();
   };
 
   const establishTrustedSession = async ({ requireAdmin = false } = {}) => {
     const meResponse = await axiosInstance.get("/user/me");
-    const serverUser = meResponse?.data || {};
-
-    if (!serverUser?.id) {
-      throw new Error("Unable to validate authenticated session.");
-    }
-
-    const serverRole = String(serverUser?.role || "").toLowerCase().trim();
-    const isAdmin = serverRole === "admin" || serverRole === "superadmin";
+    const serverUser = persistTrustedSession(meResponse?.data || {});
+    const isAdmin = serverUser.role === "admin" || serverUser.role === "superadmin";
 
     if (requireAdmin && !isAdmin) {
       throw new Error(t("login.errBadAdmin"));
     }
-
-    sessionStorage.setItem("user", JSON.stringify(serverUser));
-    sessionStorage.setItem("isAdmin", isAdmin ? "true" : "false");
-    sessionStorage.setItem("isAuthenticated", "true");
 
     return serverUser;
   };
@@ -295,12 +285,12 @@ export default function Login() {
 
     try {
       setIsVerifyingOtp(true);
-      await axiosInstance.post("/otp/verify-otp", {
+      const verifyResponse = await axiosInstance.post("/otp/verify-otp", {
         phone,
         otp: enteredOtp,
         ...buildDevicePayload(),
       });
-      await establishTrustedSession({ requireAdmin: false });
+      persistTrustedSession(verifyResponse?.data?.user || {});
       commitLanguage();
       goToMapAfterLogin(navigate);
     } catch (err) {
@@ -367,7 +357,7 @@ export default function Login() {
         ...buildDevicePayload(),
       });
       if (res.data?.vipLogin && res.data?.user) {
-        await establishTrustedSession({ requireAdmin: false });
+        persistTrustedSession(res.data.user);
         commitLanguage();
         goToMapAfterLogin(navigate);
         return;
@@ -415,7 +405,6 @@ export default function Login() {
       });
       await establishTrustedSession({ requireAdmin: true });
       commitLanguage();
-      await reloadRuntimeConfig();
       setShowAdminPanel(false);
       navigate("/admin");
     } catch (err) {
