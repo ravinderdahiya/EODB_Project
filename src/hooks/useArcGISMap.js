@@ -41,6 +41,7 @@ import {
   createPopupLoadingPreview,
   hydrateLandRecordPopupDetails,
   identifyCadastralParcelAtPoint,
+  attachOptionalMapOverlay,
   loadLayerWithRetry,
   normalizeParcelGeometry,
   queryCadastralParcelAtClick,
@@ -683,31 +684,38 @@ export function useArcGISMap({
         setMapReady(true);
         setMapStatus("Haryana map ready. Verifying layer connectivity…");
 
-        void Promise.resolve().then(() => {
-          if (isDisposed) return;
-          map.addMany([governmentAssetsLayer, nhaiLayer, roadsLayer]);
-        });
-
-        const [boundariesLoad, cadastralLoad, assetsLoad] = await Promise.all([
+        const [boundariesLoad, cadastralLoad] = await Promise.all([
           loadLayerWithRetry(hsacBoundariesLayer, { label: "Boundaries layer" }),
           loadLayerWithRetry(hsacStateBoundaryLayer, { label: "State boundary layer", attempts: 1 }),
           loadLayerWithRetry(hsacCadastralLayer, { label: "Cadastral layer" }),
           loadLayerWithRetry(nearbyPlacesLayer, { label: "Nearby Places layer", attempts: 1 }),
-          loadLayerWithRetry(governmentAssetsLayer, { label: "Government Assets layer" }),
         ]);
 
         if (isDisposed) return;
 
         updateHealth("boundaries", boundariesLoad.ok ? "connected" : "degraded");
         updateHealth("cadastral", cadastralLoad.ok ? "connected" : "degraded");
-        updateHealth("assets", assetsLoad.ok ? "connected" : "degraded");
 
-        // Optional overlays should not block core tool readiness.
-        void Promise.all([
-          loadLayerWithRetry(kanalMarlaLayer, { label: "Kanal Marla layer", attempts: 1 }),
-          loadLayerWithRetry(nhaiLayer, { label: "NHAI layer", attempts: 1 }),
-          loadLayerWithRetry(roadsLayer, { label: "Haryana Roads layer", attempts: 1 }),
-        ]);
+        // Optional overlays load in the background and are skipped quietly when unavailable.
+        void (async () => {
+          const [assetsLoad, kanalLoad, nhaiLoad, roadsLoad] = await Promise.all([
+            attachOptionalMapOverlay(map, governmentAssetsLayer, { label: "Government Assets layer" }),
+            attachOptionalMapOverlay(map, kanalMarlaLayer, { label: "Kanal Marla layer" }),
+            attachOptionalMapOverlay(map, nhaiLayer, { label: "NHAI layer" }),
+            attachOptionalMapOverlay(map, roadsLayer, { label: "Haryana Roads layer" }),
+          ]);
+
+          if (isDisposed) return;
+
+          updateHealth("assets", assetsLoad.ok ? "connected" : "degraded");
+          if (!kanalLoad.ok || !nhaiLoad.ok || !roadsLoad.ok) {
+            setMapStatus((current) => (
+              current.includes("limited connectivity")
+                ? current
+                : `${current} Some optional map overlays are unavailable.`
+            ));
+          }
+        })();
 
         const coreLayerHealthy = boundariesLoad.ok && cadastralLoad.ok;
         if (!coreLayerHealthy) {
@@ -932,10 +940,6 @@ export function useArcGISMap({
           if (resolvedFeature) {
             cadastralHit = { graphic: resolvedFeature };
           }
-        }
-
-        if (hit && selectedParcelRef.current) {
-          onParcelSelectRef.current?.(selectedParcelRef.current, { openTable: false });
         }
 
         if (!cadastralHit && !hit) {

@@ -20,8 +20,11 @@ export default function AdminLoginLogsTable({
   onSearchChange,
 }) {
   const [selectedDeviceText, setSelectedDeviceText] = useState(null);
-  const startIndex = totalCount === 0 ? 0 : (page - 1) * pageSize + 1;
-  const endIndex = Math.min(startIndex + logs.length - 1, totalCount);
+  const startIndex = totalCount === 0 || logs.length === 0 ? 0 : (page - 1) * pageSize + 1;
+  const endIndex = logs.length === 0 ? 0 : Math.min(startIndex + logs.length - 1, totalCount);
+  const paginationLabel = totalCount === 0
+    ? "Showing 0 of 0 entries"
+    : `Showing ${startIndex} - ${endIndex} of ${totalCount} entries`;
 
   return (
     <article className="admin-card admin-table-card">
@@ -58,7 +61,7 @@ export default function AdminLoginLogsTable({
           <>
             <div className="admin-table-pagination">
               <span>
-                Showing {startIndex} - {endIndex} of {totalCount} entries
+                {paginationLabel}
               </span>
               <div className="admin-table-pagination__actions">
                 <button
@@ -72,7 +75,7 @@ export default function AdminLoginLogsTable({
                 <button
                   type="button"
                   className="admin-table-pagination__button"
-                  disabled={endIndex >= totalCount}
+                  disabled={endIndex >= totalCount || logs.length === 0}
                   onClick={() => onPageChange(page + 1)}
                 >
                   Next

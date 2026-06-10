@@ -20,7 +20,7 @@ function pickFirstValue(source, keys) {
 export function unwrapOwnerPayload(payload) {
   let value = payload;
   for (let i = 0; i < 5; i += 1) {
-    if (Array.isArray(value) && value.length > 0) {
+    if (Array.isArray(value) && value.length === 1) {
       value = value[0];
       continue;
     }
@@ -317,7 +317,7 @@ export async function requestOwnerApiResult(query) {
     }
   }
 
-  if (lastPayload) {
+  if (lastPayload && hasOwnerApiResolvedData(lastPayload)) {
     return { ok: true, payload: lastPayload };
   }
 

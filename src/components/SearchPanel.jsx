@@ -132,6 +132,8 @@ function SearchSection({
       try {
         const tehsils = await getTehsils(code);
         setFieldOptions("tehsil", tehsils);
+      } catch (error) {
+        onStatusChange?.(error?.message || "Failed to load tehsil list.");
       } finally {
         setFieldLoading("tehsil", false);
       }
@@ -143,6 +145,8 @@ function SearchSection({
       try {
         const villages = await getVillages(newCodes.district, code);
         setFieldOptions("village", villages);
+      } catch (error) {
+        onStatusChange?.(error?.message || "Failed to load village list.");
       } finally {
         setFieldLoading("village", false);
       }
@@ -155,6 +159,8 @@ function SearchSection({
         try {
           const murrabas = await getMurrabas(newCodes.district, newCodes.tehsil, code);
           setFieldOptions("murabba", murrabas.map((m) => ({ code: m, name: m })));
+        } catch (error) {
+          onStatusChange?.(error?.message || "Failed to load murabba list.");
         } finally {
           setFieldLoading("murabba", false);
         }
@@ -163,14 +169,23 @@ function SearchSection({
         try {
           const khewats = await getKhewats(newCodes.district, newCodes.tehsil, code);
           setFieldOptions("khewat", khewats.map((k) => ({ code: k, name: k })));
+
+          if (sectionId === "jamabandi") {
+            try {
+              periodRef.current = await getJamabandiPeriod(
+                newCodes.district,
+                newCodes.tehsil,
+                code,
+              );
+            } catch {
+              periodRef.current = "";
+              onStatusChange?.("Failed to load Jamabandi period.");
+            }
+          }
+        } catch (error) {
+          onStatusChange?.(error?.message || "Failed to load khewat list.");
         } finally {
           setFieldLoading("khewat", false);
-        }
-
-        if (sectionId === "jamabandi") {
-          getJamabandiPeriod(newCodes.district, newCodes.tehsil, code)
-            .then((period) => { periodRef.current = period; })
-            .catch(() => { periodRef.current = ""; });
         }
       }
       return;
@@ -183,6 +198,8 @@ function SearchSection({
           newCodes.district, newCodes.tehsil, newCodes.village, code,
         );
         setFieldOptions("khasra", khasras.map((k) => ({ code: k, name: k })));
+      } catch (error) {
+        onStatusChange?.(error?.message || "Failed to load khasra list.");
       } finally {
         setFieldLoading("khasra", false);
       }
@@ -192,14 +209,26 @@ function SearchSection({
     if (fieldKey === "khewat" && sectionId === "jamabandi") {
       setFieldLoading("khatoni", true);
       try {
+        let period = periodRef.current;
+        if (!period) {
+          period = await getJamabandiPeriod(
+            newCodes.district,
+            newCodes.tehsil,
+            newCodes.village,
+          );
+          periodRef.current = period;
+        }
+
         const khatonis = await getKhatonis(
           newCodes.district,
           newCodes.tehsil,
           newCodes.village,
-          periodRef.current,
+          period,
           code,
         );
         setFieldOptions("khatoni", khatonis.map((k) => ({ code: k, name: k })));
+      } catch (error) {
+        onStatusChange?.(error?.message || "Failed to load khatoni list.");
       } finally {
         setFieldLoading("khatoni", false);
       }

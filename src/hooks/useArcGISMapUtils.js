@@ -158,6 +158,78 @@ export async function loadLayerWithRetry(layer, {
   return { ok: false, attempts, error: lastError };
 }
 
+export function isConfiguredMapServiceUrl(url) {
+  const normalized = `${url || ""}`.trim();
+  return (
+    normalized.startsWith("http://")
+    || normalized.startsWith("https://")
+    || normalized.startsWith("/")
+  );
+}
+
+async function probeMapServiceMetadata(url) {
+  const normalized = `${url || ""}`.trim().replace(/\/+$/, "");
+  if (!normalized) return false;
+
+  try {
+    const response = await fetch(`${normalized}?f=json`, {
+      method: "GET",
+      credentials: "include",
+      headers: { Accept: "application/json" },
+    });
+    if (!response.ok) return false;
+
+    const payload = await response.json();
+    return Boolean(payload?.currentVersion || payload?.mapName || Array.isArray(payload?.layers));
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Load an optional overlay layer without blocking core map readiness.
+ * Layers that are not yet on the map are added only after a successful load.
+ */
+export async function attachOptionalMapOverlay(map, layer, {
+  label,
+  attempts = 1,
+} = {}) {
+  if (!layer) {
+    return { ok: false, skipped: true, error: null };
+  }
+
+  const serviceUrl = `${layer.url ?? ""}`.trim();
+  if (!isConfiguredMapServiceUrl(serviceUrl)) {
+    return { ok: false, skipped: true, error: null };
+  }
+
+  const wasOnMap = Boolean(map?.layers?.includes(layer));
+  const serviceReachable = await probeMapServiceMetadata(serviceUrl);
+  if (!serviceReachable) {
+    layer.visible = false;
+    if (wasOnMap && map?.layers?.includes(layer)) {
+      map.remove(layer);
+    }
+    return { ok: false, skipped: true, error: null };
+  }
+
+  const result = await loadLayerWithRetry(layer, { label, attempts });
+
+  if (!result.ok) {
+    layer.visible = false;
+    if (wasOnMap && map?.layers?.includes(layer)) {
+      map.remove(layer);
+    }
+    return result;
+  }
+
+  if (!wasOnMap && map) {
+    map.add(layer);
+  }
+
+  return result;
+}
+
 export function clampNumber(value, min, max) {
   return Math.min(Math.max(value, min), max);
 }

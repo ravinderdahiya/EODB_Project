@@ -29,8 +29,11 @@ export default function AdminAnalyticsEventsTable({
     return { shortText: `${text.slice(0, maxLength).trim()}...`, hasMore: true };
   };
 
-  const startIndex = totalCount === 0 ? 0 : (page - 1) * pageSize + 1;
-  const endIndex = Math.min(startIndex + events.length - 1, totalCount);
+  const startIndex = totalCount === 0 || events.length === 0 ? 0 : (page - 1) * pageSize + 1;
+  const endIndex = events.length === 0 ? 0 : Math.min(startIndex + events.length - 1, totalCount);
+  const paginationLabel = totalCount === 0
+    ? "Showing 0 of 0 entries"
+    : `Showing ${startIndex} - ${endIndex} of ${totalCount} entries`;
 
   return (
     <article className="admin-card admin-table-card">
@@ -54,7 +57,7 @@ export default function AdminAnalyticsEventsTable({
           <>
             <div className="admin-table-pagination">
               <span>
-                Showing {startIndex} - {endIndex} of {totalCount} entries
+                {paginationLabel}
               </span>
               <div className="admin-table-pagination__actions">
                 <button
@@ -68,7 +71,7 @@ export default function AdminAnalyticsEventsTable({
                 <button
                   type="button"
                   className="admin-table-pagination__button"
-                  disabled={endIndex >= totalCount}
+                  disabled={endIndex >= totalCount || events.length === 0}
                   onClick={() => onPageChange(page + 1)}
                 >
                   Next

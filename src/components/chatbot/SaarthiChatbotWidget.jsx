@@ -177,7 +177,7 @@ function pickFirstValue(source, keys) {
 function unwrapOwnerPayload(payload) {
   let value = payload;
   for (let i = 0; i < 5; i += 1) {
-    if (Array.isArray(value) && value.length > 0) {
+    if (Array.isArray(value) && value.length === 1) {
       value = value[0];
       continue;
     }
@@ -626,7 +626,7 @@ async function requestOwnerApiResult(query, frameWindow) {
     }
   }
 
-  if (lastPayload) {
+  if (lastPayload && hasOwnerApiResolvedData(lastPayload)) {
     return lastPayload;
   }
 
@@ -1722,10 +1722,18 @@ export default function SaarthiChatbotWidget({ lang = "en", blurred = false, hid
   const [bottomOffset, setBottomOffset] = useState(28);
   const [launcherHintIndex, setLauncherHintIndex] = useState(0);
   const [showLauncherHint, setShowLauncherHint] = useState(false);
-  const chatbotCssPath = `${import.meta.env.BASE_URL}chatbot/assets/index-CleebXl6.css`;
-  const chatbotJsPath = `${import.meta.env.BASE_URL}chatbot/assets/index-h95SWGsY.js`;
-  const chatbotIconPath = `${import.meta.env.BASE_URL}chatbot/assets/img_1.png`;
-  const chatbotLauncherFlipIconPath = `${import.meta.env.BASE_URL}chatbot/assets/img_2.png`;
+  const chatbotAssetBase = `${import.meta.env.BASE_URL}chatbot/`;
+  const chatbotCssPath = `${chatbotAssetBase}assets/index-CleebXl6.css`;
+  const chatbotJsPath = `${chatbotAssetBase}assets/index-h95SWGsY.js`;
+  const chatbotIconFallbackPath = `${chatbotAssetBase}favicon.svg`;
+  const chatbotIconPath = `${chatbotAssetBase}assets/img_1.png`;
+  const chatbotLauncherFlipIconPath = `${chatbotAssetBase}assets/img_2.png`;
+  const handleChatbotIconError = (event) => {
+    const image = event.currentTarget;
+    if (!image || image.dataset.fallbackApplied === "true") return;
+    image.dataset.fallbackApplied = "true";
+    image.src = chatbotIconFallbackPath;
+  };
   const activeLocale = CHATBOT_LOCALE[lang] || CHATBOT_LOCALE.en;
   const launcherHints = Array.isArray(activeLocale.launcherHints) && activeLocale.launcherHints.length
     ? activeLocale.launcherHints
@@ -1812,7 +1820,7 @@ export default function SaarthiChatbotWidget({ lang = "en", blurred = false, hid
     if (!iframe) return undefined;
     syncSchedulerRef.current.destroyed = false;
     const iconUrl = new URL(
-      chatbotIconPath,
+      chatbotIconFallbackPath,
       window.location.origin,
     ).toString();
 
@@ -2952,7 +2960,7 @@ export default function SaarthiChatbotWidget({ lang = "en", blurred = false, hid
       document.removeEventListener("click", onHostClickCapture, true);
       document.removeEventListener("pointerdown", onHostPointerDownCapture, true);
     };
-  }, [activeLocale, chatbotIconPath, chatbotCssPath, chatbotJsPath, lang]);
+  }, [activeLocale, chatbotAssetBase, chatbotCssPath, chatbotIconFallbackPath, chatbotJsPath, lang]);
 
   return (
     <div
@@ -2969,8 +2977,8 @@ export default function SaarthiChatbotWidget({ lang = "en", blurred = false, hid
           aria-label="Open EODB AI Saarthi chatbot"
         >
           <span className="saarthi-chatbot-widget__launcher-flip" aria-hidden="true">
-            <img src={chatbotIconPath} alt="" />
-            <img src={chatbotLauncherFlipIconPath} alt="" />
+            <img src={chatbotIconPath} alt="" onError={handleChatbotIconError} />
+            <img src={chatbotLauncherFlipIconPath} alt="" onError={handleChatbotIconError} />
           </span>
         </button>
       ) : null}
@@ -3004,8 +3012,35 @@ export default function SaarthiChatbotWidget({ lang = "en", blurred = false, hid
         overflow: hidden;
       }
     </style>
+    <base href="${chatbotAssetBase}" />
     <link rel="stylesheet" crossorigin href="${chatbotCssPath}">
     <script type="module" crossorigin src="${chatbotJsPath}"></script>
+    <script>
+      (function () {
+        var fallback = ${JSON.stringify(chatbotIconFallbackPath)};
+        function patchImage(image) {
+          if (!image || image.dataset.fallbackApplied === "true") return;
+          image.addEventListener("error", function onError() {
+            if (image.dataset.fallbackApplied === "true") return;
+            image.dataset.fallbackApplied = "true";
+            image.src = fallback;
+          }, { once: true });
+        }
+        function patchAll(root) {
+          (root || document).querySelectorAll("img").forEach(patchImage);
+        }
+        patchAll(document);
+        new MutationObserver(function (records) {
+          records.forEach(function (record) {
+            record.addedNodes.forEach(function (node) {
+              if (!node) return;
+              if (node.tagName === "IMG") patchImage(node);
+              if (node.querySelectorAll) patchAll(node);
+            });
+          });
+        }).observe(document.documentElement, { childList: true, subtree: true });
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

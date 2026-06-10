@@ -35,7 +35,10 @@ export function normalizeParcel(parcel, overrides = {}) {
   const src = parcel ?? {};
   const result = { ...src };
   for (const [key, fallback] of Object.entries(defaults)) {
-    if (!result[key]) result[key] = fallback;
+    const value = result[key];
+    if (value == null || value === "") {
+      result[key] = fallback;
+    }
   }
   return result;
 }

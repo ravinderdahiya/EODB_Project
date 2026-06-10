@@ -10,8 +10,11 @@ export default function AdminFeedbackTable({
   onPageChange,
 }) {
   const [selectedMessage, setSelectedMessage] = useState(null);
-  const startIndex = totalCount === 0 ? 0 : (page - 1) * pageSize + 1;
-  const endIndex = Math.min(startIndex + feedbacks.length - 1, totalCount);
+  const startIndex = totalCount === 0 || feedbacks.length === 0 ? 0 : (page - 1) * pageSize + 1;
+  const endIndex = feedbacks.length === 0 ? 0 : Math.min(startIndex + feedbacks.length - 1, totalCount);
+  const paginationLabel = totalCount === 0
+    ? "Showing 0 of 0 entries"
+    : `Showing ${startIndex} - ${endIndex} of ${totalCount} entries`;
 
   const getShortMessage = (value, maxLength = 44) => {
     const text = `${value || ""}`.trim();
@@ -41,7 +44,7 @@ export default function AdminFeedbackTable({
           <>
             <div className="admin-table-pagination">
               <span>
-                Showing {startIndex} - {endIndex} of {totalCount} entries
+                {paginationLabel}
               </span>
               <div className="admin-table-pagination__actions">
                 <button
@@ -55,7 +58,7 @@ export default function AdminFeedbackTable({
                 <button
                   type="button"
                   className="admin-table-pagination__button"
-                  disabled={endIndex >= totalCount}
+                  disabled={endIndex >= totalCount || feedbacks.length === 0}
                   onClick={() => onPageChange(page + 1)}
                 >
                   Next

@@ -3,7 +3,7 @@
  *
  * Manages the full "Select Features" workflow:
  *   1. SketchViewModel drawing (rectangle / polygon / polyline)
- *   2. District-layer guard query  (HSAC layer 26)
+ *   2. District-layer guard query  (resolved via HSAC layer plan)
  *   3. Khasra-sublayer query       (HSAC sublayer == stripped district code)
  *   4. Map highlight + zoom
  *   5. Sequential owner-name fetch with per-row progress
@@ -22,7 +22,7 @@ import SketchViewModel from "@arcgis/core/widgets/Sketch/SketchViewModel.js";
 import * as restQuery from "@arcgis/core/rest/query.js";
 import Query from "@arcgis/core/rest/support/Query.js";
 import { getHsacMainUrl } from "@/config/arcgis";
-import { getCadastralLayerId } from "@/services/hsacLayerResolver";
+import { getCadastralLayerId, getHsacLayerPlan } from "@/services/hsacLayerResolver";
 import { getOwnerNames } from "@/services/landRecordService";
 import { SELECTION_FILL_SYMBOL } from "@/config/mapSymbols";
 import { MAX_KHASRA_SELECTION } from "@/constants/selectFeatures";
@@ -112,8 +112,9 @@ export function useSelectFeatures({ viewRef, layersRef }) {
 
     try {
       // ── Step 1: district guard ──────────────────────────────────────────────
+      const layerPlan = await getHsacLayerPlan();
       const distRes = await restQuery.executeQueryJSON(
-        `${getHsacMainUrl()}/26`,
+        `${getHsacMainUrl()}/${layerPlan.districtLayerId}`,
         new Query({
           geometry,
           spatialRelationship: "intersects",
@@ -121,7 +122,7 @@ export function useSelectFeatures({ viewRef, layersRef }) {
           outFields: ["n_d_code", "n_d_name"],
           where: "n_d_code IS NOT NULL AND n_d_code <> ''",
           outSpatialReference: view.spatialReference,
-          num: MAX_KHASRA_SELECTION + 1,
+          num: 50,
         }),
       );
 
@@ -135,34 +136,61 @@ export function useSelectFeatures({ viewRef, layersRef }) {
         return;
       }
 
-      if (distFeatures.length > MAX_KHASRA_SELECTION) {
-        setStatusMessage(`You Can Select Maximum ${MAX_KHASRA_SELECTION} Khasra`);
-        setProgress({ current: 0, total: 0, running: false });
-        return;
-      }
-
-      const rawDCode = `${distFeatures[0]?.attributes?.n_d_code ?? ""}`.trim();
-      const layerId  = await getCadastralLayerId(rawDCode);
+      const districtCodes = [
+        ...new Set(
+          distFeatures
+            .map((feat) => `${feat?.attributes?.n_d_code ?? ""}`.trim())
+            .filter(Boolean),
+        ),
+      ];
 
       setStatusMessage("Querying khasra layer…");
 
-      // ── Step 2: khasra query on the district cadastral sublayer ─────────────
-      const khasRes = await restQuery.executeQueryJSON(
-        `${getHsacMainUrl()}/${layerId}`,
-        new Query({
-          geometry,
-          spatialRelationship: "intersects",
-          returnGeometry: true,
-          outFields: ["*"],
-          where: "n_khas_no IS NOT NULL AND n_khas_no <> ''",
-          outSpatialReference: view.spatialReference,
-          num: MAX_KHASRA_SELECTION + 1,
-        }),
-      );
+      // ── Step 2: khasra query on every intersecting district cadastral sublayer ─
+      const khasFeatures = [];
+      const seenParcelKeys = new Set();
+
+      for (const rawDCode of districtCodes) {
+        if (tokenRef.current !== token) return;
+
+        const layerId = await getCadastralLayerId(rawDCode);
+        const khasRes = await restQuery.executeQueryJSON(
+          `${getHsacMainUrl()}/${layerId}`,
+          new Query({
+            geometry,
+            spatialRelationship: "intersects",
+            returnGeometry: true,
+            outFields: ["*"],
+            where: "n_khas_no IS NOT NULL AND n_khas_no <> ''",
+            outSpatialReference: view.spatialReference,
+            num: MAX_KHASRA_SELECTION + 1,
+          }),
+        );
+
+        for (const feat of khasRes?.features ?? []) {
+          const attrs = feat.attributes ?? {};
+          const parcelKey = [
+            attrs.n_d_code,
+            attrs.n_t_code,
+            attrs.n_v_code,
+            attrs.n_murr_no,
+            attrs.n_khas_no,
+          ]
+            .map((value) => `${value ?? ""}`.trim())
+            .join("-");
+          if (!parcelKey || seenParcelKeys.has(parcelKey)) continue;
+          seenParcelKeys.add(parcelKey);
+          khasFeatures.push(feat);
+        }
+
+        if (khasFeatures.length > MAX_KHASRA_SELECTION) {
+          setStatusMessage(`You Can Select Maximum ${MAX_KHASRA_SELECTION} Khasra`);
+          setProgress({ current: 0, total: 0, running: false });
+          return;
+        }
+      }
 
       if (tokenRef.current !== token) return;
-
-      const khasFeatures = khasRes?.features ?? [];
 
       if (khasFeatures.length === 0) {
         setStatusMessage("No Khasra parcels found in the selected area.");
@@ -259,7 +287,10 @@ export function useSelectFeatures({ viewRef, layersRef }) {
       setProgress({ current: khasFeatures.length, total: khasFeatures.length, running: false });
       setStatusMessage(`${resultRows.length} Khasra parcel(s) selected.`);
     } catch (err) {
-      if (tokenRef.current !== token) return;
+      if (tokenRef.current !== token) {
+        setProgress({ current: 0, total: 0, running: false });
+        return;
+      }
       setStatusMessage(err?.message || "Selection query failed. Please try again.");
       setProgress({ current: 0, total: 0, running: false });
     }
@@ -384,8 +415,12 @@ export function useSelectFeatures({ viewRef, layersRef }) {
           : `${total} Khasra selected. Tap more parcels or Clear. (max ${MAX_KHASRA_SELECTION})`,
       );
     } catch (err) {
-      if (tokenRef.current !== token) return;
+      if (tokenRef.current !== token) {
+        setProgress({ current: 0, total: 0, running: false });
+        return;
+      }
       setStatusMessage(err?.message || "Selection query failed. Please try again.");
+      setProgress({ current: 0, total: 0, running: false });
     }
   }
 

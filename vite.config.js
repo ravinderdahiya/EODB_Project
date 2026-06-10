@@ -3,11 +3,61 @@ import https from "node:https";
 import os from "node:os";
 import { fileURLToPath } from "node:url";
 import { execFile } from "node:child_process";
+import { copyFileSync, mkdirSync, readFileSync } from "node:fs";
 import { readFile, unlink, writeFile } from "node:fs/promises";
 import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const CHATBOT_FAVICON_PATH = path.join(__dirname, "public/chatbot/favicon.svg");
+const CHATBOT_LEGACY_IMAGE_NAMES = ["img_1.png", "img_2.png"];
+
+function installChatbotLegacyAssetFallback(server) {
+  server.middlewares.use((req, res, next) => {
+    const requestPath = (req.url ?? "").split("?")[0];
+    const fileName = path.basename(requestPath);
+    if (!CHATBOT_LEGACY_IMAGE_NAMES.includes(fileName)) {
+      next();
+      return;
+    }
+
+    try {
+      const payload = readFileSync(CHATBOT_FAVICON_PATH);
+      res.statusCode = 200;
+      res.setHeader("Content-Type", "image/svg+xml");
+      res.setHeader("Cache-Control", "public, max-age=86400");
+      res.end(payload);
+    } catch {
+      next();
+    }
+  });
+}
+
+function chatbotLegacyAssetFallbackPlugin() {
+  return {
+    name: "chatbot-legacy-asset-fallback",
+    configureServer(server) {
+      installChatbotLegacyAssetFallback(server);
+    },
+    configurePreviewServer(server) {
+      installChatbotLegacyAssetFallback(server);
+    },
+    closeBundle() {
+      const favicon = CHATBOT_FAVICON_PATH;
+      const outputRoots = [
+        path.join(__dirname, "dist/assets"),
+        path.join(__dirname, "dist/chatbot/assets"),
+      ];
+
+      for (const outputRoot of outputRoots) {
+        mkdirSync(outputRoot, { recursive: true });
+        for (const fileName of CHATBOT_LEGACY_IMAGE_NAMES) {
+          copyFileSync(favicon, path.join(outputRoot, fileName));
+        }
+      }
+    },
+  };
+}
 
 const HSAC_PROXY_ALLOWED_HOSTS = new Set([
   "hsac.org.in",
@@ -262,6 +312,7 @@ export default defineConfig(({ mode }) => {
     },
     plugins: [
       react(),
+      chatbotLegacyAssetFallbackPlugin(),
       {
         name: "arcgis-wasm-mime",
         configureServer(server) {

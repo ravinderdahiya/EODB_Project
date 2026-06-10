@@ -13,8 +13,11 @@ export default function AdminUsersTable({
   onPageChange,
   onSearchChange,
 }) {
-  const startIndex = totalCount === 0 ? 0 : (page - 1) * pageSize + 1;
-  const endIndex = Math.min(startIndex + users.length - 1, totalCount);
+  const startIndex = totalCount === 0 || users.length === 0 ? 0 : (page - 1) * pageSize + 1;
+  const endIndex = users.length === 0 ? 0 : Math.min(startIndex + users.length - 1, totalCount);
+  const paginationLabel = totalCount === 0
+    ? "Showing 0 of 0 entries"
+    : `Showing ${startIndex} - ${endIndex} of ${totalCount} entries`;
 
   return (
     <article className="admin-card admin-table-card">
@@ -65,7 +68,7 @@ export default function AdminUsersTable({
           <>
             <div className="admin-table-pagination">
               <span>
-                Showing {startIndex} - {endIndex} of {totalCount} entries
+                {paginationLabel}
               </span>
               <div className="admin-table-pagination__actions">
                 <button
@@ -79,7 +82,7 @@ export default function AdminUsersTable({
                 <button
                   type="button"
                   className="admin-table-pagination__button"
-                  disabled={endIndex >= totalCount}
+                  disabled={endIndex >= totalCount || users.length === 0}
                   onClick={() => onPageChange(page + 1)}
                 >
                   Next
