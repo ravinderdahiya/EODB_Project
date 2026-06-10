@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { createTranslator, useLanguage } from "@/context/LanguageContext";
 import axiosInstance from "../../utils/axiosInstance";
 import { reloadRuntimeConfig } from "@/config/runtimeConfig";
+import { prefetchMapChunk } from "@/routes/lazyRoutes";
 import { mountSplash } from "../../splash";
 import { buildDevicePayload } from "../../utils/deviceIdentity";
 import LoginBackground from "./components/LoginBackground";
@@ -46,6 +47,12 @@ const formatCompactNumber = (value) => {
     maximumFractionDigits: 1,
   }).format(numericValue);
 };
+
+function goToMapAfterLogin(navigate) {
+  void reloadRuntimeConfig();
+  mountSplash();
+  navigate("/map");
+}
 
 export default function Login() {
   const navigate = useNavigate();
@@ -105,6 +112,10 @@ export default function Login() {
     skipFontTransitionRef.current = true;
     setFontPhase("");
   }, [resetLoginPreview]);
+
+  useEffect(() => {
+    prefetchMapChunk();
+  }, []);
 
   useEffect(() => {
     LOGIN_HERO_BACKGROUNDS.forEach((src) => {
@@ -291,9 +302,7 @@ export default function Login() {
       });
       await establishTrustedSession({ requireAdmin: false });
       commitLanguage();
-      await reloadRuntimeConfig();
-      mountSplash();
-      navigate("/map");
+      goToMapAfterLogin(navigate);
     } catch (err) {
       clearAuthMarkers();
       setError(formatApiError(err, t("login.errOtpFailed")));
@@ -360,9 +369,7 @@ export default function Login() {
       if (res.data?.vipLogin && res.data?.user) {
         await establishTrustedSession({ requireAdmin: false });
         commitLanguage();
-        await reloadRuntimeConfig();
-        mountSplash();
-        navigate("/map");
+        goToMapAfterLogin(navigate);
         return;
       }
 

@@ -117,15 +117,6 @@ export default function App() {
   const adminSuggestionRequestIdRef = useRef(0);
   const voiceSuggestionRequestIdRef = useRef(0);
 
-  useEffect(() => {
-    // If the map route mounted a splash screen, remove it once the app has painted.
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        removeSplash();
-      });
-    });
-  }, []);
-
   // Track initial page load
   useEffect(() => {
     trackPageView('/', 'Digital Land Record Haryana - Home');
@@ -276,6 +267,18 @@ export default function App() {
       });
     },
   });
+
+  useEffect(() => {
+    if (!mapReady) return undefined;
+
+    const frameId = requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        removeSplash();
+      });
+    });
+
+    return () => cancelAnimationFrame(frameId);
+  }, [mapReady]);
 
   // â”€â”€ Select Features â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const sf = useSelectFeatures({ viewRef, layersRef });

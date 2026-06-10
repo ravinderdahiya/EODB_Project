@@ -8,11 +8,12 @@ let mapChunkPromise = null;
 // check resolves. Calling this in parallel with the auth check overlaps the two.
 export function prefetchMapChunk() {
   if (!mapChunkPromise) {
-    mapChunkPromise = (async () => {
-      const { ensureArcgisReady } = await import("../bootstrap/arcgisSetup");
-      await ensureArcgisReady();
-      return import("../App");
-    })();
+    // Download the App chunk and bootstrap ArcGIS in parallel instead of waiting
+    // for runtime config before the ~3MB vendor bundle even starts downloading.
+    mapChunkPromise = Promise.all([
+      import("../bootstrap/arcgisSetup").then(({ ensureArcgisReady }) => ensureArcgisReady()),
+      import("../App"),
+    ]).then(([, appModule]) => appModule);
   }
   return mapChunkPromise;
 }

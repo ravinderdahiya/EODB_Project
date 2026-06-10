@@ -463,7 +463,6 @@ export function useArcGISMap({
 
       map.addMany([
         hsacCadastralLayer,
-        kanalMarlaLayer,
         hsacBoundariesLayer,
         hsacStateBoundaryLayer,
         nearbyPlacesLayer,
@@ -509,7 +508,7 @@ export function useArcGISMap({
       containerRef.current.append(popupHost);
       popupStateRef.current.host = popupHost;
 
-      view.when(async () => {
+      view.when(() => {
         if (isDisposed) return;
 
         viewRef.current = view;
@@ -530,6 +529,10 @@ export function useArcGISMap({
           locationLayer,
           userLocationLayer,
         };
+
+        // Unblock the loading overlay as soon as the view is live; layer checks continue in background.
+        setMapReady(true);
+        setMapStatus("Haryana map ready. Verifying layer connectivity…");
 
         startUserLocationWatch();
 
@@ -680,24 +683,19 @@ export function useArcGISMap({
           { initial: true },
         );
 
-        // Map is interactive immediately — layer metadata loads continue in the background.
-        setMapReady(true);
-        setMapStatus("Haryana map ready. Verifying layer connectivity…");
-
-        const [boundariesLoad, cadastralLoad] = await Promise.all([
-          loadLayerWithRetry(hsacBoundariesLayer, { label: "Boundaries layer" }),
-          loadLayerWithRetry(hsacStateBoundaryLayer, { label: "State boundary layer", attempts: 1 }),
-          loadLayerWithRetry(hsacCadastralLayer, { label: "Cadastral layer" }),
-          loadLayerWithRetry(nearbyPlacesLayer, { label: "Nearby Places layer", attempts: 1 }),
-        ]);
-
-        if (isDisposed) return;
-
-        updateHealth("boundaries", boundariesLoad.ok ? "connected" : "degraded");
-        updateHealth("cadastral", cadastralLoad.ok ? "connected" : "degraded");
-
-        // Optional overlays load in the background and are skipped quietly when unavailable.
         void (async () => {
+          const [boundariesLoad, cadastralLoad] = await Promise.all([
+            loadLayerWithRetry(hsacBoundariesLayer, { label: "Boundaries layer" }),
+            loadLayerWithRetry(hsacStateBoundaryLayer, { label: "State boundary layer", attempts: 1 }),
+            loadLayerWithRetry(hsacCadastralLayer, { label: "Cadastral layer" }),
+            loadLayerWithRetry(nearbyPlacesLayer, { label: "Nearby Places layer", attempts: 1 }),
+          ]);
+
+          if (isDisposed) return;
+
+          updateHealth("boundaries", boundariesLoad.ok ? "connected" : "degraded");
+          updateHealth("cadastral", cadastralLoad.ok ? "connected" : "degraded");
+
           const [assetsLoad, kanalLoad, nhaiLoad, roadsLoad] = await Promise.all([
             attachOptionalMapOverlay(map, governmentAssetsLayer, { label: "Government Assets layer" }),
             attachOptionalMapOverlay(map, kanalMarlaLayer, { label: "Kanal Marla layer" }),
@@ -708,27 +706,30 @@ export function useArcGISMap({
           if (isDisposed) return;
 
           updateHealth("assets", assetsLoad.ok ? "connected" : "degraded");
-          if (!kanalLoad.ok || !nhaiLoad.ok || !roadsLoad.ok) {
-            setMapStatus((current) => (
-              current.includes("limited connectivity")
-                ? current
-                : `${current} Some optional map overlays are unavailable.`
-            ));
-          }
-        })();
 
-        const coreLayerHealthy = boundariesLoad.ok && cadastralLoad.ok;
-        if (!coreLayerHealthy) {
-          setMapStatus(
-            "HSAC map loaded with limited connectivity. Core services will auto-recover when available.",
-          );
-        } else {
+          const coreLayerHealthy = boundariesLoad.ok && cadastralLoad.ok;
+          if (!coreLayerHealthy) {
+            setMapStatus(
+              "HSAC map loaded with limited connectivity. Core services will auto-recover when available.",
+            );
+            return;
+          }
+
+          if (!kanalLoad.ok || !nhaiLoad.ok || !roadsLoad.ok) {
+            setMapStatus(
+              layerPlan.usesFallback
+                ? "HSAC map loaded with dynamic layer fallback. Some optional overlays are unavailable."
+                : "HSAC Haryana map is live. Some optional overlays are unavailable.",
+            );
+            return;
+          }
+
           setMapStatus(
             layerPlan.usesFallback
               ? "HSAC map loaded with dynamic layer fallback."
               : "HSAC Haryana map is live with district / tehsil / village boundaries.",
           );
-        }
+        })();
       }).catch(() => {
         if (isDisposed) return;
         setMapReady(false);
