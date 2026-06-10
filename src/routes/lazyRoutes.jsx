@@ -13,7 +13,11 @@ export function prefetchMapChunk() {
     mapChunkPromise = Promise.all([
       import("../bootstrap/arcgisSetup").then(({ ensureArcgisReady }) => ensureArcgisReady()),
       import("../App"),
-    ]).then(([, appModule]) => appModule);
+    ]).then(async ([, appModule]) => {
+      const { preloadBasemapPresets } = await import("../hooks/useArcGISMapUtils");
+      await preloadBasemapPresets(["satellite", "cadastral"]);
+      return appModule;
+    });
   }
   return mapChunkPromise;
 }

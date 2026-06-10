@@ -49,10 +49,41 @@ import {
   normalizeParcelGeometry,
   queryCadastralParcelAtClick,
   clearBasemapCache,
+  preloadBasemapPresets,
   resolveBasemap,
   showLandRecordMiniPopup,
   syncLandRecordMiniPopup,
 } from "./useArcGISMapUtils";
+
+// React StrictMode mounts → unmounts → remounts in dev. Defer MapView teardown so the
+// immediate remount can cancel it; preload basemaps so destroy does not abort #load().
+let mapMountGeneration = 0;
+let pendingMapTeardownTimer = null;
+let lastMapView = null;
+
+function claimMapMountSession() {
+  if (pendingMapTeardownTimer !== null) {
+    window.clearTimeout(pendingMapTeardownTimer);
+    pendingMapTeardownTimer = null;
+    if (lastMapView && !lastMapView.destroyed) {
+      lastMapView.destroy();
+      lastMapView = null;
+    }
+  }
+  mapMountGeneration += 1;
+  return mapMountGeneration;
+}
+
+function scheduleMapTeardown(generation, teardown) {
+  if (pendingMapTeardownTimer !== null) {
+    window.clearTimeout(pendingMapTeardownTimer);
+  }
+  pendingMapTeardownTimer = window.setTimeout(() => {
+    pendingMapTeardownTimer = null;
+    if (generation !== mapMountGeneration) return;
+    teardown();
+  }, 0);
+}
 import {
   geolocationMessageFromError,
   isSecureGeolocationContext,
@@ -275,6 +306,8 @@ export function useArcGISMap({
   useEffect(() => {
     if (!containerRef.current) return undefined;
 
+    const mountGeneration = claimMapMountSession();
+
     if (ARCGIS_API_KEY) {
       esriConfig.apiKey = ARCGIS_API_KEY;
     }
@@ -328,7 +361,8 @@ export function useArcGISMap({
     let view;
     let isDisposed = false;
 
-    const initialiseMap = () => {
+    const initialiseMap = async () => {
+      await preloadBasemapPresets([activeBasemap, "satellite"]);
       const layerPlan = getHsacLayerPlanSync();
       void getHsacLayerPlan();
       if (isDisposed || !containerRef.current) {
@@ -509,6 +543,7 @@ export function useArcGISMap({
         attributionEnabled: false,
       });
       view.popupEnabled = false;
+      lastMapView = view;
 
       const popupHost = document.createElement("div");
       popupHost.className = "map-click-popup-host";
@@ -788,16 +823,37 @@ export function useArcGISMap({
           updateHealth("boundaries", boundariesLoad.ok ? "connected" : "degraded");
           updateHealth("cadastral", cadastralLoad.ok ? "connected" : "degraded");
 
-          const [assetsLoad, kanalLoad, nhaiLoad, roadsLoad] = await Promise.all([
-            attachOptionalMapOverlay(map, governmentAssetsLayer, { label: "Government Assets layer" }),
-            attachOptionalMapOverlay(map, kanalMarlaLayer, { label: "Kanal Marla layer" }),
-            attachOptionalMapOverlay(map, nhaiLayer, { label: "NHAI layer" }),
-            attachOptionalMapOverlay(map, roadsLayer, { label: "Haryana Roads layer" }),
-          ]);
+          const effectiveOverlays = getEffectiveLayerVisibility(layerVisibilityRef.current);
+          const optionalTasks = [];
+          if (effectiveOverlays.assets) {
+            optionalTasks.push(
+              attachOptionalMapOverlay(map, governmentAssetsLayer, { label: "Government Assets layer" }),
+            );
+          }
+          if (effectiveOverlays.kanalMarla) {
+            optionalTasks.push(
+              attachOptionalMapOverlay(map, kanalMarlaLayer, { label: "Kanal Marla layer" }),
+            );
+          }
+          if (effectiveOverlays.nhai) {
+            optionalTasks.push(
+              attachOptionalMapOverlay(map, nhaiLayer, { label: "NHAI layer" }),
+            );
+          }
+          if (effectiveOverlays.roads) {
+            optionalTasks.push(
+              attachOptionalMapOverlay(map, roadsLayer, { label: "Haryana Roads layer" }),
+            );
+          }
+
+          const optionalResults = optionalTasks.length
+            ? await Promise.all(optionalTasks)
+            : [];
 
           if (isDisposed) return;
 
-          updateHealth("assets", assetsLoad.ok ? "connected" : "degraded");
+          const assetsHealthy = !effectiveOverlays.assets || optionalResults.some((result) => result?.ok);
+          updateHealth("assets", assetsHealthy ? "connected" : "degraded");
 
           const coreLayerHealthy = boundariesLoad.ok && cadastralLoad.ok;
           if (!coreLayerHealthy) {
@@ -807,7 +863,8 @@ export function useArcGISMap({
             return;
           }
 
-          if (!kanalLoad.ok || !nhaiLoad.ok || !roadsLoad.ok) {
+          const optionalFailed = optionalResults.some((result) => result && !result.skipped && !result.ok);
+          if (optionalFailed) {
             setMapStatus(
               layerPlan.usesFallback
                 ? "HSAC map loaded with dynamic layer fallback. Some optional overlays are unavailable."
@@ -1080,32 +1137,38 @@ export function useArcGISMap({
       });
     };
 
-    initialiseMap();
+    void initialiseMap();
 
     return () => {
       isDisposed = true;
-      clearTimeout(cadastralExtentSyncTimer);
-      mapContainerEl.removeEventListener("wheel", blockPageWheelZoom);
-      mapContainerEl.removeEventListener("gesturestart", blockPageGestureZoom);
-      mapContainerEl.removeEventListener("gesturechange", blockPageGestureZoom);
-      mapContainerEl.removeEventListener("gestureend", blockPageGestureZoom);
-      stopUserLocationWatch();
-      userLocationRef.current = null;
-      userLocationErrorRef.current = null;
-      layersRef.current = {};
-      viewRef.current = null;
-      setMapReady(false);
-      closeLandRecordMiniPopup(popupStateRef);
-      popupExtentHandle?.remove?.();
-      popupResizeHandle?.remove?.();
-      clickHandle?.remove?.();
-      zoomWatchHandle?.remove?.();
-      pointerMoveHandle?.remove?.();
-      pointerLeaveHandle?.remove?.();
-      popupStateRef.current.host?.remove();
-      popupStateRef.current.host = null;
-      view?.destroy?.();
-      clearBasemapCache();
+      const viewToDestroy = view;
+      scheduleMapTeardown(mountGeneration, () => {
+        clearTimeout(cadastralExtentSyncTimer);
+        mapContainerEl.removeEventListener("wheel", blockPageWheelZoom);
+        mapContainerEl.removeEventListener("gesturestart", blockPageGestureZoom);
+        mapContainerEl.removeEventListener("gesturechange", blockPageGestureZoom);
+        mapContainerEl.removeEventListener("gestureend", blockPageGestureZoom);
+        stopUserLocationWatch();
+        userLocationRef.current = null;
+        userLocationErrorRef.current = null;
+        layersRef.current = {};
+        viewRef.current = null;
+        setMapReady(false);
+        closeLandRecordMiniPopup(popupStateRef);
+        popupExtentHandle?.remove?.();
+        popupResizeHandle?.remove?.();
+        clickHandle?.remove?.();
+        zoomWatchHandle?.remove?.();
+        pointerMoveHandle?.remove?.();
+        pointerLeaveHandle?.remove?.();
+        popupStateRef.current.host?.remove();
+        popupStateRef.current.host = null;
+        viewToDestroy?.destroy?.();
+        if (lastMapView === viewToDestroy) {
+          lastMapView = null;
+        }
+        clearBasemapCache();
+      });
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -1152,12 +1215,25 @@ export function useArcGISMap({
       }
     }
 
-    if (layers.kanalMarlaLayer) layers.kanalMarlaLayer.visible = effective.kanalMarla;
+    const syncOptionalOverlay = (layer, shouldShow, label) => {
+      if (!layer || !layers.map) return;
+      if (!shouldShow) {
+        layer.visible = false;
+        return;
+      }
+      if (layers.map.layers.includes(layer)) {
+        layer.visible = true;
+        return;
+      }
+      void attachOptionalMapOverlay(layers.map, layer, { label, allowHidden: true }).then((result) => {
+        layer.visible = Boolean(result?.ok);
+      });
+    };
 
-    // Operational overlays
-    if (layers.governmentAssetsLayer) layers.governmentAssetsLayer.visible = effective.assets;
-    if (layers.nhaiLayer)             layers.nhaiLayer.visible             = effective.nhai;
-    if (layers.roadsLayer)            layers.roadsLayer.visible            = effective.roads;
+    syncOptionalOverlay(layers.governmentAssetsLayer, effective.assets, "Government Assets layer");
+    syncOptionalOverlay(layers.kanalMarlaLayer, effective.kanalMarla, "Kanal Marla layer");
+    syncOptionalOverlay(layers.nhaiLayer, effective.nhai, "NHAI layer");
+    syncOptionalOverlay(layers.roadsLayer, effective.roads, "Haryana Roads layer");
   }, [activeBasemap, layerVisibility]);
 
   // ── Selected parcel highlight ────────────────────────────────────────────────

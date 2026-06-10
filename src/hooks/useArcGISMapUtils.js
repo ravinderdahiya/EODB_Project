@@ -53,6 +53,7 @@ const MAP_CLICK_POPUP_OFFSET_Y = 18;
 const LAYER_LOAD_TIMEOUT_MS = 12000;
 const LAYER_LOAD_RETRY_ATTEMPTS = 2;
 const LAYER_LOAD_RETRY_DELAY_MS = 900;
+const OPTIONAL_SERVICE_PROBE_TIMEOUT_MS = 4500;
 const INITIAL_EXTENT_ZOOM_OUT_FACTOR = 1.5;
 
 // Zoom thresholds that drive click-to-select behaviour.
@@ -171,11 +172,15 @@ async function probeMapServiceMetadata(url) {
   const normalized = `${url || ""}`.trim().replace(/\/+$/, "");
   if (!normalized) return false;
 
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), OPTIONAL_SERVICE_PROBE_TIMEOUT_MS);
+
   try {
     const response = await fetch(`${normalized}?f=json`, {
       method: "GET",
       credentials: "include",
       headers: { Accept: "application/json" },
+      signal: controller.signal,
     });
     if (!response.ok) return false;
 
@@ -183,6 +188,8 @@ async function probeMapServiceMetadata(url) {
     return Boolean(payload?.currentVersion || payload?.mapName || Array.isArray(payload?.layers));
   } catch {
     return false;
+  } finally {
+    clearTimeout(timeoutId);
   }
 }
 
@@ -193,8 +200,13 @@ async function probeMapServiceMetadata(url) {
 export async function attachOptionalMapOverlay(map, layer, {
   label,
   attempts = 1,
+  allowHidden = false,
 } = {}) {
   if (!layer) {
+    return { ok: false, skipped: true, error: null };
+  }
+
+  if (!allowHidden && layer.visible === false) {
     return { ok: false, skipped: true, error: null };
   }
 
@@ -739,9 +751,17 @@ function isBasemapDestroyed(basemap) {
   return !basemap || basemap.destroyed === true;
 }
 
-/** Drop cached Basemap instances (e.g. after MapView.destroy in React StrictMode). */
-export function clearBasemapCache() {
+/** Drop Basemap instances from the cache; optionally destroy in-flight loads on unmount. */
+export function clearBasemapCache({ force = false } = {}) {
   Object.keys(_basemapInstanceCache).forEach((key) => {
+    const basemap = _basemapInstanceCache[key];
+    if (force && !isBasemapDestroyed(basemap)) {
+      try {
+        basemap.destroy();
+      } catch {
+        // Ignore teardown races (e.g. React StrictMode remount).
+      }
+    }
     delete _basemapInstanceCache[key];
   });
 }
@@ -788,6 +808,26 @@ export function resolveBasemap(activeBasemap) {
 
   _basemapInstanceCache[id] = basemap;
   return basemap;
+}
+
+let _basemapPreloadPromise = null;
+
+/** Warm basemap tile metadata before MapView mounts (avoids StrictMode abort noise). */
+export function preloadBasemapPresets(presetKeys = ["satellite"]) {
+  if (!_basemapPreloadPromise) {
+    _basemapPreloadPromise = Promise.all(
+      presetKeys.map(async (presetKey) => {
+        const basemap = resolveBasemap(presetKey);
+        if (basemap.loaded) return;
+        try {
+          await basemap.load();
+        } catch {
+          // Network hiccups are retried when the map assigns this basemap.
+        }
+      }),
+    );
+  }
+  return _basemapPreloadPromise;
 }
 
 export function getVisibleCadastralLayerIds(layers) {
