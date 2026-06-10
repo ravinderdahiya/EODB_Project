@@ -9,7 +9,7 @@ import * as identify from "@arcgis/core/rest/identify.js";
 import * as restQuery from "@arcgis/core/rest/query.js";
 import IdentifyParameters from "@arcgis/core/rest/support/IdentifyParameters.js";
 import Query from "@arcgis/core/rest/support/Query.js";
-import { arcgisPortalConfig, basemapPresets } from "@/config/arcgis";
+import { arcgisPortalConfig, basemapPresets, DISTRICT_SUBLAYERS } from "@/config/arcgis";
 import { getRuntimeConfigValue } from "@/config/runtimeConfig";
 import { PARCEL_FILL_SYMBOL } from "@/config/mapSymbols";
 export function downloadLandRecordPreview(preview) {
@@ -802,6 +802,203 @@ export function getVisibleCadastralLayerIds(layers) {
     const sublayer = cadastralLayer.findSublayerById?.(id);
     return sublayer ? sublayer.visible !== false : true;
   });
+}
+
+function normaliseDistrictCode(dCode) {
+  const raw = `${dCode ?? ""}`.trim();
+  if (!raw) return "";
+  const digits = raw.replace(/^0+/, "") || raw;
+  return digits.padStart(2, "0");
+}
+
+function mapDistrictCodesToCadastralIds(codes, cadastralLayerIds) {
+  const allowed = new Set(cadastralLayerIds);
+  const resolved = new Set();
+
+  codes.forEach((code) => {
+    const entry = DISTRICT_SUBLAYERS.find((district) => district.code === normaliseDistrictCode(code));
+    if (entry && allowed.has(entry.id)) {
+      resolved.add(entry.id);
+      return;
+    }
+
+    const candidate = Number.parseInt(String(code).replace(/^0+/, "") || code, 10);
+    if (Number.isFinite(candidate) && allowed.has(candidate)) {
+      resolved.add(candidate);
+    }
+  });
+
+  return [...resolved];
+}
+
+/** District polygons that intersect the current view — used to limit cadastral export to 1–2 sublayers. */
+export async function resolveCadastralLayerIdsInExtent(view, layerPlan) {
+  if (!view?.extent || !layerPlan?.districtLayerId || !layerPlan?.cadastralLayerIds?.length) {
+    return null;
+  }
+
+  const result = await restQuery
+    .executeQueryJSON(
+      `${arcgisPortalConfig.serviceUrls.hsacMain}/${layerPlan.districtLayerId}`,
+      new Query({
+        geometry: view.extent,
+        spatialRelationship: "intersects",
+        returnGeometry: false,
+        outFields: ["n_d_code"],
+        where: "n_d_code IS NOT NULL",
+        num: 4,
+      }),
+    )
+    .catch(() => null);
+
+  const codes = (result?.features ?? [])
+    .map((feature) => feature?.attributes?.n_d_code)
+    .filter(Boolean);
+
+  if (!codes.length) return null;
+
+  const ids = mapDistrictCodesToCadastralIds(codes, layerPlan.cadastralLayerIds);
+  return ids.length ? ids : null;
+}
+
+const findCadastralSublayer = (cadastralLayer, id) =>
+  cadastralLayer?.findSublayerById?.(id) ?? cadastralLayer?.findSublayerById?.(String(id));
+
+/**
+ * Show only the boundary level appropriate for the current zoom (district / tehsil /
+ * village / murabba). Rendering all admin levels at once makes the first export very slow.
+ */
+export function applyBoundarySublayerVisibility({
+  layers,
+  layerVisibility,
+  zoom,
+}) {
+  const effective = {
+    district: Boolean(layerVisibility?.boundariesGroup) && Boolean(layerVisibility?.district),
+    tehsil: Boolean(layerVisibility?.boundariesGroup) && Boolean(layerVisibility?.tehsil),
+    village: Boolean(layerVisibility?.boundariesGroup) && Boolean(layerVisibility?.village),
+    murraba: Boolean(layerVisibility?.murrabaGrid) && Boolean(layerVisibility?.murabba),
+  };
+  const layerPlan = layers?.layerPlan;
+  const boundariesLayer = layers?.hsacBoundariesLayer;
+  if (!boundariesLayer || !layerPlan) return false;
+
+  const districtId = layerPlan.districtLayerId;
+  const tehsilId = layerPlan.tehsilLayerId;
+  const villageId = layerPlan.villageLayerId;
+  const murabbaId = layerPlan.murabbaLayerId;
+
+  const activeKeys = new Set();
+  if (!Number.isFinite(zoom)) return false;
+  const resolvedZoom = zoom;
+
+  if (resolvedZoom <= CLICK_ZOOM.DISTRICT_MAX) {
+    if (effective.district) activeKeys.add("district");
+  } else if (resolvedZoom <= CLICK_ZOOM.TEHSIL_MAX) {
+    if (effective.tehsil) activeKeys.add("tehsil");
+    else if (effective.district) activeKeys.add("district");
+  } else if (resolvedZoom <= CLICK_ZOOM.VILLAGE_MAX) {
+    if (effective.village) activeKeys.add("village");
+    else if (effective.tehsil) activeKeys.add("tehsil");
+    else if (effective.district) activeKeys.add("district");
+  } else {
+    if (effective.murraba) activeKeys.add("murabba");
+    else if (effective.village) activeKeys.add("village");
+  }
+
+  const keyToId = {
+    district: districtId,
+    tehsil: tehsilId,
+    village: villageId,
+    murabba: murabbaId,
+  };
+
+  let changed = false;
+  Object.entries(keyToId).forEach(([key, id]) => {
+    if (id == null) return;
+    const sublayer = findCadastralSublayer(boundariesLayer, id);
+    if (!sublayer) return;
+    const nextVisible = activeKeys.has(key);
+    if (sublayer.visible !== nextVisible) {
+      sublayer.visible = nextVisible;
+      changed = true;
+    }
+  });
+
+  const parentVisible = activeKeys.size > 0;
+  if (boundariesLayer.visible !== parentVisible) {
+    boundariesLayer.visible = parentVisible;
+    changed = true;
+  }
+
+  return changed;
+}
+
+/** Resolve cadastral sublayer id from the district under the view center (fast path). */
+export async function resolveCadastralLayerIdsAtCenter(view, layerPlan) {
+  if (!view?.center || !layerPlan?.districtLayerId || !layerPlan?.cadastralLayerIds?.length) {
+    return null;
+  }
+
+  const response = await identify
+    .identify(
+      arcgisPortalConfig.serviceUrls.hsacMain,
+      new IdentifyParameters({
+        geometry: view.center,
+        mapExtent: view.extent,
+        spatialReference: view.spatialReference,
+        width: view.width,
+        height: view.height,
+        tolerance: 4,
+        layerIds: [layerPlan.districtLayerId],
+        layerOption: "all",
+        returnGeometry: false,
+      }),
+    )
+    .catch(() => null);
+
+  const districtCode = response?.results?.[0]?.feature?.attributes?.n_d_code;
+  if (!districtCode) return null;
+
+  const ids = mapDistrictCodesToCadastralIds([districtCode], layerPlan.cadastralLayerIds);
+  return ids.length ? ids : null;
+}
+
+export async function resolveActiveCadastralLayerIds(view, layerPlan) {
+  const centerIds = await resolveCadastralLayerIdsAtCenter(view, layerPlan);
+  if (centerIds?.length) return centerIds;
+  return resolveCadastralLayerIdsInExtent(view, layerPlan);
+}
+
+export function applyCadastralSublayerVisibility({
+  layers,
+  layerVisibility,
+  cadastralEnabled,
+  activeCadastralIds = null,
+}) {
+  const cadastralLayer = layers?.hsacCadastralLayer;
+  const layerPlan = layers?.layerPlan;
+  if (!cadastralLayer || !layerPlan?.cadastralLayerIds?.length) return false;
+
+  const activeSet = activeCadastralIds?.length ? new Set(activeCadastralIds) : null;
+  let changed = false;
+
+  layerPlan.cadastralLayerIds.forEach((id) => {
+    const sublayer = findCadastralSublayer(cadastralLayer, id);
+    if (!sublayer) return;
+
+    const userEnabled = layerVisibility[`cadastral_${id}`] ?? true;
+    // Until extent sync resolves districts, keep sublayers off to avoid a 23-layer export.
+    const inView = activeSet ? activeSet.has(id) : false;
+    const nextVisible = Boolean(cadastralEnabled) && userEnabled && inView;
+
+    if (sublayer.visible !== nextVisible) {
+      sublayer.visible = nextVisible;
+      changed = true;
+    }
+  });
+
+  return changed;
 }
 
 export function createClickSearchExtent(view, event, tolerance = 8) {

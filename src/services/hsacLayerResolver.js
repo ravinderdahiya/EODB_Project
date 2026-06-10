@@ -200,6 +200,11 @@ async function fetchLayerPlanFromMetadata() {
   return createLayerPlanFromMetadata(metadata);
 }
 
+/** Synchronous layer plan for map bootstrap — avoids awaiting metadata before first paint. */
+export function getHsacLayerPlanSync() {
+  return readLayerPlanFromStorage() ?? createDefaultLayerPlan();
+}
+
 export async function getHsacLayerPlan() {
   if (!cachedLayerPlanPromise) {
     const storedPlan = readLayerPlanFromStorage();

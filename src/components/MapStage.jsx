@@ -78,7 +78,7 @@ export default function MapStage({
   useEffect(() => {
     if (mapReady && overlayVisible) {
       setOverlayExiting(true);
-      const timer = setTimeout(() => setOverlayVisible(false), 500);
+      const timer = setTimeout(() => setOverlayVisible(false), 280);
       return () => clearTimeout(timer);
     }
   }, [mapReady, overlayVisible]);

@@ -40,6 +40,8 @@ export function ensureArcgisReady() {
     // ArcGIS local assets (workers/wasm/i18n/images) are served from /public/arcgis/assets.
     esriConfig.assetsPath = arcgisAssetsPath;
     esriConfig.workers.workerPath = `${arcgisAssetsPath}esri/core/workers/RemoteClient.js`;
+    // Cadastral MapImageLayer exports can exceed the SDK default (5s) when many sublayers render.
+    esriConfig.request.timeout = 60000;
     attachArcgisAuthInterceptor();
 
     const applyRuntimeApiKey = () => {
