@@ -29,6 +29,34 @@ function cleanText(value) {
   return `${value ?? ""}`.trim();
 }
 
+// Voice/admin reference datasets (all districts/tehsils/villages) are large and
+// effectively static for a session. Cache them in sessionStorage so they are fetched
+// from HSAC at most once per tab instead of on every map open.
+function readSessionCache(key) {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.sessionStorage.getItem(key);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeSessionCache(key, value) {
+  if (typeof window === "undefined" || !Array.isArray(value) || !value.length) return;
+  try {
+    window.sessionStorage.setItem(key, JSON.stringify(value));
+  } catch {
+    // Ignore quota/private-mode write failures — data simply re-fetches next time.
+  }
+}
+
+const DISTRICTS_CACHE_KEY = "eodb_ref_districts_v1";
+const ALL_TEHSILS_CACHE_KEY = "eodb_ref_all_tehsils_v1";
+const ALL_VILLAGES_CACHE_KEY = "eodb_ref_all_villages_v1";
+
 function mapDistinctOptions(features, codeKey, nameKey) {
   const seen = new Set();
 
@@ -169,6 +197,9 @@ function mapAdminSuggestionRows(type, features, fields) {
  * @returns {Promise<{code: string, name: string}[]>}
  */
 export async function getDistricts() {
+  const cached = readSessionCache(DISTRICTS_CACHE_KEY);
+  if (cached) return cached;
+
   const layerPlan = await getHsacLayerPlan();
   const q = new Query({
     outFields: ["n_d_code", "n_d_name"],
@@ -184,7 +215,9 @@ export async function getDistricts() {
     q,
   );
 
-  return mapDistinctOptions(res.features, "n_d_code", "n_d_name");
+  const districts = mapDistinctOptions(res.features, "n_d_code", "n_d_name");
+  writeSessionCache(DISTRICTS_CACHE_KEY, districts);
+  return districts;
 }
 
 // ─── Tehsils (Layer 27) ──────────────────────────────────────────────────────
@@ -220,6 +253,9 @@ export async function getTehsils(dCode) {
  * @returns {Promise<Array<{ dCode: string, dName: string, tCode: string, tName: string }>>}
  */
 export async function getAllTehsils() {
+  const cached = readSessionCache(ALL_TEHSILS_CACHE_KEY);
+  if (cached) return cached;
+
   const layerPlan = await getHsacLayerPlan();
   const q = new Query({
     outFields: ["n_d_code", "n_d_name", "n_t_code", "n_t_name"],
@@ -239,7 +275,7 @@ export async function getAllTehsils() {
 
   const seen = new Set();
 
-  return (res.features || [])
+  const tehsils = (res.features || [])
     .map((feature) => {
       const attrs = feature?.attributes ?? {};
       const dCode = cleanText(attrs.n_d_code);
@@ -264,6 +300,9 @@ export async function getAllTehsils() {
       };
     })
     .filter(Boolean);
+
+  writeSessionCache(ALL_TEHSILS_CACHE_KEY, tehsils);
+  return tehsils;
 }
 
 // ─── Villages (Layer 28) ─────────────────────────────────────────────────────
@@ -302,6 +341,9 @@ export async function getVillages(dCode, tCode) {
  * }>>}
  */
 export async function getAllVillages() {
+  const cached = readSessionCache(ALL_VILLAGES_CACHE_KEY);
+  if (cached) return cached;
+
   const layerPlan = await getHsacLayerPlan();
   const q = new Query({
     outFields: ["n_d_code", "n_d_name", "n_t_code", "n_t_name", "n_v_code", "n_v_name"],
@@ -322,7 +364,7 @@ export async function getAllVillages() {
 
   const seen = new Set();
 
-  return (res.features || [])
+  const villages = (res.features || [])
     .map((feature) => {
       const attrs = feature?.attributes ?? {};
       const dCode = cleanText(attrs.n_d_code);
@@ -352,6 +394,9 @@ export async function getAllVillages() {
       };
     })
     .filter(Boolean);
+
+  writeSessionCache(ALL_VILLAGES_CACHE_KEY, villages);
+  return villages;
 }
 
 // ─── Internal cadastral helper ────────────────────────────────────────────────
