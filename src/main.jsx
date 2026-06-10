@@ -129,6 +129,10 @@ if (shouldShowInitialSplash()) {
   mountSplash();
 }
 
+if (sessionStorage.getItem("isAuthenticated") === "true") {
+  prefetchMapChunk();
+}
+
 disableRightClickGlobally();
 initBackgroundServices();
 

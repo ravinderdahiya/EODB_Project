@@ -1,11 +1,11 @@
-import esriRequest from "@arcgis/core/request.js";
-import { DISTRICT_SUBLAYERS, HSAC_LAYER, getHsacMainUrl } from "@/config/arcgis";
+import { DISTRICT_SUBLAYERS, HSAC_LAYER } from "@/config/arcgis";
+import { getMapServerMetadata } from "@/services/mapserverProxyService";
 
 const FALLBACK_LAYER_ID = DISTRICT_SUBLAYERS[0]?.id ?? 1;
 // Bump the version whenever the canonical layer set changes (e.g. adding the Hansi
 // cadastral layer) so stale cached plans without the new layers are discarded.
 const HSAC_LAYER_PLAN_STORAGE_KEY = "eodb_hsac_layer_plan_v2";
-const HSAC_LAYER_PLAN_REFRESH_TIMEOUT_MS = 2500;
+const METADATA_REFRESH_DELAY_MS = 8000;
 
 let cachedLayerPlanPromise;
 let metadataRefreshStarted = false;
@@ -56,16 +56,11 @@ function normaliseDistrictCode(dCode) {
 }
 
 function getLayerIdFromDistrictCode(dCode, layerIds) {
-  // District code and cadastral layer id are NOT always identical. Districts
-  // 01–22 map to layer ids 1–22, but newer districts differ — e.g. Hansi has
-  // district code 23 yet its cadastral data lives on layer id 32. Resolve via the
-  // canonical sublayer table first so these special cases are handled correctly.
   const entry = DISTRICT_SUBLAYERS.find((d) => d.code === normaliseDistrictCode(dCode));
   if (entry) {
     return layerIds.has(entry.id) ? entry.id : null;
   }
 
-  // Unknown code: fall back to the legacy assumption that code === layer id.
   const candidate = parseLayerId(String(dCode).replace(/^0+/, "") || dCode);
   if (candidate !== null && layerIds.has(candidate)) {
     return candidate;
@@ -122,25 +117,6 @@ function createLayerPlanFromMetadata(metadata) {
   };
 }
 
-function withTimeout(promise, timeoutMs) {
-  return new Promise((resolve, reject) => {
-    const timeoutId = setTimeout(() => {
-      reject(new Error("HSAC layer metadata request timed out."));
-    }, timeoutMs);
-
-    promise.then(
-      (value) => {
-        clearTimeout(timeoutId);
-        resolve(value);
-      },
-      (error) => {
-        clearTimeout(timeoutId);
-        reject(error);
-      },
-    );
-  });
-}
-
 function readLayerPlanFromStorage() {
   if (typeof window === "undefined") return null;
 
@@ -189,14 +165,7 @@ function saveLayerPlanToStorage(plan) {
 }
 
 async function fetchLayerPlanFromMetadata() {
-  const response = await withTimeout(
-    esriRequest(getHsacMainUrl(), {
-      query: { f: "pjson" },
-      responseType: "json",
-    }),
-    HSAC_LAYER_PLAN_REFRESH_TIMEOUT_MS,
-  );
-  const metadata = response?.data ?? response;
+  const metadata = await getMapServerMetadata();
   return createLayerPlanFromMetadata(metadata);
 }
 
@@ -217,6 +186,9 @@ export async function getHsacLayerPlan() {
     metadataRefreshStarted = true;
     void (async () => {
       try {
+        await new Promise((resolve) => {
+          setTimeout(resolve, METADATA_REFRESH_DELAY_MS);
+        });
         const freshPlan = await fetchLayerPlanFromMetadata();
         cachedLayerPlanPromise = Promise.resolve(freshPlan);
         saveLayerPlanToStorage(freshPlan);

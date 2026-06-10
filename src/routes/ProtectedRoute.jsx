@@ -9,12 +9,19 @@ import {
 
 const ADMIN_ROLES = new Set(["admin", "superadmin"]);
 
-function ProtectedRoute({ children, requireAdmin = false, onPrefetch }) {
-  const [status, setStatus] = useState("loading");
+function resolveInitialAccess(requireAdmin, isDeveloperMode) {
+  if (isDeveloperMode) return "allowed";
+  if (sessionStorage.getItem("isAuthenticated") !== "true") return "loading";
+  if (requireAdmin && sessionStorage.getItem("isAdmin") !== "true") return "forbidden";
+  return "allowed";
+}
 
+function ProtectedRoute({ children, requireAdmin = false, onPrefetch }) {
   const isDeveloperMode = useMemo(() => (
     import.meta.env.DEV && String(import.meta.env.VITE_DEVELOPER_MODE || "").toLowerCase() === "true"
   ), []);
+
+  const [status, setStatus] = useState(() => resolveInitialAccess(requireAdmin, isDeveloperMode));
 
   useEffect(() => {
     onPrefetch?.();
@@ -61,6 +68,13 @@ function ProtectedRoute({ children, requireAdmin = false, onPrefetch }) {
       }
 
       setStatus("allowed");
+      void verifySession();
+      return () => {
+        active = false;
+      };
+    }
+
+    if (sessionStorage.getItem("isAuthenticated") === "true") {
       void verifySession();
       return () => {
         active = false;

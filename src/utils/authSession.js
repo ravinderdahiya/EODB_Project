@@ -1,5 +1,5 @@
 const ADMIN_ROLES = new Set(["admin", "superadmin"]);
-const SESSION_TRUST_MS = 60_000;
+const SESSION_TRUST_MS = 5 * 60_000;
 
 export function normalizeSessionUser(serverUser) {
   const role = String(serverUser?.role || "user").toLowerCase().trim();
