@@ -182,9 +182,7 @@ export default function LayerPanel({
           expanded={expandedGroupId === "other"}
           onToggle={() => toggleGroup("other")}
         >
-          {arcgisPortalConfig.operationalLayers
-            .filter((layer) => layer.key !== "assets") // temporarily hidden
-            .map((layer) => (
+          {arcgisPortalConfig.operationalLayers.map((layer) => (
             <LayerToggleRow
               key={layer.key}
               title={layer.title}
