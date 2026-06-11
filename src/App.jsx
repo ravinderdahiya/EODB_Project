@@ -75,7 +75,7 @@ const initialLayers = {
   murabba: true,
   kanalMarla: false,
   stateBoundary: true,
-  assets:    false, // Government Assets (visible: false — user can toggle on)
+  assets:    false, // Government Assets (off by default — user can toggle on)
   nhai:      false, // NHAI Upcoming (hidden by default, matches old project)
   roads:     false, // HR Road Infra  (hidden by default, matches old project)
 };
