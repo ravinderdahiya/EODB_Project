@@ -139,6 +139,9 @@ const BOUNDARY_SELECTION_PADDING = {
   bottom: 36,
 };
 const DRAWING_BLOCK_STALE_MS = 45000;
+const CADASTRAL_EXTENT_SYNC_DEBOUNCE_MS = 450;
+/** ~800 m in WGS84 — skip cadastral re-identify when the view center barely moved. */
+const CADASTRAL_SYNC_CENTER_EPSILON = 0.008;
 
 const findSublayerById = (layer, id) =>
   layer?.findSublayerById?.(id) ?? layer?.findSublayerById?.(String(id));
@@ -186,9 +189,15 @@ const syncStateBoundaryAndNearbyPlacesVisibility = ({
       STATE_BOUNDARY_MAX_VISIBLE_SCALE,
     );
 
+  const isUnifiedHsac =
+    Boolean(layers.hsacMainLayer) &&
+    layers.hsacStateBoundaryLayer === layers.hsacMainLayer;
+
   if (layers.hsacStateBoundaryLayer) {
-    // Visibility sync rule: checkbox is required, and scale must be within configured range.
-    layers.hsacStateBoundaryLayer.visible = shouldShowStateBoundary;
+    // Unified HSAC layer keeps parent visible; only sublayer visibility toggles export.
+    if (!isUnifiedHsac) {
+      layers.hsacStateBoundaryLayer.visible = shouldShowStateBoundary;
+    }
     const stateSublayer = findSublayerById(layers.hsacStateBoundaryLayer, HSAC_LAYER.STATE_BOUNDARY);
     if (stateSublayer) {
       stateSublayer.visible = shouldShowStateBoundary;
@@ -198,7 +207,9 @@ const syncStateBoundaryAndNearbyPlacesVisibility = ({
   }
 
   if (layers.nearbyPlacesLayer) {
-    layers.nearbyPlacesLayer.visible = effective.nearbyPlacesPoi;
+    if (!isUnifiedHsac) {
+      layers.nearbyPlacesLayer.visible = effective.nearbyPlacesPoi;
+    }
     const poiSublayer = findSublayerById(layers.nearbyPlacesLayer, HSAC_LAYER.POI);
     if (poiSublayer) {
       poiSublayer.visible = effective.nearbyPlacesPoi;
@@ -208,21 +219,19 @@ const syncStateBoundaryAndNearbyPlacesVisibility = ({
   }
 };
 
-/** Refresh visible HSAC MapImageLayers — use sparingly; extent changes already re-export tiles. */
+/** Refresh visible MapImageLayers — deduped; extent changes already re-export tiles. */
 export const refreshVisibleHsacMapImageLayers = (layers, { only = null } = {}) => {
   if (!layers) return;
   const targets = only ?? [
-    layers.hsacBoundariesLayer,
-    layers.hsacStateBoundaryLayer,
-    layers.hsacCadastralLayer,
+    layers.hsacMainLayer,
     layers.kanalMarlaLayer,
-    layers.nearbyPlacesLayer,
     layers.governmentAssetsLayer,
     layers.nhaiLayer,
     layers.roadsLayer,
   ];
-  (Array.isArray(only) ? only : targets).forEach((layer) => {
-    if (layer?.visible) layer.refresh?.();
+  const list = Array.isArray(only) ? only : targets;
+  [...new Set(list.filter((layer) => layer?.visible))].forEach((layer) => {
+    layer.refresh?.();
   });
 };
 
@@ -243,6 +252,7 @@ export function useArcGISMap({
   const onPreviewFullDetailsRef = useLatestRef(onPreviewFullDetails);
   const layerVisibilityRef       = useLatestRef(layerVisibility);
   const activeCadastralIdsRef    = useRef(null);
+  const cadastralSyncAnchorRef   = useRef(null);
   const userLocationRef          = useRef(null);
   const userLocationWatchIdRef   = useRef(null);
   const userLocationErrorRef     = useRef(null);
@@ -409,37 +419,17 @@ export function useArcGISMap({
         };
       });
 
-      const hsacBoundariesLayer = new MapImageLayer({
+      const hsacMainLayer = new MapImageLayer({
         url: arcgisPortalConfig.serviceUrls.hsacMain,
-        title: "Boundaries",
-        visible: false,
-        sublayers: boundarySublayers,
-      });
-
-      const hsacCadastralLayer = new MapImageLayer({
-        url: arcgisPortalConfig.serviceUrls.hsacMain,
-        title: "Cadastral",
-        // Keep heavy cadastral draw off during initial state-wide load; zoom watcher turns it on later.
-        visible: false,
-        minScale: 0,
-        maxScale: 0,
-        sublayers: cadastralSublayers,
-      });
-      const kanalMarlaLayer = new MapImageLayer({
-        url: arcgisPortalConfig.serviceUrls.kanalMarla,
-        title: "Kanal Marla",
-        visible: effective.kanalMarla,
-      });
-      const hsacStateBoundaryLayer = new MapImageLayer({
-        url: arcgisPortalConfig.serviceUrls.hsacMain,
-        title: "Haryana State Boundary",
-        visible: effective.stateBoundary,
+        title: "HSAC EODB",
+        visible: true,
         sublayers: [
+          ...boundarySublayers,
+          ...cadastralSublayers,
           {
             id: HSAC_LAYER.STATE_BOUNDARY,
             title: "Haryana State Boundary",
-            visible: effective.stateBoundary,
-            // Keep sublayer scale-unrestricted here; we enforce exact range in a single runtime sync path below.
+            visible: false,
             minScale: 0,
             maxScale: 0,
             renderer: {
@@ -455,19 +445,24 @@ export function useArcGISMap({
               },
             },
           },
-        ],
-      });
-      const nearbyPlacesLayer = new MapImageLayer({
-        url: arcgisPortalConfig.serviceUrls.hsacMain,
-        title: "Nearby Places",
-        visible: effective.nearbyPlacesPoi,
-        sublayers: [
           {
             id: HSAC_LAYER.POI,
             title: "POI",
-            visible: effective.nearbyPlacesPoi,
+            visible: false,
           },
         ],
+      });
+
+      // Single MapImageLayer for hsacMain — one metadata load / export pipeline (was 4 layers).
+      const hsacBoundariesLayer = hsacMainLayer;
+      const hsacCadastralLayer = hsacMainLayer;
+      const hsacStateBoundaryLayer = hsacMainLayer;
+      const nearbyPlacesLayer = hsacMainLayer;
+
+      const kanalMarlaLayer = new MapImageLayer({
+        url: arcgisPortalConfig.serviceUrls.kanalMarla,
+        title: "Kanal Marla",
+        visible: effective.kanalMarla,
       });
 
       const governmentAssetsLayer = new MapImageLayer({
@@ -503,10 +498,7 @@ export function useArcGISMap({
       });
 
       map.addMany([
-        hsacCadastralLayer,
-        hsacBoundariesLayer,
-        hsacStateBoundaryLayer,
-        nearbyPlacesLayer,
+        hsacMainLayer,
         locationLayer,
         boundaryLayer,
         selectionLayer,
@@ -557,6 +549,7 @@ export function useArcGISMap({
         layersRef.current = {
           map,
           layerPlan,
+          hsacMainLayer,
           hsacBoundariesLayer,
           hsacStateBoundaryLayer,
           hsacCadastralLayer,
@@ -594,32 +587,43 @@ export function useArcGISMap({
           const layers = layersRef.current;
           if (!layers?.map || !view) return;
           const effective = getEffectiveLayerVisibility(layerVisibilityRef.current);
-          const stateBoundaryWasVisible = layers.hsacStateBoundaryLayer?.visible ?? false;
           syncStateBoundaryAndNearbyPlacesVisibility({
             layers,
             effective,
             currentScale: view.scale,
           });
-          const stateBoundaryNowVisible = layers.hsacStateBoundaryLayer?.visible ?? false;
-          if (stateBoundaryWasVisible !== stateBoundaryNowVisible) {
-            refreshVisibleHsacMapImageLayers(layers, {
-              only: [layers.hsacStateBoundaryLayer],
-            });
-          }
         };
 
         const syncCadastralDistrictsForView = async () => {
           if (isDisposed || cadastralExtentSyncInFlight) return;
           const layers = layersRef.current;
-          if (!layers?.map || !view || !layers.hsacCadastralLayer?.visible) return;
+          if (!layers?.map || !view) return;
 
           const effective = getEffectiveLayerVisibility(layerVisibilityRef.current);
-          if (!effective.cadastral || (view.zoom ?? 0) <= CLICK_ZOOM.VILLAGE_MAX) return;
+          const zoom = view.zoom ?? 0;
+          if (!effective.cadastral || zoom <= CLICK_ZOOM.VILLAGE_MAX) return;
+
+          const center = view.center;
+          const anchor = cadastralSyncAnchorRef.current;
+          if (
+            activeCadastralIdsRef.current?.length &&
+            anchor &&
+            anchor.zoom === zoom &&
+            center &&
+            Math.abs(anchor.x - center.x) < CADASTRAL_SYNC_CENTER_EPSILON &&
+            Math.abs(anchor.y - center.y) < CADASTRAL_SYNC_CENTER_EPSILON
+          ) {
+            return;
+          }
 
           cadastralExtentSyncInFlight = true;
           try {
             let activeIds = await resolveActiveCadastralLayerIds(view, layers.layerPlan);
             if (isDisposed) return;
+
+            if (center) {
+              cadastralSyncAnchorRef.current = { x: center.x, y: center.y, zoom };
+            }
 
             if (!activeIds?.length) {
               const plan = layers.layerPlan;
@@ -629,8 +633,6 @@ export function useArcGISMap({
               activeIds = toggledOn.length ? [toggledOn[0]] : plan?.cadastralLayerIds?.slice(0, 1) ?? null;
             }
 
-            const previousKey = (activeCadastralIdsRef.current ?? []).join(",");
-            const nextKey = (activeIds ?? []).join(",");
             activeCadastralIdsRef.current = activeIds;
 
             const changed = applyCadastralSublayerVisibility({
@@ -640,9 +642,9 @@ export function useArcGISMap({
               activeCadastralIds: activeIds,
             });
 
-            if (changed || previousKey !== nextKey) {
+            if (changed) {
               refreshVisibleHsacMapImageLayers(layers, {
-                only: [layers.hsacCadastralLayer],
+                only: [layers.hsacMainLayer],
               });
             }
           } finally {
@@ -654,8 +656,9 @@ export function useArcGISMap({
           clearTimeout(cadastralExtentSyncTimer);
           cadastralExtentSyncTimer = setTimeout(() => {
             if (!isDisposed) void syncCadastralDistrictsForView();
-          }, 120);
+          }, CADASTRAL_EXTENT_SYNC_DEBOUNCE_MS);
         };
+        layersRef.current.scheduleCadastralExtentSync = scheduleCadastralExtentSync;
 
         // Slower, smoother mouse-wheel zoom at the cursor (small fractional steps + animation).
         const MOUSE_WHEEL_ZOOM_STEP = 0.10;
@@ -754,18 +757,11 @@ export function useArcGISMap({
         );
 
         const syncBoundaryLayersForZoom = (zoom) => {
-          const layers = layersRef.current;
-          if (!layers?.map || !view) return;
-          const changed = applyBoundarySublayerVisibility({
-            layers,
+          applyBoundarySublayerVisibility({
+            layers: layersRef.current,
             layerVisibility: layerVisibilityRef.current,
             zoom,
           });
-          if (changed) {
-            refreshVisibleHsacMapImageLayers(layers, {
-              only: [layers.hsacBoundariesLayer],
-            });
-          }
         };
 
         // Zoom-based cadastral visibility — hide cadastral when zoomed out past village level.
@@ -778,29 +774,18 @@ export function useArcGISMap({
 
             const effectiveState = getEffectiveLayerVisibility(layerVisibilityRef.current);
             const shouldShow = effectiveState.cadastral && zoom > CLICK_ZOOM.VILLAGE_MAX;
-            const cadastralWasVisible = lyr.hsacCadastralLayer?.visible ?? false;
-            if (lyr.hsacCadastralLayer) lyr.hsacCadastralLayer.visible = shouldShow;
             if (lyr.highlightLayer) lyr.highlightLayer.visible = shouldShow;
 
             if (!shouldShow) {
               activeCadastralIdsRef.current = null;
-            }
-
-            if (shouldShow !== cadastralWasVisible) {
-              if (shouldShow) {
-                scheduleCadastralExtentSync();
-              } else {
-                applyCadastralSublayerVisibility({
-                  layers: lyr,
-                  layerVisibility: layerVisibilityRef.current,
-                  cadastralEnabled: false,
-                  activeCadastralIds: null,
-                });
-                refreshVisibleHsacMapImageLayers(lyr, {
-                  only: [lyr.hsacCadastralLayer],
-                });
-              }
-            } else if (shouldShow) {
+              cadastralSyncAnchorRef.current = null;
+              applyCadastralSublayerVisibility({
+                layers: lyr,
+                layerVisibility: layerVisibilityRef.current,
+                cadastralEnabled: false,
+                activeCadastralIds: null,
+              });
+            } else {
               scheduleCadastralExtentSync();
             }
           },
@@ -811,17 +796,14 @@ export function useArcGISMap({
         setTimeout(() => {
           if (isDisposed) return;
           void (async () => {
-          const [boundariesLoad, cadastralLoad] = await Promise.all([
-            loadLayerWithRetry(hsacBoundariesLayer, { label: "Boundaries layer" }),
-            loadLayerWithRetry(hsacStateBoundaryLayer, { label: "State boundary layer", attempts: 1 }),
-            loadLayerWithRetry(hsacCadastralLayer, { label: "Cadastral layer" }),
-            loadLayerWithRetry(nearbyPlacesLayer, { label: "Nearby Places layer", attempts: 1 }),
-          ]);
+          const hsacMainLoad = await loadLayerWithRetry(hsacMainLayer, {
+            label: "HSAC main layer",
+          });
 
           if (isDisposed) return;
 
-          updateHealth("boundaries", boundariesLoad.ok ? "connected" : "degraded");
-          updateHealth("cadastral", cadastralLoad.ok ? "connected" : "degraded");
+          updateHealth("boundaries", hsacMainLoad.ok ? "connected" : "degraded");
+          updateHealth("cadastral", hsacMainLoad.ok ? "connected" : "degraded");
 
           const effectiveOverlays = getEffectiveLayerVisibility(layerVisibilityRef.current);
           const optionalTasks = [];
@@ -855,7 +837,7 @@ export function useArcGISMap({
           const assetsHealthy = !effectiveOverlays.assets || optionalResults.some((result) => result?.ok);
           updateHealth("assets", assetsHealthy ? "connected" : "degraded");
 
-          const coreLayerHealthy = boundariesLoad.ok && cadastralLoad.ok;
+          const coreLayerHealthy = hsacMainLoad.ok;
           if (!coreLayerHealthy) {
             setMapStatus(
               "HSAC map loaded with limited connectivity. Core services will auto-recover when available.",
@@ -991,8 +973,7 @@ export function useArcGISMap({
         const selectableBoundaries = getBoundarySelectionCandidates(currentLayers, zoom);
         if (
           zoom <= CLICK_ZOOM.VILLAGE_MAX &&
-          selectableBoundaries.length > 0 &&
-          currentLayers.hsacBoundariesLayer?.visible
+          selectableBoundaries.length > 0
         ) {
           const queryId = ++boundaryQueryCounter;
           const boundaryHitTest = await view
@@ -1051,8 +1032,9 @@ export function useArcGISMap({
           }
         }
 
-        // Cadastral zone (zoom > VILLAGE_MAX): show popup only when Cadastral layer is visible
-        if (!currentLayers.hsacCadastralLayer?.visible) return;
+        // Cadastral zone (zoom > VILLAGE_MAX): show popup only when cadastral is enabled at this zoom
+        const cadastralEffective = getEffectiveLayerVisibility(layerVisibilityRef.current);
+        if (!cadastralEffective.cadastral || zoom <= CLICK_ZOOM.VILLAGE_MAX) return;
         const popupRequestId = ++cadastralPopupRequestCounter;
 
         const loadingPopup = createLandRecordPopupContent({
@@ -1187,7 +1169,7 @@ export function useArcGISMap({
     });
     if (boundaryChanged) {
       refreshVisibleHsacMapImageLayers(layers, {
-        only: [layers.hsacBoundariesLayer],
+        only: [layers.hsacMainLayer],
       });
     }
     syncStateBoundaryAndNearbyPlacesVisibility({
@@ -1196,10 +1178,8 @@ export function useArcGISMap({
       currentScale: viewRef.current?.scale,
     });
 
-    // Visibility sync rule: do not auto-enable from zoom; zoom only constrains toggled-on layers.
     const currentZoom = viewRef.current?.zoom;
     const cadastralVisible = effective.cadastral && (currentZoom == null || currentZoom > CLICK_ZOOM.VILLAGE_MAX);
-    if (layers.hsacCadastralLayer) layers.hsacCadastralLayer.visible = cadastralVisible;
     if (layers.highlightLayer) layers.highlightLayer.visible = cadastralVisible;
     if (layers.hsacCadastralLayer) {
       const cadastralChanged = applyCadastralSublayerVisibility({
@@ -1210,8 +1190,15 @@ export function useArcGISMap({
       });
       if (cadastralChanged) {
         refreshVisibleHsacMapImageLayers(layers, {
-          only: [layers.hsacCadastralLayer],
+          only: [layers.hsacMainLayer],
         });
+      }
+      if (cadastralVisible) {
+        cadastralSyncAnchorRef.current = null;
+        layers.scheduleCadastralExtentSync?.();
+      } else {
+        activeCadastralIdsRef.current = null;
+        cadastralSyncAnchorRef.current = null;
       }
     }
 
@@ -1313,12 +1300,16 @@ export function useArcGISMap({
     if (!layers?.map || !viewRef.current) {
       return { ok: false, message: "Map is still loading." };
     }
-    refreshVisibleHsacMapImageLayers(layers);
     const effective = getEffectiveLayerVisibility(layerVisibilityRef.current);
     syncStateBoundaryAndNearbyPlacesVisibility({
       layers,
       effective,
       currentScale: viewRef.current.scale,
+    });
+    applyBoundarySublayerVisibility({
+      layers,
+      layerVisibility: layerVisibilityRef.current,
+      zoom: viewRef.current.zoom,
     });
     return { ok: true, message: "Map layers refreshed." };
   }, []);
@@ -1326,14 +1317,12 @@ export function useArcGISMap({
   const zoomIn = async () => {
     if (!viewRef.current) return { ok: false, message: "Map is still loading." };
     await viewRef.current.goTo({ zoom: viewRef.current.zoom + 1 });
-    refreshLayersForCurrentView();
     return { ok: true, message: "Zoomed in." };
   };
 
   const zoomOut = async () => {
     if (!viewRef.current) return { ok: false, message: "Map is still loading." };
     await viewRef.current.goTo({ zoom: viewRef.current.zoom - 1 });
-    refreshLayersForCurrentView();
     return { ok: true, message: "Zoomed out." };
   };
 

@@ -387,23 +387,22 @@ export default function App() {
     if (voiceBoundaryLoadStartedRef.current) return;
     voiceBoundaryLoadStartedRef.current = true;
 
-    Promise.allSettled([getDistricts(), getAllTehsils(), getAllVillages()])
-      .then(([districtResult, tehsilResult, villageResult]) => {
-        setVoiceDistricts(
-          districtResult.status === "fulfilled" && Array.isArray(districtResult.value)
-            ? districtResult.value
-            : [],
-        );
-        setVoiceTehsils(
-          tehsilResult.status === "fulfilled" && Array.isArray(tehsilResult.value)
-            ? tehsilResult.value
-            : [],
-        );
-        setVoiceVillages(
-          villageResult.status === "fulfilled" && Array.isArray(villageResult.value)
-            ? villageResult.value
-            : [],
-        );
+    // Load districts first (small). Defer heavy tehsil/village scans so they do not
+    // compete with the map's initial HSAC layer export on panel open.
+    getDistricts()
+      .then((districts) => {
+        setVoiceDistricts(Array.isArray(districts) ? districts : []);
+        return new Promise((resolve) => {
+          window.setTimeout(resolve, 4000);
+        });
+      })
+      .then(() => getAllTehsils())
+      .then((tehsils) => {
+        setVoiceTehsils(Array.isArray(tehsils) ? tehsils : []);
+        return getAllVillages();
+      })
+      .then((villages) => {
+        setVoiceVillages(Array.isArray(villages) ? villages : []);
       })
       .catch(() => {
         voiceBoundaryLoadStartedRef.current = false;

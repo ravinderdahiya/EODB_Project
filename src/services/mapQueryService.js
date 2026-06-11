@@ -486,9 +486,10 @@ export async function searchAdministrativeAreas(term, options = {}) {
   const limit = Math.max(1, Number(options.limit) || 10);
   const perLayerCount = Math.max(limit * 2, 12);
   const layerPlan = await getHsacLayerPlan();
+  const typePriority = { district: 0, tehsil: 1, village: 2 };
 
-  const [districtRes, tehsilRes, villageRes] = await Promise.allSettled([
-    restQuery.executeQueryJSON(
+  const districtRes = await restQuery
+    .executeQueryJSON(
       `${getHsacMainUrl()}/${layerPlan.districtLayerId}`,
       new Query({
         outFields: ["n_d_code", "n_d_name"],
@@ -501,7 +502,30 @@ export async function searchAdministrativeAreas(term, options = {}) {
           "AND n_d_name IS NOT NULL AND n_d_name <> '' " +
           `AND UPPER(n_d_name) LIKE '%${likeTerm}%'`,
       }),
-    ),
+    )
+    .catch(() => null);
+
+  const districtRows = mapAdminSuggestionRows("district", districtRes?.features ?? [], {
+    nameKey: "n_d_name",
+    dCodeKey: "n_d_code",
+    dNameKey: "n_d_name",
+  });
+
+  if (districtRows.length >= limit) {
+    return districtRows
+      .map((row) => ({
+        ...row,
+        _score: scoreNameMatch(row.name, cleanedTerm),
+      }))
+      .sort((a, b) => {
+        if (a._score !== b._score) return a._score - b._score;
+        return a.name.localeCompare(b.name);
+      })
+      .slice(0, limit)
+      .map(({ _score, ...row }) => row);
+  }
+
+  const [tehsilRes, villageRes] = await Promise.allSettled([
     restQuery.executeQueryJSON(
       `${getHsacMainUrl()}/${layerPlan.tehsilLayerId}`,
       new Query({
@@ -535,14 +559,6 @@ export async function searchAdministrativeAreas(term, options = {}) {
     ),
   ]);
 
-  const districtRows =
-    districtRes.status === "fulfilled"
-      ? mapAdminSuggestionRows("district", districtRes.value?.features ?? [], {
-          nameKey: "n_d_name",
-          dCodeKey: "n_d_code",
-          dNameKey: "n_d_name",
-        })
-      : [];
   const tehsilRows =
     tehsilRes.status === "fulfilled"
       ? mapAdminSuggestionRows("tehsil", tehsilRes.value?.features ?? [], {
@@ -564,8 +580,6 @@ export async function searchAdministrativeAreas(term, options = {}) {
           tNameKey: "n_t_name",
         })
       : [];
-
-  const typePriority = { district: 0, tehsil: 1, village: 2 };
 
   return [...districtRows, ...tehsilRows, ...villageRows]
     .map((row) => ({
