@@ -57,6 +57,22 @@ const DISTRICTS_CACHE_KEY = "eodb_ref_districts_v1";
 const ALL_TEHSILS_CACHE_KEY = "eodb_ref_all_tehsils_v1";
 const ALL_VILLAGES_CACHE_KEY = "eodb_ref_all_villages_v1";
 
+function tehsilsCacheKey(dCode) {
+  return `eodb_tehsils_${dCode}_v1`;
+}
+
+function villagesCacheKey(dCode, tCode) {
+  return `eodb_villages_${dCode}_${tCode}_v1`;
+}
+
+function murrabasCacheKey(dCode, tCode, vCode) {
+  return `eodb_murabba_${dCode}_${tCode}_${vCode}_v1`;
+}
+
+function khasrasCacheKey(dCode, tCode, vCode, murabbaNo) {
+  return `eodb_khasra_${dCode}_${tCode}_${vCode}_${murabbaNo}_v1`;
+}
+
 function mapDistinctOptions(features, codeKey, nameKey) {
   const seen = new Set();
 
@@ -228,6 +244,9 @@ export async function getDistricts() {
  * @returns {Promise<{code: string, name: string}[]>}
  */
 export async function getTehsils(dCode) {
+  const cached = readSessionCache(tehsilsCacheKey(dCode));
+  if (cached) return cached;
+
   const layerPlan = await getHsacLayerPlan();
   const q = new Query({
     outFields: ["n_t_code", "n_t_name"],
@@ -242,7 +261,9 @@ export async function getTehsils(dCode) {
     q,
   );
 
-  return mapDistinctOptions(res.features, "n_t_code", "n_t_name");
+  const tehsils = mapDistinctOptions(res.features, "n_t_code", "n_t_name");
+  writeSessionCache(tehsilsCacheKey(dCode), tehsils);
+  return tehsils;
 }
 
 /**
@@ -314,6 +335,9 @@ export async function getAllTehsils() {
  * @returns {Promise<{code: string, name: string}[]>}
  */
 export async function getVillages(dCode, tCode) {
+  const cached = readSessionCache(villagesCacheKey(dCode, tCode));
+  if (cached) return cached;
+
   const layerPlan = await getHsacLayerPlan();
   const q = new Query({
     outFields: ["n_v_code", "n_v_name"],
@@ -328,7 +352,9 @@ export async function getVillages(dCode, tCode) {
     q,
   );
 
-  return mapDistinctOptions(res.features, "n_v_code", "n_v_name");
+  const villages = mapDistinctOptions(res.features, "n_v_code", "n_v_name");
+  writeSessionCache(villagesCacheKey(dCode, tCode), villages);
+  return villages;
 }
 
 /**
@@ -405,7 +431,12 @@ export async function getAllVillages() {
  * of a single attribute field. Used by getMurrabas and getKhasras which share
  * the same "distinct single-field" query shape.
  */
-async function queryCadastralField(dCode, field, where) {
+async function queryCadastralField(dCode, field, where, cacheKey = null) {
+  if (cacheKey) {
+    const cached = readSessionCache(cacheKey);
+    if (cached) return cached;
+  }
+
   const q = new Query({
     outFields: [field],
     returnDistinctValues: true,
@@ -415,7 +446,9 @@ async function queryCadastralField(dCode, field, where) {
     where,
   });
   const res = await restQuery.executeQueryJSON(await cadastralUrl(dCode), q);
-  return res.features.map((f) => cleanText(f?.attributes?.[field])).filter(Boolean);
+  const values = res.features.map((f) => cleanText(f?.attributes?.[field])).filter(Boolean);
+  if (cacheKey) writeSessionCache(cacheKey, values);
+  return values;
 }
 
 // ─── Murrabas (Cadastral sublayer by district) ───────────────────────────────
@@ -436,6 +469,7 @@ export async function getMurrabas(dCode, tCode, vCode) {
     dCode,
     "n_murr_no",
     `n_d_code='${dCode}' AND n_t_code='${tCode}' AND n_v_code='${vCode}' AND n_murr_no IS NOT NULL AND n_murr_no <> ''`,
+    murrabasCacheKey(dCode, tCode, vCode),
   );
 }
 
@@ -455,6 +489,7 @@ export async function getKhasras(dCode, tCode, vCode, murabbaNo) {
     dCode,
     "n_khas_no",
     `n_d_code='${dCode}' AND n_t_code='${tCode}' AND n_v_code='${vCode}' AND n_murr_no='${murabbaNo}' AND n_khas_no IS NOT NULL AND n_khas_no <> ''`,
+    khasrasCacheKey(dCode, tCode, vCode, murabbaNo),
   );
 }
 

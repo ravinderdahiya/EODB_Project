@@ -847,7 +847,7 @@ export function getVisibleCadastralLayerIds(layers) {
 
   return layerPlan.cadastralLayerIds.filter((id) => {
     const sublayer = cadastralLayer.findSublayerById?.(id);
-    return sublayer ? sublayer.visible !== false : true;
+    return Boolean(sublayer?.visible);
   });
 }
 
@@ -973,8 +973,9 @@ export function applyBoundarySublayerVisibility({
   });
 
   const parentVisible = activeKeys.size > 0;
-  const isUnifiedHsac = layers?.hsacMainLayer && boundariesLayer === layers.hsacMainLayer;
-  if (!isUnifiedHsac && boundariesLayer.visible !== parentVisible) {
+  // Skip parent toggle only when cadastral shares the same MapImageLayer (would hide parcels).
+  const cadastralSharesLayer = layers?.hsacCadastralLayer === boundariesLayer;
+  if (!cadastralSharesLayer && boundariesLayer.visible !== parentVisible) {
     boundariesLayer.visible = parentVisible;
     changed = true;
   }
