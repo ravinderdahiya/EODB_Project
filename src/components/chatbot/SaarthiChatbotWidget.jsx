@@ -1,6 +1,14 @@
-﻿import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { getRuntimeConfigValue } from "@/config/runtimeConfig";
 import "./SaarthiChatbotWidget.css";
+
+// Bust stale browser cache from the old Vite middleware that served favicon.svg as img_1.png.
+const CHATBOT_ICON_CACHE_VERSION = "2";
+
+function withChatbotAssetVersion(assetPath) {
+  const separator = assetPath.includes("?") ? "&" : "?";
+  return `${assetPath}${separator}v=${CHATBOT_ICON_CACHE_VERSION}`;
+}
 
 const CHATBOT_LOCALE = {
   en: {
@@ -1725,14 +1733,17 @@ export default function SaarthiChatbotWidget({ lang = "en", blurred = false, hid
   const chatbotAssetBase = `${import.meta.env.BASE_URL}chatbot/`;
   const chatbotCssPath = `${chatbotAssetBase}assets/index-CleebXl6.css`;
   const chatbotJsPath = `${chatbotAssetBase}assets/index-h95SWGsY.js`;
-  const chatbotIconFallbackPath = `${chatbotAssetBase}favicon.svg`;
-  const chatbotIconPath = `${chatbotAssetBase}assets/img_1.png`;
-  const chatbotLauncherFlipIconPath = `${chatbotAssetBase}assets/img_2.png`;
+  const chatbotIconPath = withChatbotAssetVersion(`${chatbotAssetBase}assets/img_1.png`);
+  const chatbotLauncherFlipIconPath = withChatbotAssetVersion(`${chatbotAssetBase}assets/img_2.png`);
   const handleChatbotIconError = (event) => {
     const image = event.currentTarget;
     if (!image || image.dataset.fallbackApplied === "true") return;
+    const currentSrc = image.getAttribute("src") || "";
+    if (!currentSrc.includes("img_1.png")) {
+      image.src = chatbotIconPath;
+      return;
+    }
     image.dataset.fallbackApplied = "true";
-    image.src = chatbotIconFallbackPath;
   };
   const activeLocale = CHATBOT_LOCALE[lang] || CHATBOT_LOCALE.en;
   const launcherHints = Array.isArray(activeLocale.launcherHints) && activeLocale.launcherHints.length
@@ -1820,7 +1831,7 @@ export default function SaarthiChatbotWidget({ lang = "en", blurred = false, hid
     if (!iframe) return undefined;
     syncSchedulerRef.current.destroyed = false;
     const iconUrl = new URL(
-      chatbotIconFallbackPath,
+      chatbotIconPath,
       window.location.origin,
     ).toString();
 
@@ -2679,7 +2690,8 @@ export default function SaarthiChatbotWidget({ lang = "en", blurred = false, hid
       }
 
       frameDoc.querySelectorAll(".floating-bot-img img, .bot-logo-img img, .bot-avatar-img img").forEach((img) => {
-        if (img.getAttribute("src") !== iconUrl) {
+        const currentSrc = img.getAttribute("src") || "";
+        if (currentSrc !== iconUrl && !currentSrc.includes(`img_1.png?v=${CHATBOT_ICON_CACHE_VERSION}`)) {
           img.setAttribute("src", iconUrl);
         }
       });
@@ -2960,7 +2972,7 @@ export default function SaarthiChatbotWidget({ lang = "en", blurred = false, hid
       document.removeEventListener("click", onHostClickCapture, true);
       document.removeEventListener("pointerdown", onHostPointerDownCapture, true);
     };
-  }, [activeLocale, chatbotAssetBase, chatbotCssPath, chatbotIconFallbackPath, chatbotJsPath, lang]);
+  }, [activeLocale, chatbotAssetBase, chatbotCssPath, chatbotIconPath, chatbotJsPath, lang]);
 
   return (
     <div
@@ -3017,13 +3029,27 @@ export default function SaarthiChatbotWidget({ lang = "en", blurred = false, hid
     <script type="module" crossorigin src="${chatbotJsPath}"></script>
     <script>
       (function () {
-        var fallback = ${JSON.stringify(chatbotIconFallbackPath)};
+        var primaryIcon = ${JSON.stringify(chatbotIconPath)};
+        function isBotIconImage(image) {
+          if (!image || !image.parentElement) return false;
+          var parentClass = image.parentElement.className || "";
+          return /floating-bot-img|bot-logo-img|bot-avatar-img/.test(parentClass);
+        }
         function patchImage(image) {
           if (!image || image.dataset.fallbackApplied === "true") return;
+          if (isBotIconImage(image)) {
+            var src = image.getAttribute("src") || "";
+            if (src !== primaryIcon) {
+              image.src = primaryIcon;
+            }
+          }
           image.addEventListener("error", function onError() {
-            if (image.dataset.fallbackApplied === "true") return;
+            var failedSrc = image.getAttribute("src") || "";
+            if (!failedSrc.includes("img_1.png")) {
+              image.src = primaryIcon;
+              return;
+            }
             image.dataset.fallbackApplied = "true";
-            image.src = fallback;
           }, { once: true });
         }
         function patchAll(root) {
