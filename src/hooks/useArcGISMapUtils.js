@@ -973,7 +973,8 @@ export function applyBoundarySublayerVisibility({
   });
 
   const parentVisible = activeKeys.size > 0;
-  if (boundariesLayer.visible !== parentVisible) {
+  const isUnifiedHsac = layers?.hsacMainLayer && boundariesLayer === layers.hsacMainLayer;
+  if (!isUnifiedHsac && boundariesLayer.visible !== parentVisible) {
     boundariesLayer.visible = parentVisible;
     changed = true;
   }

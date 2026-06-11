@@ -6,6 +6,7 @@ const FALLBACK_LAYER_ID = DISTRICT_SUBLAYERS[0]?.id ?? 1;
 // cadastral layer) so stale cached plans without the new layers are discarded.
 const HSAC_LAYER_PLAN_STORAGE_KEY = "eodb_hsac_layer_plan_v2";
 const METADATA_REFRESH_DELAY_MS = 8000;
+const METADATA_REFRESH_DELAY_CACHED_MS = 120000;
 
 let cachedLayerPlanPromise;
 let metadataRefreshStarted = false;
@@ -184,10 +185,16 @@ export async function getHsacLayerPlan() {
 
   if (!metadataRefreshStarted) {
     metadataRefreshStarted = true;
+    const storedPlan = readLayerPlanFromStorage();
+    const refreshDelayMs =
+      storedPlan && !storedPlan.usesFallback
+        ? METADATA_REFRESH_DELAY_CACHED_MS
+        : METADATA_REFRESH_DELAY_MS;
+
     void (async () => {
       try {
         await new Promise((resolve) => {
-          setTimeout(resolve, METADATA_REFRESH_DELAY_MS);
+          setTimeout(resolve, refreshDelayMs);
         });
         const freshPlan = await fetchLayerPlanFromMetadata();
         cachedLayerPlanPromise = Promise.resolve(freshPlan);
