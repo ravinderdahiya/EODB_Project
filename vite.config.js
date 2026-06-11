@@ -201,7 +201,7 @@ function installLocalHsacProxyMiddleware(server, proxyPath, upstreamProxyUrl) {
 
 function resolveProxyOrigin(targetUrl) {
   const raw = `${targetUrl || ""}`.trim();
-  if (!raw) return "http://localhost:8080";
+  if (!raw) return "http://127.0.0.1:8081";
 
   try {
     const parsed = new URL(raw);
@@ -209,6 +209,48 @@ function resolveProxyOrigin(targetUrl) {
   } catch {
     return raw;
   }
+}
+
+// VITE_SERVER_BASE_URL=/eodb_backend is correct for production builds (same-origin).
+// Vite's dev proxy still needs an absolute URL pointing at the local Node process.
+function resolveBackendProxyTarget(rawBaseURL, env) {
+  const raw = `${rawBaseURL || ""}`.trim();
+  const devOrigin = normalizeLocalhostTarget(
+    env.VITE_DEV_BACKEND_ORIGIN || "http://127.0.0.1:8081",
+  );
+
+  if (/^https?:\/\//i.test(raw)) {
+    return normalizeLocalhostTarget(raw);
+  }
+
+  const pathPrefix = raw
+    ? (raw.startsWith("/") ? raw : `/${raw}`)
+    : "/eodb_backend";
+
+  return `${devOrigin.replace(/\/$/, "")}${pathPrefix}`;
+}
+
+function createBackendApiProxyOptions(backendProxyTarget, backendOrigin) {
+  const attachForwardedProto = (proxy) => {
+    proxy.on("proxyReq", (proxyReq) => {
+      proxyReq.setHeader("x-forwarded-proto", "https");
+    });
+  };
+
+  return {
+    api: {
+      target: backendProxyTarget,
+      changeOrigin: true,
+      secure: false,
+      configure: attachForwardedProto,
+    },
+    prefixed: {
+      target: backendOrigin,
+      changeOrigin: true,
+      secure: false,
+      configure: attachForwardedProto,
+    },
+  };
 }
 
 export default defineConfig(({ mode }) => {
@@ -227,8 +269,9 @@ export default defineConfig(({ mode }) => {
   // Keep production default domain-agnostic to avoid cross-origin CORS breakage
   // when the app is served from a different host (for example harsac.online).
   const rawBaseURL = env.VITE_SERVER_BASE_URL || (mode === "development" ? "http://localhost:8081" : "/eodb_backend");
-  const baseURL    = rawBaseURL.startsWith("http") ? normalizeLocalhostTarget(rawBaseURL) : rawBaseURL;
-  const backendOriginForPrefixedProxy = resolveProxyOrigin(baseURL);
+  const backendProxyTarget = resolveBackendProxyTarget(rawBaseURL, env);
+  const backendOriginForPrefixedProxy = resolveProxyOrigin(backendProxyTarget);
+  const backendProxy = createBackendApiProxyOptions(backendProxyTarget, backendOriginForPrefixedProxy);
   const rawBase    = env.VITE_BASENAME || "/";
   const base       = rawBase.endsWith("/") ? rawBase : rawBase + "/";
   return {
@@ -291,58 +334,18 @@ export default defineConfig(({ mode }) => {
       port: devPort,
       proxy: {
         // Backend API proxy for user/auth routes
-        "/user": {
-          target: baseURL,
-          changeOrigin: true,
-          secure: false,
-        },
+        "/user": backendProxy.api,
         // Backend API proxy for OTP routes
-        "/otp": {
-          target: baseURL,
-          changeOrigin: true,
-          secure: false,
-        },
-        "/captcha": {
-          target: baseURL,
-          changeOrigin: true,
-          secure: false,
-        },
-        "/api-url": {
-          target: baseURL,
-          changeOrigin: true,
-          secure: false,
-        },
-        "/mapserver": {
-          target: baseURL,
-          changeOrigin: true,
-          secure: false,
-        },
-        "/analytics": {
-          target: baseURL,
-          changeOrigin: true,
-          secure: false,
-        },
-        "/feedback": {
-          target: baseURL,
-          changeOrigin: true,
-          secure: false,
-        },
-        "/map-link": {
-          target: baseURL,
-          changeOrigin: true,
-          secure: false,
-        },
-        "/vip-users": {
-          target: baseURL,
-          changeOrigin: true,
-          secure: false,
-        },
+        "/otp": backendProxy.api,
+        "/captcha": backendProxy.api,
+        "/api-url": backendProxy.api,
+        "/mapserver": backendProxy.api,
+        "/analytics": backendProxy.api,
+        "/feedback": backendProxy.api,
+        "/map-link": backendProxy.api,
+        "/vip-users": backendProxy.api,
         // Local dev fallback: when frontend resolves backend-prefixed URLs, proxy them to backend origin.
-        "/eodb_backend": {
-          target: backendOriginForPrefixedProxy,
-          changeOrigin: true,
-          secure: false,
-        },
+        "/eodb_backend": backendProxy.prefixed,
         // ArcGIS REST proxy (dev only): VITE_HSAC_DEV_PROXY/... -> VITE_HSAC_ORIGIN/...
         [hsacProxy]: {
           target: hsacTarget,
@@ -374,57 +377,17 @@ export default defineConfig(({ mode }) => {
     preview: {
       proxy: {
         // Backend API proxy for user/auth routes
-        "/user": {
-          target: baseURL,
-          changeOrigin: true,
-          secure: false,
-        },
+        "/user": backendProxy.api,
         // Backend API proxy for OTP routes
-        "/otp": {
-          target: baseURL,
-          changeOrigin: true,
-          secure: false,
-        },
-        "/captcha": {
-          target: baseURL,
-          changeOrigin: true,
-          secure: false,
-        },
-        "/api-url": {
-          target: baseURL,
-          changeOrigin: true,
-          secure: false,
-        },
-        "/mapserver": {
-          target: baseURL,
-          changeOrigin: true,
-          secure: false,
-        },
-        "/analytics": {
-          target: baseURL,
-          changeOrigin: true,
-          secure: false,
-        },
-        "/feedback": {
-          target: baseURL,
-          changeOrigin: true,
-          secure: false,
-        },
-        "/map-link": {
-          target: baseURL,
-          changeOrigin: true,
-          secure: false,
-        },
-        "/vip-users": {
-          target: baseURL,
-          changeOrigin: true,
-          secure: false,
-        },
-        "/eodb_backend": {
-          target: backendOriginForPrefixedProxy,
-          changeOrigin: true,
-          secure: false,
-        },
+        "/otp": backendProxy.api,
+        "/captcha": backendProxy.api,
+        "/api-url": backendProxy.api,
+        "/mapserver": backendProxy.api,
+        "/analytics": backendProxy.api,
+        "/feedback": backendProxy.api,
+        "/map-link": backendProxy.api,
+        "/vip-users": backendProxy.api,
+        "/eodb_backend": backendProxy.prefixed,
         [hsacProxy]: {
           target: hsacTarget,
           changeOrigin: true,
