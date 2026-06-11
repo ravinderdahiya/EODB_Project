@@ -247,6 +247,7 @@ function extractLiveTranscript(event) {
 export default function VoiceAssistantPopup({
   actionHandlers = {},
   onStatusChange = () => {},
+  onVoicePanelOpen = () => {},
 }) {
   const { lang } = useLanguage();
 
@@ -268,6 +269,7 @@ export default function VoiceAssistantPopup({
   const micPromptDismissedRef = useRef(false);
   const speechLangOptionsRef  = useRef([]);
   const speechLangIndexRef    = useRef(0);
+  const onVoicePanelOpenRef   = useRef(onVoicePanelOpen);
 
   // ── State ─────────────────────────────────────────────────────────
   const [isSupported,        setIsSupported]        = useState(false);
@@ -332,6 +334,7 @@ export default function VoiceAssistantPopup({
   useEffect(() => { actionHandlersRef.current = actionHandlers; }, [actionHandlers]);
   useEffect(() => { transcriptRef.current = transcriptText; },    [transcriptText]);
   useEffect(() => { interimRef.current = interimText; },          [interimText]);
+  useEffect(() => { onVoicePanelOpenRef.current = onVoicePanelOpen; }, [onVoicePanelOpen]);
 
   const closePanelLater = (ms = 1200) => {
     if (autoCloseTimerRef.current) {
@@ -782,6 +785,12 @@ export default function VoiceAssistantPopup({
       shell.classList.remove("search-shell--voice-open");
     }
     return () => shell.classList.remove("search-shell--voice-open");
+  }, [voicePanelOpen]);
+
+  // Load voice admin boundary lists only after the user opens the voice panel.
+  useEffect(() => {
+    if (!voicePanelOpen) return;
+    onVoicePanelOpenRef.current?.();
   }, [voicePanelOpen]);
 
   // ── Escape + click outside ────────────────────────────────────────

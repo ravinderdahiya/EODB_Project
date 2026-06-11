@@ -764,6 +764,7 @@ export function clearBasemapCache({ force = false } = {}) {
     }
     delete _basemapInstanceCache[key];
   });
+  _basemapPreloadPromises.clear();
 }
 
 export function resolveBasemap(activeBasemap) {
@@ -810,13 +811,13 @@ export function resolveBasemap(activeBasemap) {
   return basemap;
 }
 
-let _basemapPreloadPromise = null;
+const _basemapPreloadPromises = new Map();
 
-/** Warm basemap tile metadata before MapView mounts (avoids StrictMode abort noise). */
-export function preloadBasemapPresets(presetKeys = ["satellite"]) {
-  if (!_basemapPreloadPromise) {
-    _basemapPreloadPromise = Promise.all(
-      presetKeys.map(async (presetKey) => {
+function preloadBasemapPreset(presetKey) {
+  if (!_basemapPreloadPromises.has(presetKey)) {
+    _basemapPreloadPromises.set(
+      presetKey,
+      (async () => {
         const basemap = resolveBasemap(presetKey);
         if (basemap.loaded) return;
         try {
@@ -824,10 +825,16 @@ export function preloadBasemapPresets(presetKeys = ["satellite"]) {
         } catch {
           // Network hiccups are retried when the map assigns this basemap.
         }
-      }),
+      })(),
     );
   }
-  return _basemapPreloadPromise;
+  return _basemapPreloadPromises.get(presetKey);
+}
+
+/** Warm basemap tile metadata before MapView mounts (avoids StrictMode abort noise). */
+export function preloadBasemapPresets(presetKeys = ["satellite"]) {
+  const uniqueKeys = [...new Set(presetKeys)];
+  return Promise.all(uniqueKeys.map((presetKey) => preloadBasemapPreset(presetKey)));
 }
 
 export function getVisibleCadastralLayerIds(layers) {

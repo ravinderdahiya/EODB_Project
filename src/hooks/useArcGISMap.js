@@ -362,7 +362,7 @@ export function useArcGISMap({
     let isDisposed = false;
 
     const initialiseMap = async () => {
-      await preloadBasemapPresets([activeBasemap, "satellite"]);
+      await preloadBasemapPresets([activeBasemap]);
       const layerPlan = getHsacLayerPlanSync();
       void getHsacLayerPlan();
       if (isDisposed || !containerRef.current) {

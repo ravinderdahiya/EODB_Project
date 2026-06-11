@@ -1,4 +1,4 @@
-import { lazy, Suspense, useDeferredValue, useEffect, useRef, useState, useTransition } from "react";
+import { lazy, Suspense, useCallback, useDeferredValue, useEffect, useRef, useState, useTransition } from "react";
 import { useNavigate } from "react-router-dom";
 import axiosInstance from "@/utils/axiosInstance";
 import AppHeader from "@/components/AppHeader";
@@ -116,6 +116,7 @@ export default function App() {
   const hasSelectedParcel = selectedParcel.registryRef !== "DLR-UNAVAILABLE";
   const adminSuggestionRequestIdRef = useRef(0);
   const voiceSuggestionRequestIdRef = useRef(0);
+  const voiceBoundaryLoadStartedRef = useRef(false);
 
   // Track initial page load
   useEffect(() => {
@@ -268,17 +269,14 @@ export default function App() {
     },
   });
 
+  // Drop the full-page splash as soon as the map shell mounts; MapStage keeps its
+  // own in-map loader until mapReady so tiles can finish without blocking the UI chrome.
   useEffect(() => {
-    if (!mapReady) return undefined;
-
     const frameId = requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        removeSplash();
-      });
+      removeSplash();
     });
-
     return () => cancelAnimationFrame(frameId);
-  }, [mapReady]);
+  }, []);
 
   // â”€â”€ Select Features â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const sf = useSelectFeatures({ viewRef, layersRef });
@@ -385,51 +383,35 @@ export default function App() {
       });
   }, [deferredSearch]);
 
-  useEffect(() => {
-    if (!mapReady) return undefined;
+  const loadVoiceBoundaryLists = useCallback(() => {
+    if (voiceBoundaryLoadStartedRef.current) return;
+    voiceBoundaryLoadStartedRef.current = true;
 
-    let active = true;
-    let timeoutId = 0;
-
-    const loadVoiceBoundaryLists = () => {
-      Promise.allSettled([getDistricts(), getAllTehsils(), getAllVillages()])
-        .then(([districtResult, tehsilResult, villageResult]) => {
-          if (!active) return;
-
-          setVoiceDistricts(
-            districtResult.status === "fulfilled" && Array.isArray(districtResult.value)
-              ? districtResult.value
-              : [],
-          );
-          setVoiceTehsils(
-            tehsilResult.status === "fulfilled" && Array.isArray(tehsilResult.value)
-              ? tehsilResult.value
-              : [],
-          );
-          setVoiceVillages(
-            villageResult.status === "fulfilled" && Array.isArray(villageResult.value)
-              ? villageResult.value
-              : [],
-          );
-        })
-        .catch(() => {
-          if (!active) return;
-          setVoiceDistricts([]);
-          setVoiceTehsils([]);
-          setVoiceVillages([]);
-        });
-    };
-
-    // Defer heavy voice-dataset fetch until map is painted and interactive.
-    timeoutId = window.setTimeout(loadVoiceBoundaryLists, 1200);
-
-    return () => {
-      active = false;
-      if (timeoutId) {
-        window.clearTimeout(timeoutId);
-      }
-    };
-  }, [mapReady]);
+    Promise.allSettled([getDistricts(), getAllTehsils(), getAllVillages()])
+      .then(([districtResult, tehsilResult, villageResult]) => {
+        setVoiceDistricts(
+          districtResult.status === "fulfilled" && Array.isArray(districtResult.value)
+            ? districtResult.value
+            : [],
+        );
+        setVoiceTehsils(
+          tehsilResult.status === "fulfilled" && Array.isArray(tehsilResult.value)
+            ? tehsilResult.value
+            : [],
+        );
+        setVoiceVillages(
+          villageResult.status === "fulfilled" && Array.isArray(villageResult.value)
+            ? villageResult.value
+            : [],
+        );
+      })
+      .catch(() => {
+        voiceBoundaryLoadStartedRef.current = false;
+        setVoiceDistricts([]);
+        setVoiceTehsils([]);
+        setVoiceVillages([]);
+      });
+  }, []);
 
   // Draw and zoom to selected administrative boundary from search/voice target.
   const highlightAdminBoundary = async (target, options = {}) => {
@@ -1302,6 +1284,7 @@ export default function App() {
           <LazyVoiceAssistantPopup
             actionHandlers={voiceActionHandlers}
             onStatusChange={setSystemMessage}
+            onVoicePanelOpen={loadVoiceBoundaryLists}
           />
         </Suspense>
       ) : null}

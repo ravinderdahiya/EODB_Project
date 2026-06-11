@@ -13,9 +13,12 @@ export function prefetchMapChunk() {
     mapChunkPromise = Promise.all([
       import("../bootstrap/arcgisSetup").then(({ ensureArcgisReady }) => ensureArcgisReady()),
       import("../App"),
-    ]).then(async ([, appModule]) => {
-      const { preloadBasemapPresets } = await import("../hooks/useArcGISMapUtils");
-      await preloadBasemapPresets(["satellite", "cadastral"]);
+    ]).then(([, appModule]) => {
+      // Warm the default basemap in the background — must not block lazy() resolve
+      // or the map shell stays behind the full-page splash until tiles finish loading.
+      void import("../hooks/useArcGISMapUtils").then(({ preloadBasemapPresets }) => {
+        void preloadBasemapPresets(["satellite"]);
+      });
       return appModule;
     });
   }
